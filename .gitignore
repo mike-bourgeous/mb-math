@@ -6,3 +6,7 @@
 /pkg/
 /spec/reports/
 /tmp/
+.*.swp
+.*.swo
+/spec/examples.txt
+.gdb_history
