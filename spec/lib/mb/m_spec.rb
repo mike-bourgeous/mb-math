@@ -381,4 +381,26 @@ RSpec.describe(MB::M) do
       expect(MB::M.quadratic_roots(1, 0, 1).sort_by { |r| [r.real, r.imag] }).to eq([0-1i, 0+1i])
     end
   end
+
+  describe '.min' do
+    it 'returns the lesser number' do
+      expect(MB::M.min(-1, 1)).to eq(-1)
+    end
+  end
+
+  describe '.max' do
+    it 'returns the greater number' do
+      expect(MB::M.max(-1, 1)).to eq(1)
+    end
+  end
+
+  describe '.max_abs' do
+    it 'returns the number with the larger magnitude' do
+      expect(MB::M.max_abs(-32, 16)).to eq(-32)
+    end
+
+    it 'can process Complex numbers' do
+      expect(MB::M.max_abs(0+16i, 8)).to eq(0+16i)
+    end
+  end
 end

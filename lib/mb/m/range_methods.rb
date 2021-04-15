@@ -48,6 +48,21 @@ module MB
         value
       end
 
+      # Returns whichever value is lesser.  If they are the same, returns a.
+      def min(a, b)
+        a <= b ? a : b
+      end
+
+      # Returns whichever value is greater.  If they are the same, returns a.
+      def max(a, b)
+        a >= b ? a : b
+      end
+
+      # Returns whichever value has the greatest absolute value.  If they are the
+      # same, returns a.
+      def max_abs(a, b)
+        a.abs >= b.abs ? a : b
+      end
     end
   end
 end
