@@ -14,6 +14,22 @@ module MB
     extend PrecisionMethods
     extend RangeMethods
 
+    module NumericMathDSL
+      # Returns the number itself (radians are the default).
+      def radians
+        self
+      end
+      alias radian radians
+
+      # Converts degrees to radians.
+      def degrees
+        self * Math::PI / 180.0
+      end
+      alias degree degrees
+    end
+
+    Numeric.include(NumericMathDSL)
+
     # Raises the given +value+ to the given +power+, but using the absolute
     # value function to prevent complex results.  Useful for waveshaping.
     def self.safe_power(value, power)

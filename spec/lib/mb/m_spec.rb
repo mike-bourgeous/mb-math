@@ -1,4 +1,24 @@
 RSpec.describe(MB::M) do
+  describe 'NumericMathDSL' do
+    describe '#degrees' do
+      it 'converts Numeric degrees to radians' do
+        expect(0.degrees).to eq(0)
+        expect(1.degree.round(6)).to eq((Math::PI / 180.0).round(6))
+        expect(90.degrees.round(6)).to eq((Math::PI / 2).round(6))
+        expect(180.degrees.round(6)).to eq(Math::PI.round(6))
+        expect(-90.degrees.round(6)).to eq((-Math::PI / 2).round(6))
+      end
+    end
+
+    describe '#radians' do
+      it 'makes no change' do
+        expect(0.radians).to eq(0)
+        expect(1.radian).to eq(1)
+        expect(-2.5.radians).to eq(-2.5)
+      end
+    end
+  end
+
   describe '.smoothstep' do
     it 'returns reasonable values' do
       expect(MB::M.smoothstep(0)).to eq(0)
