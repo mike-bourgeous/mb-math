@@ -1,8 +1,8 @@
-require_relative 'lib/mb/math/version'
+require_relative 'lib/mb/m/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "mb-math"
-  spec.version       = Mb::Math::VERSION
+  spec.version       = MB::M::VERSION
   spec.authors       = ["Mike Bourgeous"]
   spec.email         = ["mike@mikebourgeous.com"]
 
@@ -22,6 +22,10 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_runtime_dependency 'numo-narray', '~> 0.9.1'
+  spec.add_runtime_dependency 'cmath', '~> 1.0.0'
+
   spec.add_development_dependency 'pry'
   spec.add_development_dependency 'rake', '~> 13.0'
+  spec.add_development_dependency 'rspec', '~> 3.10.0'
 end

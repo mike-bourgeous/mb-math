@@ -61,6 +61,9 @@ gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
 
 ## Examples
 
+For typing convenience, and to avoid conflicting with Ruby's top-level `Math`
+module, everything lives under `MB::M` instead of `MB::Math`.
+
 TODO
 
 ## Testing
