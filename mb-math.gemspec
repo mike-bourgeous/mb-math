@@ -1,4 +1,4 @@
-require_relative 'lib/mb/math/version'
+require_relative 'lib/mb/m/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "mb-math"

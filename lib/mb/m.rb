@@ -1,8 +1,7 @@
 require 'cmath'
-
 require 'numo/narray'
 
-require_relative 'math/version'
+require_relative 'm/version'
 require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
