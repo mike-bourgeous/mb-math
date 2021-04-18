@@ -12,7 +12,8 @@ modeling.
 
 ## Quick start
 
-Clone the repo, follow the standalone installation instructions below, and run
+Clone the repo, follow the [standalone installation instructions
+below](#installation-and-usage), and run
 `bin/console`.  Use Pry's `ls` command to get a list of what's available, and
 the `show-source -d` command to see a function's documentation).
 
