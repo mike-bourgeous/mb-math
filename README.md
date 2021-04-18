@@ -15,6 +15,11 @@ modeling.
 This project contains some useful programs of its own, or you can use it as a
 Gem (with Git source) in your own projects.
 
+### Quick start
+
+Clone the repo, follow the standalone installation instructions, and run
+`bin/console`.
+
 ### Standalone usage and development
 
 First, install a Ruby version manager like RVM.  Using the system's Ruby is not
@@ -64,11 +69,72 @@ gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
 For typing convenience, and to avoid conflicting with Ruby's top-level `Math`
 module, everything lives under `MB::M` instead of `MB::Math`.
 
-TODO
+### Smooth interpolation
+
+The `interp` method blends between two `Numeric`s, `Array`s, `Hash`es, or
+`Numo::NArray`s.
+
+#### Numbers
+
+```ruby
+MB::M.interp(1, 2, 0.5)
+# => 1.5
+```
+
+#### Hashes
+
+```ruby
+a = { x: 0.5, y: 1.5 }
+b = { x: 1.0, y: -1.0 }
+
+MB::M.interp(a, b, 0)
+# => { x: 0.5, y: 1.5 }
+
+MB::M.interp(a, b, 1)
+# => { x: 1.0, y: -1.0 }
+
+MB::M.interp(a, b, 0.5)
+# => { x: 0.75, y: 0.25 }
+```
+
+#### Smoothed interpolation
+
+The `:func` keyword argument accepts a tweening function.  Anything that
+responds to `:call` and returns 0.0 if given 0.0 and 1.0 if given 1.0 can be
+used here.
+
+```ruby
+a = [-1, -1]
+b = [1, 2]
+steps = [0, 0.25, 0.5, 0.75, 1]
+MB::M.interp(a, b, steps, func: MB::M.method(:smootherstep))
+# => [[-1, -1], [-0.79296875, -0.689453125], [0.0, 0.5], [0.79296875, 1.689453125], [1, 2]]
+```
+
+#### Linear extrapolation
+
+Note: extrapolation doesn't work as one might expect with `smoothstep` or
+`smootherstep`.
+
+```ruby
+a = 1
+b = 2
+MB::M.interp(a, b, 2)
+# => 3
+```
+
+### Quadratic roots
+
+```ruby
+# f(x) = x^2 + 4
+MB::M.quadratic_roots(1, 0, 4)
+# => [(0.0+2.0i), (0.0-2.0i)]
+```
 
 ## Testing
 
-Run `rspec`, or play with the included scripts under `bin/`.
+Run `rspec`, or try the various functions in `bin/console` (use Pry's `ls`
+command to get a list of what's available).
 
 ## Contributing
 
@@ -83,11 +149,7 @@ This project is released under a 2-clause BSD license.  See the LICENSE file.
 
 ### Dependencies
 
-TODO
-
-### References
-
-TODO
+- [Numo::NArray](https://github.com/ruby-numo/numo-narray)
 
 
 [0]: https://www.youtube.com/playlist?list=PLpRqC8LaADXnwve3e8gI239eDNRO3Nhya
