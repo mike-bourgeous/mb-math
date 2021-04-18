@@ -5,6 +5,7 @@ require_relative 'm/version'
 require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
+require_relative 'm/array_methods'
 
 module MB
   # Functions for clamping, scaling, interpolating, etc.  Extracted from
@@ -13,6 +14,7 @@ module MB
     extend InterpolationMethods
     extend PrecisionMethods
     extend RangeMethods
+    extend ArrayMethods
 
     module NumericMathDSL
       # Returns the number itself (radians are the default).
@@ -39,28 +41,6 @@ module MB
 
       sign = value.positive? ? 1.0 : -1.0
       value.abs ** power * sign
-    end
-
-    # Converts a Ruby Array of any nesting depth to a Numo::NArray with a
-    # matching number of dimensions.  All nested arrays at a particular depth
-    # should have the same size (that is, all positions should be filled).
-    #
-    # Chained subscripts on the Array become comma-separated subscripts on the
-    # NArray, so array[1][2] would become narray[1, 2].
-    def self.array_to_narray(array)
-      return array if array.is_a?(Numo::NArray)
-      narray = Numo::NArray[array]
-      narray.reshape(*narray.shape[1..-1])
-    end
-
-    # Sets in-place processing to +inplace+ on the given +narray+, then yields
-    # the narray to the given block.
-    def self.with_inplace(narray, inplace)
-      was_inplace = narray.inplace?
-      inplace ? narray.inplace! : narray.not_inplace!
-      yield narray
-    ensure
-      was_inplace ? narray.inplace! : narray.not_inplace!
     end
 
     # Returns an array with the two complex roots of a quadratic equation with
