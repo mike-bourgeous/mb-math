@@ -10,58 +10,20 @@ This code is reasonably well-tested, but I recommend using it for non-critical
 tasks, not for making important decisions or for mission-critical data
 modeling.
 
-## Installation and usage
+## Quick start
 
-This project contains some useful programs of its own, or you can use it as a
-Gem (with Git source) in your own projects.
+Clone the repo, follow the standalone installation instructions below, and run
+`bin/console`.  Use Pry's `ls` command to get a list of what's available, and
+the `show-source -d` command to see a function's documentation).
 
-### Quick start
-
-Clone the repo, follow the standalone installation instructions, and run
-`bin/console`.
-
-### Standalone usage and development
-
-First, install a Ruby version manager like RVM.  Using the system's Ruby is not
-recommended -- that is only for applications that come with the system.  You
-should follow the instructions from https://rvm.io, but here are the basics:
 
 ```bash
-gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
-\curl -sSL https://get.rvm.io | bash -s stable
+bin/console
 ```
-
-Next, install Ruby.  RVM binary rubies are still broken on Ubuntu 20.04.x, so
-use the `--disable-binary` option if you are running Ubuntu 20.04.x.
-
-```bash
-rvm install --disable-binary 2.7.3
-```
-
-You can tell RVM to isolate all your projects and switch Ruby versions
-automatically by creating `.ruby-version` and `.ruby-gemset` files (already
-present in this project):
-
-```bash
-cd mb-math
-cat .ruby-gemset
-cat .ruby-version
-```
-
-Now install dependencies:
-
-```bash
-bundle install
-```
-
-### Using the project as a Gem
-
-To use mb-math in your own Ruby projects, add this Git repo to your
-`Gemfile`:
 
 ```ruby
-# your-project/Gemfile
-gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
+ls
+show-source -d clamp
 ```
 
 ## Examples
@@ -131,10 +93,75 @@ MB::M.quadratic_roots(1, 0, 4)
 # => [(0.0+2.0i), (0.0-2.0i)]
 ```
 
+### Scaling ranges
+
+Scales values or `Numo::NArray`s from one linear range to another,
+extrapolating for values beyond the end of the range.
+
+```ruby
+MB::M.scale(2, 0..4, 10..12)
+# => 11
+
+MB::M.scale(-2, 0..4, 10..12)
+# => 9
+
+# Reverse ranges work too
+MB::M.scale(Numo::SFloat[0, 1, 2, 3, 4], 1..3, 6..2)
+# => Numo::SFloat[8, 6, 4, 2, 0]
+```
+
+## Installation and usage
+
+This project contains some useful programs of its own, or you can use it as a
+Gem (with Git source) in your own projects.
+
+### Standalone usage and development
+
+First, install a Ruby version manager like RVM.  Using the system's Ruby is not
+recommended -- that is only for applications that come with the system.  You
+should follow the instructions from https://rvm.io, but here are the basics:
+
+```bash
+gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+\curl -sSL https://get.rvm.io | bash -s stable
+```
+
+Next, install Ruby.  RVM binary rubies are still broken on Ubuntu 20.04.x, so
+use the `--disable-binary` option if you are running Ubuntu 20.04.x.
+
+```bash
+rvm install --disable-binary 2.7.3
+```
+
+You can tell RVM to isolate all your projects and switch Ruby versions
+automatically by creating `.ruby-version` and `.ruby-gemset` files (already
+present in this project):
+
+```bash
+cd mb-math
+cat .ruby-gemset
+cat .ruby-version
+```
+
+Now install dependencies:
+
+```bash
+bundle install
+```
+
+### Using the project as a Gem
+
+To use mb-math in your own Ruby projects, add this Git repo to your
+`Gemfile`:
+
+```ruby
+# your-project/Gemfile
+gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
+```
+
 ## Testing
 
-Run `rspec`, or try the various functions in `bin/console` (use Pry's `ls`
-command to get a list of what's available).
+Run `rspec` to run all tests.
 
 ## Contributing
 
