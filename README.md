@@ -1,5 +1,7 @@
 # mb-math
 
+[![Tests](https://github.com/mike-bourgeous/mb-math/actions/workflows/test.yml/badge.svg)](https://github.com/mike-bourgeous/mb-math/actions/workflows/test.yml)
+
 Mathematical functions such as range-clamping, interpolation, extrapolation,
 etc.  This is companion code to my [educational video series about code and
 sound][0].

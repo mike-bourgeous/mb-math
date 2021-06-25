@@ -8,6 +8,8 @@ module MB
       #
       # Chained subscripts on the Array become comma-separated subscripts on the
       # NArray, so array[1][2] would become narray[1, 2].
+      #
+      # TODO: Should this go away in favor of Numo::NArray.cast(...)?
       def array_to_narray(array)
         return array if array.is_a?(Numo::NArray)
         narray = Numo::NArray[array]
