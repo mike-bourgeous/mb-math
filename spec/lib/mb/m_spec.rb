@@ -17,6 +17,12 @@ RSpec.describe(MB::M) do
         expect(-2.5.radians).to eq(-2.5)
       end
     end
+
+    describe '#rotation' do
+      it 'can return a 90 degree rotation matrix' do
+        expect(90.degree.rotation.round(8)).to eq(Matrix[[0, -1], [1, 0]])
+      end
+    end
   end
 
   describe '.scale' do

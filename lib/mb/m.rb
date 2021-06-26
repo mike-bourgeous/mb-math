@@ -1,3 +1,5 @@
+require 'matrix'
+
 require 'cmath'
 require 'numo/narray'
 
@@ -30,6 +32,24 @@ module MB
         self * Math::PI / 180.0
       end
       alias degree degrees
+
+      # Returns a non-augmented rotation matrix of the current numeric in radians.
+      #
+      # Example:
+      # 1.degree.rotation
+      # => Matrix[....]
+      #
+      # 90.degree.rotation * Vector[1, 0]
+      # => Vector[0, 1]
+      def rotation
+        # Values are rounded to 12 decimal places so that exact values like 0,
+        # 0.5, and 1 come out whole.
+        a = self.to_f
+        Matrix[
+          [Math.cos(a).round(12), -Math.sin(a).round(12)],
+          [Math.sin(a).round(12), Math.cos(a).round(12)]
+        ]
+      end
     end
 
     Numeric.include(NumericMathDSL)
