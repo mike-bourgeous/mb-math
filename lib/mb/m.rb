@@ -1,6 +1,8 @@
 require 'cmath'
 require 'numo/narray'
 
+require 'mb-util'
+
 require_relative 'm/version'
 require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
@@ -55,3 +57,5 @@ module MB
     end
   end
 end
+
+require_relative 'm/plot'

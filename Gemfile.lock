@@ -1,8 +1,15 @@
+GIT
+  remote: https://github.com/mike-bourgeous/mb-util.git
+  revision: d628fabc692fecf34dbce91054cf528a1e00d647
+  specs:
+    mb-util (0.1.0.usegit)
+
 PATH
   remote: .
   specs:
     mb-math (0.0.1.usegit)
       cmath (~> 1.0.0)
+      mb-util (>= 0.1.0.usegit)
       numo-narray (~> 0.9.1)
 
 GEM
@@ -43,6 +50,7 @@ PLATFORMS
 
 DEPENDENCIES
   mb-math!
+  mb-util!
   pry
   rake (~> 13.0)
   rspec (~> 3.10.0)
