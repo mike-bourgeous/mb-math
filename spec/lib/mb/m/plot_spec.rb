@@ -5,6 +5,26 @@ RSpec.describe MB::M::Plot do
   describe '#plot' do
     let(:data) { {test123: [1, 0, 0, 0, 0], data321: [1, 0, 1, 0, 0, 0]} }
 
+    let(:scatter) {
+      {
+        scatter123: [
+          [0.9, 0.9],
+          [-0.9, 0.9],
+          [0, 0],
+          [-0.9, -0.9],
+          [0.9, -0.9],
+        ],
+        xy321: [
+          [-0.9, 0.5],
+          [-0.5, -0.5],
+          [-0.3, 0.2],
+          [-0.7, 0.7],
+          [0.9, 0.5],
+          [0.5, -0.3],
+        ],
+      }
+    }
+
     context 'with the dumb terminal type' do
       let(:plot) { MB::M::Plot.terminal(width: 80, height: 50) }
 
@@ -33,9 +53,13 @@ RSpec.describe MB::M::Plot do
           buf = String.new(encoding: 'UTF-8')
           strio = StringIO.new(buf)
 
-          $stdout = strio
-          plot.plot(data)
-          $stdout = orig_stdout
+          begin
+            # TODO: could use RSpec mocks like expect($stdout).to receive(....)...
+            $stdout = strio
+            plot.plot(data)
+          ensure
+            $stdout = orig_stdout
+          end
 
           expect(buf).to include('test123')
           expect(buf).to include('data321')
@@ -73,6 +97,21 @@ RSpec.describe MB::M::Plot do
 
         second_legend = lines.select { |l| l.include?('test123') }.first
         expect(second_legend).not_to include('data321')
+      end
+
+      it 'can draw a scatter plot' do
+        lines = plot.plot(scatter, columns: 2, rows: 1, print: false)
+        lines.map!(&MB::U.method(:remove_ansi))
+
+        # Expect the legend of both plots to be on the same line
+        legend_line = lines.select { |l| l.include?('xy321') }.first
+        expect(legend_line).to include('scatter123')
+
+        # Expect the plot to contain multiple points in the same column,
+        # proving that the scatter plot can move both left and right
+        sideways_lines = lines.map { |l| l.ljust(80).chars }.transpose.map(&:join)
+        overlapping_lines = sideways_lines.select { |l| l =~ /-(\s+\*+){2,}/ }
+        expect(overlapping_lines.count).to be > 4
       end
     end
 

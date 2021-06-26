@@ -7,7 +7,9 @@ module MB
     # Super basic interface to GNUplot.  You can plot to the terminal or to a
     # separate window.
     #
-    # TODO: examples
+    # See README.md for a couple of examples.
+    #
+    # TODO: more examples
     #
     # Created because Numo::Gnuplot was giving an error.
     class Plot
@@ -172,8 +174,13 @@ module MB
 
       # Displays a multi-plot of the given +data+ hash of labels to arrays, with
       # the given number of +columns+ and +rows+ (defaults to a roughly square
-      # layout based on number of graphs).  The graph X axis is always array
-      # index.
+      # layout based on number of graphs).
+      #
+      # If each data element is Numeric, then the graph X axis is array index.
+      # If each data element is a two-element Array, then the graph X axis is
+      # the first element and the Y axis is the second element.  Thus, scatter
+      # plots may be drawn by passing an array of 2D arrays instead of an array
+      # of numbers.
       #
       # If the read buffer (see #read) gets larger than 1100 lines, it will be
       # trimmed to the most recent 1000 lines to prevent unbounded memory
@@ -235,7 +242,10 @@ module MB
           elsif @yrange
             yrange(*@yrange)
           else
-            if array.is_a?(Numo::DComplex) || array.is_a?(Numo::SComplex)
+            if array.is_a?(Array) && array.all?(Array)
+              # TODO: X range?
+              range = array.map { |v| v[1].is_a?(Complex) ? v[1].abs : v[1] }
+            elsif array.is_a?(Numo::DComplex) || array.is_a?(Numo::SComplex)
               range = array.not_inplace!.abs
             elsif array[0].is_a?(Complex)
               range = array.map(&:abs)
@@ -376,6 +386,7 @@ module MB
       # commandline.
       def write_data(file, array)
         array.each_with_index do |value, idx|
+          idx, value = value if value.is_a?(Array)
           value = value.abs if value.is_a?(Complex)
           file.puts "#{idx}\t#{value}"
         end
