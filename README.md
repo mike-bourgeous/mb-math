@@ -88,6 +88,63 @@ MB::M.interp(a, b, 2)
 # => 3
 ```
 
+### Plotting
+
+A simple wrapper around GNUPlot (or any compatible plotter) is provided that
+can plot to an image file, a graphical window, or a text console.
+
+The `MB::M::Plot#plot` method takes a `Hash` mapping dataset names to data
+values.
+
+```ruby
+# Standard plot
+p = MB::M::Plot.terminal(width_fraction: 1, height_fraction: 1, width: 40, height: 15)
+p.plot({noise: Numo::SFloat.zeros(10).rand(-0.9, 0.9)}, columns: 1, rows: 1)
+```
+
+```
+   1 +----------------------------+
+     |  +  +   +  +  +  +   +  +  |
+ 0.5 |-+            noise *******-|
+     |         *               *  |
+     |  *     * *              ** |
+   0 |-* *   *  *             * +*|
+     | *  *  *   *            *  *|
+-0.5 |*+  * *    *           *  +-|
+     |     *      *          *    |
+     |  +  +   +  ***********  +  |
+  -1 +----------------------------+
+     0  1  2   3  4  5  6   7  8  9
+```
+
+```ruby
+# Scatter plot
+p = MB::M::Plot.terminal(width_fraction: 1, height_fraction: 1, width: 40, height: 20)
+points = (0..(Math::PI * 2)).step(Math::PI / 8).map { |a| [ 0.9 * Math.cos(a), 0.9 * Math.sin(a) ] }
+p.xrange(-1, 1)
+p.plot({ circle: points })
+```
+
+```
+    1 +----------------------------+
+      |      +       +      +      |
+      |             circle ******* |
+      |                            |
+  0.5 |-+       *********        +-|
+      |        *         **        |
+      |       *            *       |
+    0 |-+    *              *    +-|
+      |       *             *      |
+      |       *            *       |
+      |        ***       **        |
+ -0.5 |-+         *******        +-|
+      |                            |
+      |                            |
+      |      +       +      +      |
+   -1 +----------------------------+
+     -1    -0.5      0     0.5     1
+```
+
 ### Quadratic roots
 
 ```ruby

@@ -19,6 +19,10 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
+      - name: Install apt deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install ffmpeg gnuplot-nox
       - name: Install gem deps
         run: bundle install
       - name: Run tests
