@@ -161,15 +161,25 @@ module MB
       end
 
       # Sets xrange of the next plot (not kept after a reset) also don't rely on this documentation
-      def xrange(min, max)
-        @xrange = [min, max]
-        command "set xrange [#{min}:#{max}]"
+      def xrange(min, max, keep=true)
+        @xrange = [min, max] if keep
+
+        if min.nil? || max.nil?
+          command 'unset xrange'
+        else
+          command "set xrange [#{min}:#{max}]"
+        end
       end
 
       # Sets yrange of the next plot (not kept after a reset) also don't rely on this documentation
-      def yrange(min, max)
-        @yrange = [min, max]
-        command "set yrange [#{min}:#{max}]"
+      def yrange(min, max, keep=true)
+        @yrange = [min, max] if keep
+
+        if min.nil? || max.nil?
+          command 'unset yrange'
+        else
+          command "set yrange [#{min}:#{max}]"
+        end
       end
 
       # Displays a multi-plot of the given +data+ hash of labels to arrays, with
@@ -237,13 +247,21 @@ module MB
           end
 
           # Set graph range
+          if plotinfo[:xrange]
+            xrange(*plotinfo[:xrange], false)
+          elsif @xrange
+            xrange(*@xrange, false)
+          else
+            xrange(nil, nil, false)
+          end
+
           if plotinfo[:yrange]
-            yrange(*plotinfo[:yrange])
+            yrange(*plotinfo[:yrange], false)
           elsif @yrange
-            yrange(*@yrange)
+            yrange(*@yrange, false)
           else
             if array.is_a?(Array) && array.all?(Array)
-              # TODO: X range?
+              xr = array.map { |v| v[0].is_a?(Complex) ? v[0].abs : v[0] }
               range = array.map { |v| v[1].is_a?(Complex) ? v[1].abs : v[1] }
             elsif array.is_a?(Numo::DComplex) || array.is_a?(Numo::SComplex)
               range = array.not_inplace!.abs
@@ -259,8 +277,7 @@ module MB
 
             min = [0, min.floor].min
             max = max > 0.2 ? max.ceil : 0.1
-            yrange(min, max)
-            @yrange = nil
+            yrange(min, max, false)
           end
 
           if plotinfo[:logscale] == true || (plotinfo[:logscale] != false && @logscale)
