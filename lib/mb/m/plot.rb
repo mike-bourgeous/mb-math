@@ -31,6 +31,9 @@ module MB
       # If true, all incoming lines from gnuplot are printed to the terminal.
       attr_accessor :debug
 
+      # If false, the dumb terminal plotter does not print to the terminal.
+      attr_accessor :print
+
       attr_reader :width, :height
 
       # Use a longer +timeout+ if you will be plotting lots of data.
@@ -53,6 +56,7 @@ module MB
 
         @run = true
         @debug = false
+        @print = true
         @t = Thread.new do read_loop end
 
         at_exit do
@@ -331,7 +335,7 @@ module MB
 
         binding.pry if lines.any? { |l| l.include?('plot') } # XXX seeing some spurious lines above graphs
 
-        if print
+        if @print && print
           puts lines
         else
           lines

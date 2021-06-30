@@ -73,7 +73,8 @@ RSpec.describe MB::M::Plot do
       end
 
       it 'can plot using columns' do
-        lines = plot.plot(data, columns: 2, print: false)
+        plot.print = false
+        lines = plot.plot(data, columns: 2)
         border_line = lines.first { |l| l.include?('----') }
 
         # Expect the border to be half the screen width
