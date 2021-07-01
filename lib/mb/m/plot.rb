@@ -40,6 +40,7 @@ module MB
       def initialize(terminal: ENV['PLOT_TERMINAL'] || 'qt', title: nil, width: ENV['PLOT_WIDTH']&.to_i || 800, height: ENV['PLOT_HEIGHT']&.to_i || 800, timeout: 5)
         @width = width
         @height = height
+        @xrange = nil
         @yrange = nil
         @title = title
         @rows = nil
