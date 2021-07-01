@@ -17,8 +17,8 @@ module MB
 
       # Creates an ASCII-art plotter sized to the terminal.
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
-        cols = (((width || MB::U.width) - 1) * width_fraction).round
-        rows = (((height || MB::U.height) - 1) * height_fraction).round
+        cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
+        rows = ENV['PLOT_HEIGHT']&.to_i || (((height || MB::U.height) - 1) * height_fraction).round
         Plot.new(terminal: 'dumb', width: cols, height: rows)
       end
 
