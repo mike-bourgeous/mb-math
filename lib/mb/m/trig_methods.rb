@@ -9,6 +9,7 @@ module MB
       # See https://www.wolframalpha.com/input/?i=INTEGRATE+%282i%2F%28e%5E%28i*z%29-e%5E%28-i*z%29%29%29
       def csc_int(x)
         # Scale and offset adjusted to match plot on Wolfram Alpha
+        # FIXME: this does not return the correct imaginary component when given an imaginary argument
         -2.0 * CMath.atanh(CMath.exp(1i * x)).conj + Math::PI / 2i
       end
     end
