@@ -10,15 +10,20 @@ require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
 require_relative 'm/array_methods'
+require_relative 'm/trig_methods'
 
 module MB
   # Functions for clamping, scaling, interpolating, etc.  Extracted from
   # mb-sound and various other personal projects.
+  #
+  # This is called M and not Math to avoid aliasing with the top-level ::Math
+  # module.
   module M
     extend InterpolationMethods
     extend PrecisionMethods
     extend RangeMethods
     extend ArrayMethods
+    extend TrigMethods
 
     module NumericMathDSL
       # Returns the number itself (radians are the default).

@@ -1,5 +1,5 @@
 module MB
   module M
-    VERSION = "0.0.6.usegit"
+    VERSION = "0.0.7.usegit"
   end
 end
