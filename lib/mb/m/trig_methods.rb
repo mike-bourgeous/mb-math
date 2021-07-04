@@ -12,6 +12,16 @@ module MB
         # FIXME: this does not return the correct imaginary component when given an imaginary argument
         -2.0 * CMath.atanh(CMath.exp(1i * x)).conj + Math::PI / 2i
       end
+
+      # The second antidervative of the cosecant, or something like that.
+      def csc_int_int(x)
+        x * (CMath.log(CMath.exp(1i * x) + 1) - CMath.log(CMath.exp(1i * x) - 1)) -
+          2 * x * CMath.atanh(CMath.exp(1i * x)) +
+          1i * CMath.log(-CMath.exp(1i * x)) * CMath.log(CMath.exp(1i * x) + 1) +
+          x * CMath.log(CMath.exp(1i * x) - 1) +
+          1i * dilog(CMath.exp(1i * x) + 1) -
+          1i * dilog(-CMath.exp(1i * x) + 1)
+      end
     end
   end
 end

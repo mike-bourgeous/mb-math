@@ -13,4 +13,8 @@ RSpec.describe(MB::M::TrigMethods) do
 
     pending 'returns expected values for complex arguments'
   end
+
+  describe '#csc_int_int' do
+    pending
+  end
 end
