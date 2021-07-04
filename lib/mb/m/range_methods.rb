@@ -10,10 +10,10 @@ module MB
       #   scale(Numo::SFloat[5, 10], 0..10, 0..1) # => Numo::SFloat[0.5, 1.0]
       def scale(value, from_range, to_range)
         if value.is_a?(Numo::NArray)
-          if value.length != 0 && !value[0].is_a?(Float)
+          if value.length != 0 && !value[0].is_a?(Float) && !value[0].is_a?(Complex)
             value = value.cast_to(Numo::SFloat)
           end
-        elsif !value.is_a?(Float) && value.respond_to?(:to_f)
+        elsif !value.is_a?(Float) && !value.is_a?(Complex) && value.respond_to?(:to_f)
           value = value.to_f
         end
 
