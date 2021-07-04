@@ -25,16 +25,6 @@ RSpec.describe(MB::M) do
     end
   end
 
-  describe '.safe_power' do
-    it 'scales positive values' do
-      expect(MB::M.safe_power(0.25, 0.5)).to eq(0.5)
-    end
-
-    it 'scales negative values' do
-      expect(MB::M.safe_power(-0.25, 0.5)).to eq(-0.5)
-    end
-  end
-
   describe '.sigfigs' do
     it 'raises an error if digits is less than one' do
       expect { MB::M.sigfigs(1, 0) }.to raise_error(/digits/)

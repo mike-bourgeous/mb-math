@@ -10,6 +10,7 @@ require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
 require_relative 'm/array_methods'
+require_relative 'm/exponential_methods'
 require_relative 'm/trig_methods'
 
 module MB
@@ -23,6 +24,7 @@ module MB
     extend PrecisionMethods
     extend RangeMethods
     extend ArrayMethods
+    extend ExponentialMethods
     extend TrigMethods
 
     module NumericMathDSL
@@ -58,17 +60,6 @@ module MB
     end
 
     Numeric.include(NumericMathDSL)
-
-    # Raises the given +value+ to the given +power+, but using the absolute
-    # value function to prevent complex results.  Useful for waveshaping.
-    def self.safe_power(value, power)
-      if value.is_a?(Numo::NArray)
-        return value.map { |v| safe_power(v, power) }
-      end
-
-      sign = value.positive? ? 1.0 : -1.0
-      value.abs ** power * sign
-    end
 
     # Returns an array with the two complex roots of a quadratic equation with
     # the given coefficients.
