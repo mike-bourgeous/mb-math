@@ -19,6 +19,8 @@ module MB
       # antiderivative of #csc_int).
       #
       # The imaginary part looks like a triangle wave within -pi..pi.
+      #
+      # Sage command: f = integrate(-2*atanh(e^(i*x)), x)
       def csc_int_int(x)
         # The derivative (#csc_int) has discontinuities at 0 and pi so we have
         # to fill in these gaps.

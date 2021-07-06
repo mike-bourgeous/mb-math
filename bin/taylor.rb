@@ -21,7 +21,7 @@ def taylor_coeffs(f, around, order)
   @taylor_memo ||= {}
   @taylor_memo[[f, around, order]] ||= (order + 1).times.map { |o|
     num = derivative(f, around, o).last
-    num = Float(num) rescue Complex(num)
+    num = Float(num) rescue Complex(num.sub('*I', 'i').gsub(' ', ''))
     denom = o.downto(1).reduce(1, :*)
     num / denom
   }
@@ -33,7 +33,7 @@ def taylor_expression(f, around, order)
     if idx == 0
       c
     else
-      if c < 0
+      if c.real? && c < 0
         prefix = ' - '
       else
         prefix = ' + '
