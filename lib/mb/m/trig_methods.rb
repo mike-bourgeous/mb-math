@@ -20,6 +20,11 @@ module MB
       #
       # The imaginary part looks like a triangle wave within -pi..pi.
       def csc_int_int(x)
+        # The derivative (#csc_int) has discontinuities at 0 and pi so we have
+        # to fill in these gaps.
+        return 2.46740110027234i if x == 0
+        return -2.46740110027234i if x == Math::PI || x == -Math::PI
+
         x * (CMath.log(CMath.exp(1i * x) + 1) - CMath.log(CMath.exp(1i * x) - 1)) -
           2 * x * CMath.atanh(CMath.exp(1i * x)) +
           1i * CMath.log(-CMath.exp(1i * x)) * CMath.log(CMath.exp(1i * x) + 1) +

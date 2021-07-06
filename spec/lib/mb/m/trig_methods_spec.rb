@@ -28,6 +28,7 @@ RSpec.describe(MB::M::TrigMethods) do
       Math::PI / 4 => -1.50576150501180 + 1.23370055013617i,
       1 => -1.66434523928990 + 0.896604773477443i,
       Math::PI / 2 => -1.83193118835444,
+      Math::PI => -2.46740110027234i,
     }
 
     tests.each do |input, output|
@@ -35,5 +36,7 @@ RSpec.describe(MB::M::TrigMethods) do
         expect(MB::M.round(MB::M.csc_int_int(input), 6)).to eq(MB::M.round(output, 6))
       end
     end
+
+    pending 'complex arguments'
   end
 end
