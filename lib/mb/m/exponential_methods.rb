@@ -99,9 +99,15 @@ module MB
         raise 'TODO'
       end
 
-      def polylog_zeta(s, limit = 100)
+      def polylog_zeta(s, limit = 10000)
         # FIXME: this does not converge, at least when s < 1 or when s is not real; need a better algorithm
-        (1..limit).lazy.map { |n| n.to_f ** -s }.sum
+        if s == 1
+          Float::INFINITY
+        elsif s.real >= 1
+          (1..limit).lazy.map { |n| n.to_f ** -s }.sum
+        else
+          2.0 ** s * Math::PI ** (s - 1) * CMath.sin(Math::PI * s / 2) * CMath.gamma(1.0 - s) * polylog_zeta(1.0 - s)
+        end
       end
 
       def polylog_bernoulli(n, z)
