@@ -2,7 +2,7 @@
 # Calls out to Sage in a really inefficient way to build the Taylor series
 # expansion of a Sage expression.
 #
-# Usage: $0 "expression" around order
+# Usage: $0 "expression" order around
 
 require 'bundler/setup'
 require 'pry-byebug'
@@ -55,10 +55,10 @@ end
 #puts taylor_coeffs('integrate(-2*atanh(e^(i*x)), x)', -1, 4)
 #puts taylor_coeffs('ln(x)', Math::E, 4)
 
-raise MB::U.read_header_comment.join if ARGV.length != 3 || ARGV.include?('--help')
+raise MB::U.read_header_comment.join.gsub('$0', $0) if ARGV.length != 3 || ARGV.include?('--help')
 f = ARGV[0]
-around = Float(ARGV[1]) rescue Complex(ARGV[1])
-order = Integer(ARGV[2])
+order = Integer(ARGV[1])
+around = Float(ARGV[2]) rescue Complex(ARGV[2].gsub(' ', ''))
 
 puts "\n\e[1mCoefficients:\e[0m"
 puts MB::U.highlight(taylor_coeffs(f, around, order))
