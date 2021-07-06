@@ -13,15 +13,21 @@ def sage(cmd)
   `sage -c #{cmd.shellescape}`.strip.lines.map(&:strip)
 end
 
+# Computes the numerical derivative of the given +order+ of +f+ at +x+.  The
+# +order+ may be a list of orders.
 def derivative(f, x, order)
-  sage("f = #{f}\nprint(derivative(f, #{order})(x=#{x}).n())")
+  cmd = [
+    "f = #{f}",
+    *order.map { |o| "print(derivative(f, #{o})(x=#{x}).n())" }
+  ]
+  sage(cmd.join("\n")).map { |n|
+    Float(n) rescue Complex(n.sub('*I', 'i').gsub(' ', ''))
+  }
 end
 
 def taylor_coeffs(f, around, order)
   @taylor_memo ||= {}
-  @taylor_memo[[f, around, order]] ||= (order + 1).times.map { |o|
-    num = derivative(f, around, o).last
-    num = Float(num) rescue Complex(num.sub('*I', 'i').gsub(' ', ''))
+  @taylor_memo[[f, around, order]] ||= derivative(f, around, (order + 1).times).map.with_index { |num, o|
     denom = o.downto(1).reduce(1, :*)
     num / denom
   }
