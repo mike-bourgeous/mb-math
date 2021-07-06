@@ -15,6 +15,25 @@ RSpec.describe(MB::M::TrigMethods) do
   end
 
   describe '#csc_int_int' do
-    pending
+    tests = {
+      -Math::PI => -2.46740110027234i,
+      -Math::PI * 3 / 4 => 1.50576150501180 - 1.23370055013617i,
+      -Math::PI / 2 => 1.83193118835444,
+      -Math::PI / 4 => 1.50576150501180 + 1.23370055013617i,
+      -0.1 => 0.399545439850514 + 2.31032146759285i,
+      0 => 2.46740110027234i, # TODO: this probably needs to be filled in as a special case
+      0.01 => -0.0629831458876051 + 2.45169313700439i,
+      0.1 => -0.399545439850514 + 2.31032146759285i,
+      0.5 => -1.18964418922697 + 1.68200293687489i,
+      Math::PI / 4 => -1.50576150501180 + 1.23370055013617i,
+      1 => -1.66434523928990 + 0.896604773477443i,
+      Math::PI / 2 => -1.83193118835444,
+    }
+
+    tests.each do |input, output|
+      it "returns expected value for #{input}" do
+        expect(MB::M.round(MB::M.csc_int_int(input), 6)).to eq(MB::M.round(output, 6))
+      end
+    end
   end
 end
