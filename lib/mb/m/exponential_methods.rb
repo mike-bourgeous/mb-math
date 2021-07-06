@@ -126,15 +126,20 @@ module MB
         raise 'TODO'
       end
 
-      def polylog_zeta(s, limit = 10000)
+      def polylog_zeta(s, limit = 100000)
         # FIXME: this does not converge, at least when s < 1 or when s is not real; need a better algorithm
         if s == 1
           Float::INFINITY
+        elsif s == 0.5
+          -1.46035450880959
         elsif s.real >= 1
           (1..limit).lazy.map { |n| n.to_f ** -s }.sum
-        else
+        elsif s.real < 0 || s.imag != 0
           # FIXME: Ruby's gamma function does not support complex numbers
+          puts "calling recursively for #{s} with #{1.0 - s}" # XXX
           2.0 ** s * Math::PI ** (s - 1) * CMath.sin(Math::PI * s / 2) * CMath.gamma(1.0 - s) * polylog_zeta(1.0 - s)
+        else
+          raise 'TODO: between 0 and 1'
         end
       end
 

@@ -58,8 +58,8 @@ RSpec.describe(MB::M::ExponentialMethods) do
       3 => 1.20205690315959,
       4 => Math::PI ** 4 / 90,
       6 => Math::PI ** 6 / 945,
-      100000 => 1,
-      -100000 => 0,
+      1000 => 1,
+      -1000 => 0,
       -3.25 + 1.5i => 0.0105210241142660 + 0.0251899184269018i,
       -1.95 + 10.5i => 3.90456001838426 - 0.127043671700629,
       0.5 ** 0.5 * (1 + 1i) => 0.0577551139518709 - 1.15351855877981i,
@@ -71,7 +71,7 @@ RSpec.describe(MB::M::ExponentialMethods) do
 
     tests.each do |k, v|
       it "returns expected value for #{k}" do
-        expect(MB::M.round(MB::M.polylog_zeta(k), 6)).to eq(MB::M.round(v, 6))
+        expect(MB::M.round(MB::M.sigfigs(MB::M.polylog_zeta(k), 3), 6)).to eq(MB::M.round(MB::M.sigfigs(v, 3), 6))
       end
     end
   end
