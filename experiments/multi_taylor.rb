@@ -13,6 +13,18 @@ require 'pry-byebug'
 require 'shellwords'
 require 'mb-math'
 
+# Sage/Python function for calculating an approximate numerical derivative.
+NDFUNC = <<-PYTHON
+def nderiv(f, x, order):
+    epsilon = 1 / 100000000
+    if order > 1:
+        return (nderiv(f, x + epsilon, order - 1) - nderiv(f, x - epsilon, order - 1)) / (2 * epsilon)
+    elif order == 1:
+        return (f(x=x + epsilon) - f(x=x - epsilon)) / (2 * epsilon)
+    else:
+        return f(x=x)
+PYTHON
+
 def sage(cmd)
   puts "  \e[1mSage command:\e[0m\n    #{MB::U.syntax(cmd, :python).lines.join("    ")}"
   `sage -c #{cmd.shellescape}`.strip.lines.map(&:strip)
@@ -22,8 +34,9 @@ end
 # +order+ may be a list of orders.
 def derivative(f, x, order)
   cmd = [
+    NDFUNC,
     "f = #{f}",
-    *order.map { |o| "print(derivative(f, #{o})(x=#{x}).n())" }
+    *order.map { |o| "print(nderiv(f, x, #{o})(x=#{x}).n())" }
   ]
   sage(cmd.join("\n")).map { |n|
     Float(n) rescue Complex(n.sub('*I', 'i').gsub(' ', ''))
