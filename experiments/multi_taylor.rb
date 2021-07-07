@@ -18,9 +18,9 @@ NDFUNC = <<-PYTHON
 def nderiv(f, x, order):
     epsilon = 1 / 100000000
     if order > 1:
-        return (nderiv(f, x + epsilon, order - 1) - nderiv(f, x - epsilon, order - 1)) / (2 * epsilon)
+        return (nderiv(f, x + epsilon, order - 1) - nderiv(f, x, order - 1)) / epsilon
     elif order == 1:
-        return (f(x=x + epsilon) - f(x=x - epsilon)) / (2 * epsilon)
+        return (f(x=x + epsilon) - f(x=x)) / epsilon
     else:
         return f(x=x)
 PYTHON
