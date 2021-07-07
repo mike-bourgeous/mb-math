@@ -102,6 +102,7 @@ module MB
       end
 
       # Equation 1.4 in Crandall(2006).
+      # FIXME: probably calling gamma with the wrong values for factorial!
       def polylog_1_4(n, z, limit)
         (0..limit).lazy.map { |m|
           next 0 if (n - m) == 1 # sigma prime notation from the paper
@@ -111,6 +112,7 @@ module MB
       end
 
       # Right side of equation 1.3 in Crandall(2006).
+      # FIXME: probably calling gamma with the wrong values!
       def polylog_1_3(n, z, limit)
         s = -(2i * Math::PI) ** n / CMath.gamma(n) * polylog_bernoulli(n, CMath.log(z) / 2i * Math::PI)
 
