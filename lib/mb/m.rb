@@ -57,6 +57,15 @@ module MB
           [Math.sin(a).round(12), Math.cos(a).round(12)]
         ]
       end
+
+      # Computes the factorial function for positive integers, computes the
+      # gamma(n + 1) function for any other type of number.
+      def factorial
+        return CMath.gamma(self + 1) if self.is_a?(Complex)
+        return CMath.gamma(self + 1).to_i if self.is_a?(Integer) && self <= 22
+        return self.to_i.downto(2).reduce(1, :*) if self.is_a?(Integer) || self.to_i == self
+        return CMath.gamma(self + 1)
+      end
     end
 
     Numeric.include(NumericMathDSL)

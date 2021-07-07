@@ -26,22 +26,22 @@ module MB
         else
           case z
           when 1
-            polylog_zeta(order)
+            ExponentialMethods.polylog_zeta(order)
 
           when -1
-            -(1.0 - 2.0 ** (1.0 - order)) * polylog_zeta(order)
+            -(1.0 - 2.0 ** (1.0 - order)) * ExponentialMethods.polylog_zeta(order)
 
           else
             limit = (10 * Math.log2(10)).ceil
 
             if z.abs <= 0.5
-              polylog_1_1(order, z, limit)
+              ExponentialMethods.polylog_1_1(order, z, limit)
             elsif z.abs >= 2
-              polylog_1_3(order, z, limit) - (-1) ** order * polylog_1_1(order, 1.0 / z, limit)
+              ExponentialMethods.polylog_1_3(order, z, limit) - (-1) ** order * ExponentialMethods.polylog_1_1(order, 1.0 / z, limit)
             elsif order > 0
-              polylog_1_4(order, z, limit)
+              ExponentialMethods.polylog_1_4(order, z, limit)
             else
-              polylog_1_5(order, z, limit)
+              ExponentialMethods.polylog_1_5(order, z, limit)
             end
           end
         end
@@ -97,47 +97,50 @@ module MB
       end
 
       # Equation 1.1 in Crandall(2006).
-      def polylog_1_1(n, z, limit)
+      def self.polylog_1_1(n, z, limit)
         (1..limit).lazy.map { |k| z ** k / k ** n }.sum
       end
 
       # Equation 1.4 in Crandall(2006).
-      # FIXME: probably calling gamma with the wrong values for factorial!
-      def polylog_1_4(n, z, limit)
+      def self.polylog_1_4(n, z, limit)
         (0..limit).lazy.map { |m|
           next 0 if (n - m) == 1 # sigma prime notation from the paper
-          polylog_zeta(n - m) / CMath.gamma(m) * CMath.log(z) ** m +
-            CMath.log(z) ** (n - 1) / CMath.gamma(n - 1) * (polylog_harmonic(n - 1) - CMath.log(-CMath.log(z)))
+          polylog_zeta(n - m) / m.factorial * CMath.log(z) ** m +
+            CMath.log(z) ** (n - 1) / (n - 1).factorial * (polylog_harmonic(n - 1) - CMath.log(-CMath.log(z)))
         }.sum
       end
 
       # Right side of equation 1.3 in Crandall(2006).
-      # FIXME: probably calling gamma with the wrong values!
-      def polylog_1_3(n, z, limit)
-        s = -(2i * Math::PI) ** n / CMath.gamma(n) * polylog_bernoulli(n, CMath.log(z) / 2i * Math::PI)
+      def self.polylog_1_3(n, z, limit)
+        s = -(2i * Math::PI) ** n / n.factorial * polylog_bernoulli(n, CMath.log(z) / 2i * Math::PI)
 
         if z.imag < 0 || (z.imag == 0 && z.real >= 1)
-          s -= 2i * Math::PI * CMath.log(z) ** (n - 1) / CMath.gamma(n - 1)
+          s -= 2i * Math::PI * CMath.log(z) ** (n - 1) / (n - 1).factorial
         end
 
         s
       end
 
       # Equation 1.5 in Crandall(2006).
-      def polylog_1_5(n, z, limit)
-        raise 'TODO'
+      def self.polylog_1_5(n, z, limit)
+        (-n).factorial * (-CMath.log(z)) ** (n - 1) -
+          (0..limit).lazy.map { |k| polylog_bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
       end
 
-      def polylog_zeta(s, limit = 100000)
-        # FIXME: this does not converge, at least when s < 1 or when s is not real; need a better algorithm
+      # Riemann zeta function
+      # FIXME: this doesn't return the right values *at all* for complex inputs
+      def self.polylog_zeta(s, limit = 100000)
         if s == 1
           Float::INFINITY
+        elsif s == 0
+          -0.5
         elsif s == 0.5
           -1.46035450880959
         elsif s.real >= 1
           (1..limit).lazy.map { |n| n.to_f ** -s }.sum
         elsif s.real < 0 || s.imag != 0
           # FIXME: Ruby's gamma function does not support complex numbers
+          # This comes from 3b1b's video about the Riemann zeta function
           puts "calling recursively for #{s} with #{1.0 - s}" # XXX
           2.0 ** s * Math::PI ** (s - 1) * CMath.sin(Math::PI * s / 2) * CMath.gamma(1.0 - s) * polylog_zeta(1.0 - s)
         else
@@ -145,13 +148,18 @@ module MB
         end
       end
 
-      def polylog_bernoulli(n, z)
-        warn 'TODO'
+      def self.polylog_bernoulli(n, z)
+        warn 'TODO: bernoulli polynomial'
+        0
+      end
+
+      def self.polylog_bernoulli_number(n, z)
+        warn 'TODO: bernoulli number'
         0
       end
 
       # Harmonic numbers as described in Crandall(2006) for equation 1.4.
-      def polylog_harmonic(q)
+      def self.polylog_harmonic(q)
         (1..q).lazy.map { |k| 1.0 / k }.sum
       end
     end

@@ -71,7 +71,7 @@ RSpec.describe(MB::M::ExponentialMethods) do
 
     tests.each do |k, v|
       it "returns expected value for #{k}" do
-        expect(MB::M.round(MB::M.sigfigs(MB::M.polylog_zeta(k), 3), 6)).to eq(MB::M.round(MB::M.sigfigs(v, 3), 6))
+        expect(MB::M.round(MB::M.sigfigs(MB::M::ExponentialMethods.polylog_zeta(k), 3), 6)).to eq(MB::M.round(MB::M.sigfigs(v, 3), 6))
       end
     end
   end
