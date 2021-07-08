@@ -21,7 +21,7 @@ end
 def evaluate(f, x)
   cmd = [
     "f = #{f}",
-    *x.to_enum.map { |v| "print(f(x=#{v}).n())" }
+    *x.to_enum.map { |v| "try:\n    print(f(x=#{v}).n())\nexcept:\n    print(limit(f, x=#{v}).n())" }
   ]
   sage(cmd.join("\n")).map { |n|
     Float(n) rescue Complex(n.sub('*I', 'i').gsub(' ', ''))
@@ -40,6 +40,7 @@ puts "\n\e[1mGenerating a/an \e[33m#{steps}\e[0;1m-element lookup table of \e[36
 range = Numo::DFloat.linspace(min, max, steps)
 data = evaluate(f, range)
 datatype = data.any?(Complex) ? 'Numo::DComplex' : 'Numo::DFloat'
+raise 'Length of data from Sage does not match expected number of steps' if data.length != steps
 
 # Generate Ruby code
 # TODO: Maybe sort terms so smallest coefficients are added first (to try to
