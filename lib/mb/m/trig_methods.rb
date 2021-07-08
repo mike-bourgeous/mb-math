@@ -214,7 +214,7 @@ module MB
           get_lookup_i2aeixx(table, idx + 2),
           frac,
           alpha
-        )[1]
+        )
 
         # Triangle wave borrowed from mb-sound
         phi = (x - Math::PI / 2) % (2.0 * Math::PI)

@@ -59,16 +59,12 @@ module MB
       # +alpha+ parameter blends between uniform (0.0), centripetal (0.5,
       # default), and chordal (1.0) Catmull-Rom splines.
       #
-      # p0, p1, p2, and p3 may be numeric values, Vectors, or Numo::NArrays.
+      # p0, p1, p2, and p3 may be Numeric values, Arrays, Vectors, or
+      # Numo::NArrays.
       #
       # See https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
       def catmull_rom(p0, p1, p2, p3, blend, alpha = 0.5)
-        if p0.is_a?(Numeric)
-          p0 = Numo::NArray[0, p0]
-          p1 = Numo::NArray[1, p1]
-          p2 = Numo::NArray[2, p2]
-          p3 = Numo::NArray[3, p3]
-        elsif p0.is_a?(Array)
+        if p0.is_a?(Array)
           p0 = Numo::NArray.cast(p0)
           p1 = Numo::NArray.cast(p1)
           p2 = Numo::NArray.cast(p2)
@@ -76,11 +72,18 @@ module MB
         end
 
         # The distance between points is is used to space control "knots" t0..t3
-        a = 0.5 * alpha # bake square root into alpha
-        t0 = 0.0
-        t1 = [p1.to_a, p0.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum ** alpha + t0
-        t2 = [p2.to_a, p1.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum ** alpha + t1
-        t3 = [p3.to_a, p2.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum ** alpha + t2
+        if alpha != 0
+          a = 0.5 * alpha # bake square root into alpha
+          t0 = 0.0
+          t1 = cr_distance_squared(p1, p0) ** alpha + t0
+          t2 = cr_distance_squared(p2, p1) ** alpha + t1
+          t3 = cr_distance_squared(p3, p2) ** alpha + t2
+        else
+          t0 = 0.0
+          t1 = 1.0
+          t2 = 2.0
+          t3 = 3.0
+        end
 
         # The actual curve of interest lies between t1 and t2
         t = MB::M.scale(blend, 0..1, t1..t2)
@@ -95,6 +98,16 @@ module MB
         b2 = (t3 - t) / (t3 - t1) * a2 + (t - t1) / (t3 - t1) * a3
 
         (t2 - t) / (t2 - t1) * b1 + (t - t1) / (t2 - t1) * b2
+      end
+
+      private
+
+      # Distance function used by #catmull_rom.
+      def cr_distance_squared(p1, p2)
+        p1 = [0, p1] if p1.is_a?(Numeric)
+        p2 = [1, p2] if p2.is_a?(Numeric)
+        # TODO: this could be made faster without transposing
+        [p2.to_a, p1.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum
       end
     end
   end
