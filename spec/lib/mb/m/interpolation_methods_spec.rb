@@ -161,4 +161,6 @@ RSpec.describe(MB::M::InterpolationMethods) do
       end
     end
   end
+
+  pending '.catmull_rom'
 end

@@ -64,15 +64,15 @@ module MB
       # See https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
       def catmull_rom(p0, p1, p2, p3, blend, alpha = 0.5)
         if p0.is_a?(Numeric)
-          p0 = Vector[0, p0]
-          p1 = Vector[1, p1]
-          p2 = Vector[2, p2]
-          p3 = Vector[3, p3]
+          p0 = Numo::NArray[0, p0]
+          p1 = Numo::NArray[1, p1]
+          p2 = Numo::NArray[2, p2]
+          p3 = Numo::NArray[3, p3]
         elsif p0.is_a?(Array)
-          p0 = Vector[*p0]
-          p1 = Vector[*p1]
-          p2 = Vector[*p2]
-          p3 = Vector[*p3]
+          p0 = Numo::NArray.cast(p0)
+          p1 = Numo::NArray.cast(p1)
+          p2 = Numo::NArray.cast(p2)
+          p3 = Numo::NArray.cast(p3)
         end
 
         # The distance between points is is used to space control "knots" t0..t3
