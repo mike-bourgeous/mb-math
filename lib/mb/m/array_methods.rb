@@ -138,6 +138,23 @@ module MB
         return array.class.zeros(array.size) if array.size <= n
         array.class.zeros(n).concatenate(array[0..-(n + 1)])
       end
+
+      # Retrieves values from the given +array+ in a zigzag, reflecting off the
+      # ends of the array.  The endpoints are returned only once when passing
+      # the edge of the array.
+      #
+      # Example:
+      #     MB::M.fetch_bounce([1, 2, 3], 2) # => 3
+      #     MB::M.fetch_bounce([1, 2, 3], 3) # => 2
+      #     MB::M.fetch_bounce([1, 2, 3], 4) # => 1
+      #     MB::M.fetch_bounce([1, 2, 3], 5) # => 2
+      def fetch_bounce(array, idx)
+        return array[idx] if idx >= 0 && idx < array.length
+
+        idx %= array.length * 2 - 2
+        idx = ((array.length - 2) - idx) if idx >= (array.length - 1)
+        array[idx]
+      end
     end
   end
 end
