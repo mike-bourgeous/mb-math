@@ -85,20 +85,19 @@ module MB
           t3 = 3.0
         end
 
-        # The actual curve of interest lies between t1 and t2
-        t = MB::M.scale(blend, 0..1, t1..t2)
-
         # The position of t within the control "knots" is used to calculate
         # weighted weights for each of the four input points, blending the
-        # result down to a final output.
-        d0t = t0 - t
+        # result down to a final output.  The actual curve of interest lies
+        # between t1 and t2.
         d10 = t1 - t0
-        d1t = t1 - t
         d20 = t2 - t0
         d21 = t2 - t1
-        d2t = t2 - t
         d31 = t3 - t1
         d32 = t3 - t2
+        t = blend * d21 + t1
+        d0t = t0 - t
+        d1t = t1 - t
+        d2t = t2 - t
         d3t = t3 - t
         a1 = d1t / d10 * p0 - d0t / d10 * p1
         a2 = d2t / d21 * p1 - d1t / d21 * p2
