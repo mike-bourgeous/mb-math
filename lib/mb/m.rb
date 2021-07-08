@@ -66,6 +66,12 @@ module MB
         return self.to_i.downto(2).reduce(1, :*) if self.is_a?(Integer) || self.to_i == self
         return CMath.gamma(self + 1)
       end
+
+      # Computes the binomial coefficient, or self choose other.
+      def choose(other)
+        return 0 if other < 0 || other > self
+        self.factorial / (other.factorial * (self - other).factorial)
+      end
     end
 
     Numeric.include(NumericMathDSL)

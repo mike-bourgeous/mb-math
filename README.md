@@ -10,7 +10,8 @@ You might also be interested in [mb-sound][1], [mb-geometry][2], and [mb-util][3
 
 This code is reasonably well-tested, but I recommend using it for non-critical
 tasks, not for making important decisions or for mission-critical data
-modeling.
+modeling.  Most of the function implementations target 4 to 6 decimals of
+accuracy, which may be too low for some applications.
 
 ## Quick start
 
