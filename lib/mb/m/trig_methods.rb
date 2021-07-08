@@ -192,16 +192,16 @@ module MB
         x = (x + Math::PI) % (2.0 * Math::PI) - Math::PI
 
         if x > -0.09 && x < 0.09
-          offset = MB::M.scale(x, -0.1..0.0, 0..20)
+          offset = (x + 0.1) * 20 / 0.1
           table = SMALL_LOOKUP_INTEGRATE_2_ARCTANH_E_I_X_X
         elsif x > Math::PI - 0.098
-          offset = MB::M.scale(x, (Math::PI - 0.1)..Math::PI, 40..20)
+          offset = (x - Math::PI + 0.1) * -20 / 0.1 + 40
           table = SMALL_LOOKUP_INTEGRATE_2_ARCTANH_E_I_X_X
         elsif x < -Math::PI + 0.098
-          offset = MB::M.scale(x, (-Math::PI + 0.1)..-Math::PI, 0..20)
+          offset = (x + Math::PI - 0.1) * -20 / 0.1
           table = SMALL_LOOKUP_INTEGRATE_2_ARCTANH_E_I_X_X
         else
-          offset = MB::M.scale(x, -1.5707963267948966..0.0, 0..100)
+          offset = (x + 1.5707963267948966) * 100 / 1.5707963267948966
           table = LOOKUP_INTEGRATE_2_ARCTANH_E_I_X_X
         end
 
