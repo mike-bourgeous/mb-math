@@ -230,7 +230,7 @@ module MB
         end
 
         # 2.4674...*i == -pi*log(2) + I*dilog(2)
-        real - 2.46740110027234i * imag
+        Complex(real, -2.46740110027234 * imag)
       end
     end
   end
