@@ -91,13 +91,22 @@ module MB
         # The position of t within the control "knots" is used to calculate
         # weighted weights for each of the four input points, blending the
         # result down to a final output.
-        a1 = (t1 - t) / (t1 - t0) * p0 + (t - t0) / (t1 - t0) * p1
-        a2 = (t2 - t) / (t2 - t1) * p1 + (t - t1) / (t2 - t1) * p2
-        a3 = (t3 - t) / (t3 - t2) * p2 + (t - t2) / (t3 - t2) * p3
-        b1 = (t2 - t) / (t2 - t0) * a1 + (t - t0) / (t2 - t0) * a2
-        b2 = (t3 - t) / (t3 - t1) * a2 + (t - t1) / (t3 - t1) * a3
+        d0t = t0 - t
+        d10 = t1 - t0
+        d1t = t1 - t
+        d20 = t2 - t0
+        d21 = t2 - t1
+        d2t = t2 - t
+        d31 = t3 - t1
+        d32 = t3 - t2
+        d3t = t3 - t
+        a1 = d1t / d10 * p0 - d0t / d10 * p1
+        a2 = d2t / d21 * p1 - d1t / d21 * p2
+        a3 = d3t / d32 * p2 - d2t / d32 * p3
+        b1 = d2t / d20 * a1 - d0t / d20 * a2
+        b2 = d3t / d31 * a2 - d1t / d31 * a3
 
-        (t2 - t) / (t2 - t1) * b1 + (t - t1) / (t2 - t1) * b2
+        d2t / d21 * b1 - d1t / d21 * b2
       end
 
       private
