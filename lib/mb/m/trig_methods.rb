@@ -24,7 +24,7 @@ module MB
       #
       # Sage command: f = integrate(-2*atanh(e^(i*x)), x)
       def csc_int_int(x)
-        return lookup_integrate_2_arctanh_e_i_x_x(x)
+        #return lookup_integrate_2_arctanh_e_i_x_x(x)
 
         # The derivative (#csc_int) has discontinuities at 0 and pi so we have
         # to fill in these gaps.

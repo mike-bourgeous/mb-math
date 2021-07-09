@@ -47,42 +47,9 @@ module MB
         end
       end
 
-      # XXX hard-coded values for testing csc_int_int calls to dilog, calculated in Sage
-      DILOG = {
-        1.0+1.0i => 0.616850275068085 + 1.46036211675312i,
-        1.0-1.0i => 0.616850275068085 - 1.46036211675312i,
-        2.0 => 2.46740110027234 - 2.17758609030360i,
-        0.0 => 0,
-        PrecisionMethods.round(4.999958333473664e-05-0.009999833334166664i, 6) => 0.0000250000000000144 - 0.00999997222219444i,
-        PrecisionMethods.round(0.0049958347219741794-0.09983341664682815i, 6) => 0.00249999999999995 - 0.0999722194439719i,
-        PrecisionMethods.round(0.0049958347219741794+0.09983341664682815i, 6) => 0.00249999999999995 + 0.0999722194439719i,
-        PrecisionMethods.round(0.12241743810962724-0.479425538604203i, 6) => 0.0625000000000000 - 0.496519060134757i,
-        PrecisionMethods.round(0.29289321881345254-0.7071067811865476i, 6) => 0.154212568767021 - 0.771856683438093i,
-        PrecisionMethods.round(0.2928932188134524+0.7071067811865475i, 6) => 0.154212568767021 + 0.771856683438093i,
-        PrecisionMethods.round(0.45969769413186023-0.8414709848078965i, 6) => 0.250000000000000 - 0.971939626535400i,
-        PrecisionMethods.round(1.5403023058681398+0.8414709848078965i, 6) => 1.14660477347744 + 1.85516676666391i,
-        PrecisionMethods.round(1.7071067811865475-0.7071067811865475i, 6) => 1.38791311890319 - 1.97053054066177i,
-        PrecisionMethods.round(1.7071067811865475+0.7071067811865476i, 6) => 1.38791311890319 + 1.97053054066177i,
-        PrecisionMethods.round(1.8775825618903728+0.479425538604203i, 6) => 1.74450293687489 + 2.08892053857897i,
-        PrecisionMethods.round(1.9950041652780257-0.09983341664682815i, 6) => 2.31282146759285 - 2.17374083717857i,
-        PrecisionMethods.round(1.9950041652780257+0.09983341664682815i, 6) => 2.31282146759285 + 2.17374083717857i,
-        PrecisionMethods.round(1.9999500004166653+0.009999833334166664i, 6) => 2.45171813700439 + 2.17754690356556i,
-      }
-
       # polylog(2, x)
       def dilog(x)
-        @dilog_min ||= x # XXX
-        @dilog_max ||= x
-        @dilog_min = x if x.real < @dilog_min.real || x.imag < @dilog_max.imag
-        @dilog_max = x if x.real > @dilog_max.real || x.imag > @dilog_max.imag
-        puts "dilog(\e[1m#{x.inspect}\e[0m) \e[33mmin=\e[1m#{@dilog_min}\e[0m \e[35mmax=\e[1m#{@dilog_max}\e[0m" # XXX
-
-        # XXX hard-coded values for testing csc_int_int
-        idx = x.real.to_f.round(6) + 1i * x.imag.to_f.round(6)
-        idx = idx.real if idx.imag == 0
-        puts "idx=#{idx.inspect}"
-
-        DILOG[idx] || (puts 'calculating'; polylog(2, x))
+        polylog(2, x)
       end
 
       # Raises the given +value+ to the given +power+, but using the absolute
