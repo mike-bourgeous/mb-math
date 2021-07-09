@@ -72,7 +72,24 @@ RSpec.describe(MB::M::ExponentialMethods) do
 
     tests.each do |k, v|
       it "returns expected value for #{k}" do
-        expect(MB::M.round(MB::M.sigfigs(MB::M::ExponentialMethods.polylog_zeta(k), 3), 6)).to eq(MB::M.round(MB::M.sigfigs(v, 3), 6))
+        expect(MB::M.round(MB::M.sigfigs(MB::M::ExponentialMethods.polylog_zeta(k), 6), 8)).to eq(MB::M.round(MB::M.sigfigs(v, 6), 8))
+      end
+    end
+  end
+
+  describe '#polylog_harmonic' do
+    tests = {
+      0 => 0,
+      1 => 1,
+      2 => 1.5,
+      3 => 11.0 / 6.0,
+      4 => 25.0 / 12.0,
+      37 => 4.20158622382167,
+    }
+
+    tests.each do |k, v|
+      it "returns expected value for #{k}" do
+        expect(MB::M::ExponentialMethods.polylog_harmonic(k).round(8)).to eq(v.round(8))
       end
     end
   end

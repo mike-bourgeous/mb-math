@@ -127,33 +127,16 @@ module MB
           (0..limit).lazy.map { |k| polylog_bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
       end
 
-      # Riemann zeta function
-      def self.polylog_zeta(s, limit = 100)
-        # This expansion comes from https://mathworld.wolfram.com/RiemannZetaFunction.html
-        return 1.0 / (1 - 2 ** (1.0 - s)) *
-          (0..limit).map { |n|
+      # Riemann zeta function, used in polylogarithm implementation.
+      # This expansion comes from https://mathworld.wolfram.com/RiemannZetaFunction.html
+      def self.polylog_zeta(s, limit = 35)
+        1.0 / (1 - 2 ** (1.0 - s)) *
+          limit.downto(0).map { |n|
             (1.0 / 2.0 ** (n + 1)) *
               (0..n).map { |k|
                 (-1) ** k * n.choose(k) * (k + 1) ** -s
             }.sum
           }.sum
-
-        if s == 1
-          Float::INFINITY
-        elsif s == 0
-          -0.5
-        elsif s == 0.5
-          -1.46035450880959
-        elsif s.real >= 1
-          (1..limit).lazy.map { |n| n.to_f ** -s }.sum
-        elsif s.real < 0 || s.imag != 0
-          # FIXME: Ruby's gamma function does not support complex numbers
-          # This comes from 3b1b's video about the Riemann zeta function
-          puts "calling recursively for #{s} with #{1.0 - s}" # XXX
-          2.0 ** s * Math::PI ** (s - 1) * CMath.sin(Math::PI * s / 2) * CMath.gamma(1.0 - s) * polylog_zeta(1.0 - s)
-        else
-          raise 'TODO: between 0 and 1'
-        end
       end
 
       def self.polylog_bernoulli(n, z)
