@@ -112,7 +112,7 @@ module MB
 
       # Right side of equation 1.3 in Crandall(2006).
       def self.polylog_1_3(n, z, limit)
-        s = -(2i * Math::PI) ** n / n.factorial * polylog_bernoulli_polynomial(n, CMath.log(z) / 2i * Math::PI)
+        s = -(2i * Math::PI) ** n / n.factorial * polylog_bernoulli_polynomial(n, CMath.log(z) / (2i * Math::PI))
 
         if z.imag < 0 || (z.imag == 0 && z.real >= 1)
           s -= 2i * Math::PI * CMath.log(z) ** (n - 1) / (n - 1).factorial
