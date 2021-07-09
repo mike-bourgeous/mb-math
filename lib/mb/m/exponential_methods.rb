@@ -112,7 +112,7 @@ module MB
 
       # Right side of equation 1.3 in Crandall(2006).
       def self.polylog_1_3(n, z, limit)
-        s = -(2i * Math::PI) ** n / n.factorial * polylog_bernoulli(n, CMath.log(z) / 2i * Math::PI)
+        s = -(2i * Math::PI) ** n / n.factorial * polylog_bernoulli_polynomial(n, CMath.log(z) / 2i * Math::PI)
 
         if z.imag < 0 || (z.imag == 0 && z.real >= 1)
           s -= 2i * Math::PI * CMath.log(z) ** (n - 1) / (n - 1).factorial
@@ -139,14 +139,24 @@ module MB
           }.sum
       end
 
-      def self.polylog_bernoulli(n, z)
-        warn 'TODO: bernoulli polynomial'
-        0
+      # Bernoulli polynomials for polylogarithm.
+      # See https://en.wikipedia.org/wiki/Bernoulli_polynomials#Explicit_formula
+      def self.polylog_bernoulli_polynomial(n, x)
+        n.downto(0).sum { |k|
+          n.choose(k) * polylog_bernoulli_number(n - k) * x ** k
+        }
       end
 
-      def self.polylog_bernoulli_number(n, z)
-        warn 'TODO: bernoulli number'
-        0
+      # Bernoulli numbers for polylogarithm.
+      # See https://mathworld.wolfram.com/BernoulliNumber.html
+      # See https://en.wikipedia.org/wiki/Bernoulli_number#Explicit_definition
+      def self.polylog_bernoulli_number(n)
+        @bn ||= []
+        @bn[n] ||= n.downto(0).sum { |k|
+          1.0 / (k + 1) * k.downto(0).sum { |r|
+            (-1) ** r * k.choose(r) * r ** n
+          }
+        }
       end
 
       # Harmonic numbers as described in Crandall(2006) for equation 1.4.

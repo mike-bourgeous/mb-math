@@ -77,6 +77,46 @@ RSpec.describe(MB::M::ExponentialMethods) do
     end
   end
 
+  describe '#polylog_bernoulli_polynomial' do
+    tests = {
+      [4, 0] => -1.0 / 30,
+      [6, 4] => 69553.0 / 42,
+      [1, -3] => -7.0 / 2,
+      [4, 3 - 2.5i] => 25.0i / 4 - 37493.0 / 240,
+      [3, 3 - 2.5i] => -245.0i / 8 - 255.0 / 8,
+      [2, 1 + 1i] => 1i - 5.0 / 6,
+      [2, 1 - 1i] => -1i - 5.0 / 6,
+      [2, -1 - 1i] => 3i + 7.0 / 6,
+      [2, -1 + 1i] => -3i + 7.0 / 6,
+      [3, 1 + 1i] => -0.5i - 1.5,
+      [3, 1 - 1i] => 0.5i - 1.5,
+      [3, -1 - 1i] => -11.0i / 2 + 3.0 / 2,
+      [3, -1 + 1i] => 11.0i / 2 + 3.0 / 2,
+    }
+
+    tests.each do |k, v|
+      it "returns expected value for #{k}" do
+        expect(MB::M.round(MB::M::ExponentialMethods.polylog_bernoulli_polynomial(*k), 6)).to eq(MB::M.round(v, 6))
+      end
+    end
+  end
+
+  describe '#polylog_bernoulli_number' do
+    tests = {
+      0 => 1,
+      1 => -0.5,
+      5 => 0,
+      6 => 1.0 / 42,
+      12 => -691.0 / 2730,
+    }
+
+    tests.each do |k, v|
+      it "returns expected value for #{k}" do
+        expect(MB::M::ExponentialMethods.polylog_bernoulli_number(k).round(6)).to eq(v.round(6))
+      end
+    end
+  end
+
   describe '#polylog_harmonic' do
     tests = {
       0 => 0,
