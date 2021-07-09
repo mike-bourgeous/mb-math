@@ -162,5 +162,34 @@ RSpec.describe(MB::M::InterpolationMethods) do
     end
   end
 
-  pending '.catmull_rom'
+  describe '#catmull_rom' do
+    it 'can interpolate numeric values' do
+      expect(MB::M.catmull_rom(1, 5, 15, 3, 0.5)).to be_between(10, 12)
+    end
+
+    it 'interpolates numeric values in monotonically increasing order' do
+      result = Numo::SFloat.linspace(0, 1, 10).map { |v|
+        MB::M.catmull_rom(1, 5, 15, 3, v)
+      }
+
+      expect(result.to_a.sort).to eq(result.to_a)
+      expect(result.diff.min).to be > 0
+    end
+
+    it 'can interpolate arrays' do
+      result = MB::M.catmull_rom([1, 5], [3, 3], [-2.5, 4.5], [-1, 4], 0.25, 0)
+      expect(result[0]).to be_between(-2.6, 2.9)
+      expect(result[1]).to be_between(3.1, 4.4)
+    end
+
+    it 'does something with alpha' do
+      # TODO: test this actually does what it should
+      zero = MB::M.catmull_rom(1, 5, 3, 4, 0.5, 0)
+      half = MB::M.catmull_rom(1, 5, 3, 4, 0.5, 0.5)
+      one = MB::M.catmull_rom(1, 5, 3, 4, 0.5, 1)
+      expect(zero).not_to eq(half)
+      expect(zero).not_to eq(one)
+      expect(half).not_to eq(one)
+    end
+  end
 end
