@@ -20,12 +20,16 @@ module MB
       # accurate to ~5 decimal places (and possibly less when very close to
       # x=0).
       #
-      # The imaginary part looks like a triangle wave within -pi..pi.
+      # The imaginary part looks like a triangle wave.
       #
       # Sage command: f = integrate(-2*atanh(e^(i*x)), x)
       def csc_int_int(x)
-        #return lookup_integrate_2_arctanh_e_i_x_x(x)
+        lookup_integrate_2_arctanh_e_i_x_x(x)
+      end
 
+      # Direct implementation of the second antiderivative of the cosecant.
+      # This is extremely slow (~100ms+ per call).
+      def csc_int_int_direct(x)
         # The derivative (#csc_int) has discontinuities at 0 and pi so we have
         # to fill in these gaps.
         return 2.46740110027234i if x == 0

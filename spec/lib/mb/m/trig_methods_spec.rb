@@ -14,7 +14,7 @@ RSpec.describe(MB::M::TrigMethods) do
     pending 'returns expected values for complex arguments'
   end
 
-  describe '#csc_int_int' do
+  context 'second cosecant antiderivative' do
     tests = {
       -Math::PI => -2.46740110027234i,
       -Math::PI + 0.01 => 0.0629831458876042 - 2.45169313700439i,
@@ -43,17 +43,20 @@ RSpec.describe(MB::M::TrigMethods) do
       Math::PI => -2.46740110027234i,
     }
 
-    tests.each do |input, output|
-      it "returns expected value for #{input}" do
-        expect(MB::M.round(MB::M.csc_int_int(input), 5)).to eq(MB::M.round(output, 5))
+    describe '#csc_int_int_direct' do
+      tests.each do |input, output|
+        it "returns expected value for #{input}" do
+          expect(MB::M.round(MB::M.csc_int_int_direct(input), 5)).to eq(MB::M.round(output, 5))
+        end
       end
     end
 
-    it 'returns expected value for 0.01' do
-      # The lookup table has the greatest error around 0.0.  Accept 2 decimals here.
-      v = MB::M.csc_int_int(0.01)
-      expect(v.real.round(2)).to eq(-0.0629831458876051.round(2))
-      expect(v.imag.round(5)).to eq(2.45169313700439.round(5))
+    describe '#csc_int_int' do
+      tests.each do |input, output|
+        it "returns expected value for #{input}" do
+          expect(MB::M.round(MB::M.csc_int_int(input), 5)).to eq(MB::M.round(output, 5))
+        end
+      end
     end
   end
 end
