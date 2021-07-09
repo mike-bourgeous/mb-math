@@ -47,10 +47,15 @@ module MB
             if z.abs <= 0.5
               polylog_1_1(order, z, limit)
             elsif z.abs >= 2 && order > 0
+              # Crandall(2006) does not have the order > 0 condition here, but
+              # the right-hand side of equation 1.3 (#polylog_1_3) has a
+              # factorial on the order.
               polylog_1_3(order, z, limit) - (-1) ** order * polylog_1_1(order, 1.0 / z, limit)
             elsif order > 0
               polylog_1_4(order, z, limit)
             else
+              # Equation 1.5 from Crandall(2006) is replaced with this
+              # polylog_neg expansion to handle negative orders.
               polylog_neg(order, z)
             end
           end
