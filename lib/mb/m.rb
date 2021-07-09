@@ -20,6 +20,9 @@ module MB
   # This is called M and not Math to avoid aliasing with the top-level ::Math
   # module.
   module M
+    # Catalan's constant, calculated to 53 bits using Sage.  Relevant to polylogarithms.
+    Catalan = 0.915965594177219
+
     extend InterpolationMethods
     extend PrecisionMethods
     extend RangeMethods
