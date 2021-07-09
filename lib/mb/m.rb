@@ -63,7 +63,7 @@ module MB
       def factorial
         return CMath.gamma(self + 1) if self.is_a?(Complex)
         return CMath.gamma(self + 1).to_i if self.is_a?(Integer) && self <= 22
-        return self.to_i.downto(2).reduce(1, :*) if self.is_a?(Integer) || self.to_i == self
+        return self.to_i.downto(2).reduce(1, :*) if self.is_a?(Integer)
         return CMath.gamma(self + 1)
       end
 
