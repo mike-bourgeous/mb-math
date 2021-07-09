@@ -191,5 +191,11 @@ RSpec.describe(MB::M::InterpolationMethods) do
       expect(zero).not_to eq(one)
       expect(half).not_to eq(one)
     end
+
+    it 'can interpolate complex numbers' do
+      result = MB::M.catmull_rom(1-1i, 2-2i, 3-3i, 4-4i, 0.5)
+      expect(result.real).to be_between(2.4, 2.6)
+      expect(result.imag).to be_between(-2.6, -2.4)
+    end
   end
 end
