@@ -11,6 +11,7 @@ require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
 require_relative 'm/array_methods'
 require_relative 'm/exponential_methods'
+require_relative 'm/special_functions'
 require_relative 'm/trig_methods'
 
 module MB
@@ -28,6 +29,7 @@ module MB
     extend RangeMethods
     extend ArrayMethods
     extend ExponentialMethods
+    extend SpecialFunctions
     extend TrigMethods
 
     module NumericMathDSL
