@@ -128,8 +128,16 @@ module MB
       end
 
       # Riemann zeta function
-      # FIXME: this doesn't return the right values *at all* for complex inputs
-      def self.polylog_zeta(s, limit = 100000)
+      def self.polylog_zeta(s, limit = 100)
+        # This expansion comes from https://mathworld.wolfram.com/RiemannZetaFunction.html
+        return 1.0 / (1 - 2 ** (1.0 - s)) *
+          (0..limit).map { |n|
+            (1.0 / 2.0 ** (n + 1)) *
+              (0..n).map { |k|
+                (-1) ** k * n.choose(k) * (k + 1) ** -s
+            }.sum
+          }.sum
+
         if s == 1
           Float::INFINITY
         elsif s == 0
