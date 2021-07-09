@@ -140,12 +140,6 @@ module MB
         a + b
       end
 
-      # Equation 1.5 in Crandall(2006).
-      def polylog_1_5(n, z, limit)
-        (-n).factorial * (-CMath.log(z)) ** (n - 1) -
-          limit.downto(0).sum { |k| bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
-      end
-
       # Additional form of the polylogarithm to handle negative orders.
       # From https://mathworld.wolfram.com/Polylogarithm.html
       def polylog_neg(n, z)
