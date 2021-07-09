@@ -98,16 +98,16 @@ module MB
 
       # Equation 1.1 in Crandall(2006).
       def self.polylog_1_1(n, z, limit)
-        (1..limit).lazy.map { |k| z ** k / k ** n }.sum
+        limit.downto(1).sum { |k| z ** k / k ** n }
       end
 
       # Equation 1.4 in Crandall(2006).
       def self.polylog_1_4(n, z, limit)
-        (0..limit).lazy.map { |m|
-          next 0 if (n - m) == 1 # sigma prime notation from the paper
+        limit.downto(0).sum { |m|
+          next 0 if (n - m) == 1 # sigma prime notation from the paper, skip infinite zeta(1)
           polylog_zeta(n - m) / m.factorial * CMath.log(z) ** m +
             CMath.log(z) ** (n - 1) / (n - 1).factorial * (polylog_harmonic(n - 1) - CMath.log(-CMath.log(z)))
-        }.sum
+        }
       end
 
       # Right side of equation 1.3 in Crandall(2006).
@@ -124,19 +124,19 @@ module MB
       # Equation 1.5 in Crandall(2006).
       def self.polylog_1_5(n, z, limit)
         (-n).factorial * (-CMath.log(z)) ** (n - 1) -
-          (0..limit).lazy.map { |k| polylog_bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
+          limit.downto(0).sum { |k| polylog_bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
       end
 
       # Riemann zeta function, used in polylogarithm implementation.
       # This expansion comes from https://mathworld.wolfram.com/RiemannZetaFunction.html
       def self.polylog_zeta(s, limit = 35)
         1.0 / (1 - 2 ** (1.0 - s)) *
-          limit.downto(0).map { |n|
+          limit.downto(0).sum { |n|
             (1.0 / 2.0 ** (n + 1)) *
-              (0..n).map { |k|
-                (-1) ** k * n.choose(k) * (k + 1) ** -s
-            }.sum
-          }.sum
+              (0..n).sum { |k|
+                (-1) ** k * n.choose(k) * (k + 1) ** -s # TODO: this is faster with n.to_f.choose(k.to_f), but it doesn't give the right answer for -10
+            }
+          }
       end
 
       # Bernoulli polynomials for polylogarithm.
@@ -161,7 +161,7 @@ module MB
 
       # Harmonic numbers as described in Crandall(2006) for equation 1.4.
       def self.polylog_harmonic(q)
-        (1..q).lazy.map { |k| 1.0 / k }.sum
+        q.downto(1).sum { |k| 1.0 / k }
       end
     end
   end
