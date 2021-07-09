@@ -103,11 +103,12 @@ module MB
 
       # Equation 1.4 in Crandall(2006).
       def self.polylog_1_4(n, z, limit)
-        limit.downto(0).sum { |m|
+        a = limit.downto(0).sum { |m|
           next 0 if (n - m) == 1 # sigma prime notation from the paper, skip infinite zeta(1)
-          polylog_zeta(n - m) / m.factorial * CMath.log(z) ** m +
-            CMath.log(z) ** (n - 1) / (n - 1).factorial * (polylog_harmonic(n - 1) - CMath.log(-CMath.log(z)))
+          polylog_zeta(n - m) / m.factorial * CMath.log(z) ** m
         }
+        b = CMath.log(z) ** (n - 1) / (n - 1).factorial * (polylog_harmonic(n - 1) - CMath.log(-CMath.log(z)))
+        a + b
       end
 
       # Right side of equation 1.3 in Crandall(2006).
