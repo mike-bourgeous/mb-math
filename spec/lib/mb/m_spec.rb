@@ -25,7 +25,21 @@ RSpec.describe(MB::M) do
     end
 
     describe '#factorial' do
-      pending
+      it 'can calculate a simple factorial' do
+        expect(5.factorial).to eq(5 * 4 * 3 * 2)
+      end
+
+      it 'returns 1 for 0' do
+        expect(0.factorial).to eq(1)
+      end
+
+      it 'returns gamma(n+1) for fractions' do
+        expect(5.5.factorial).to eq(Math.gamma(6.5))
+      end
+
+      it 'can calculate bigint factorials' do
+        expect(57.factorial).to eq(40526919504877216755680601905432322134980384796226602145184481280000000000000)
+      end
     end
 
     describe '#choose' do
