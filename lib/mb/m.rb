@@ -66,10 +66,15 @@ module MB
       # Computes the factorial function for positive integers, computes the
       # gamma(n + 1) function for any other type of number.
       def factorial
-        return CMath.gamma(self + 1) if self.is_a?(Complex)
-        return CMath.gamma(self + 1).to_i if self.is_a?(Integer) && self <= 22
-        return self.to_i.downto(2).reduce(1, :*) if self.is_a?(Integer)
-        return CMath.gamma(self + 1)
+        if self.is_a?(Integer) && self >= 0
+          if self <= 22
+            CMath.gamma(self + 1).to_i
+          else
+            self.to_i.downto(2).reduce(1, :*)
+          end
+        else
+          CMath.gamma(self + 1)
+        end
       end
 
       # Computes the binomial coefficient, or self choose other.

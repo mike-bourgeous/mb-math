@@ -17,42 +17,41 @@ module MB
 
         case order
         when 1
-          puts 'o1'
           -CMath.log(1.0 - z)
 
         when 0
-          puts 'o0'
           z / (1.0 - z)
 
         when -1
-          puts 'o-1'
           z / (1.0 - z) ** 2
 
         else
           case z
           when 1
-            puts '1 zeta'
             zeta(order)
 
           when -1
-            puts '-1 zeta'
             -(1.0 - 2.0 ** (1.0 - order)) * zeta(order)
 
           else
-            limit ||= (10 * Math.log2(10)).ceil
+            # TODO: Write a sum function that terminates when the summands
+            # start growing relative to the previous summand?  Strangely when I
+            # increase this limit tests start to fail.  Below 5 digits, tests fail,
+            # above 12 digits, tests fail.
+            #
+            # https://en.wikipedia.org/wiki/Polylogarithm#Asymptotic_expansions
+            # says "As usual, the summation should be terminated when the terms
+            # start growing in magnitude."
+            limit ||= (8 * Math.log2(10)).ceil
 
             if z.abs <= 0.5
-              puts '1.1'
               polylog_1_1(order, z, limit)
-            elsif z.abs >= 2
-              puts '1.3'
+            elsif z.abs >= 2 && order > 0
               polylog_1_3(order, z, limit) - (-1) ** order * polylog_1_1(order, 1.0 / z, limit)
             elsif order > 0
-              puts '1.4'
               polylog_1_4(order, z, limit)
             else
-              puts '1.5'
-              polylog_1_5(order, z, limit)
+              polylog_neg(order, z)
             end
           end
         end
@@ -100,6 +99,14 @@ module MB
         q.downto(1).sum { |k| 1.0 / k }
       end
 
+      # Eulerian number for #polylog_neg (not the same as Euler number).
+      # See https://mathworld.wolfram.com/EulerianNumber.html
+      def eulerian_number(n, k)
+        (k+1).downto(0).sum { |j|
+          (-1) ** j * (n + 1).choose(j) * (k - j + 1) ** n
+        }
+      end
+
       private
 
       # Equation 1.1 in Crandall(2006).
@@ -132,6 +139,13 @@ module MB
       def polylog_1_5(n, z, limit)
         (-n).factorial * (-CMath.log(z)) ** (n - 1) -
           limit.downto(0).sum { |k| bernoulli_number(k - n + 1) / (k.factorial * (k - n + 1)) * CMath.log(z) ** k }
+      end
+
+      # Additional form of the polylogarithm to handle negative orders.
+      # From https://mathworld.wolfram.com/Polylogarithm.html
+      def polylog_neg(n, z)
+        n = -n
+        1.0 / (1 - z) ** (n + 1) * n.downto(0).sum { |i| eulerian_number(n, i) * z ** (n - i) }
       end
     end
   end

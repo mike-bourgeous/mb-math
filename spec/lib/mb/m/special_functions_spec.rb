@@ -14,7 +14,14 @@ RSpec.describe(MB::M::SpecialFunctions) do
 
       # Calculated in Sage
       [-5, 1i] => -8,
+      [-5, 1+1i] => 239.0 - 181.0i,
+      [-5, 3i] => 2.09664 + 1.21152i,
+      [-5, -3] => 0.0761718750000000,
+      [-5, 1] => -0.00396825396825397,
+      [-5, 3] => 68.25,
+      [-4, -3+0.25i] => -0.117695379092719 - 0.00645555737643472i,
       [-4, 5] => -2.2265625,
+      [-1, 1-3i] => -1.0 / 9 + 1.0i / 3,
       [0, 2] => -2,
       [0, 1i] => -0.5+0.5i,
       [0, 1+2i] => -1 + 0.5i,
@@ -38,7 +45,7 @@ RSpec.describe(MB::M::SpecialFunctions) do
 
     tests.each do |k, v|
       it "returns expected value for #{k}" do
-        expect(MB::M.round(MB::M.polylog(*k), 6)).to eq(MB::M.round(v, 6))
+        expect(MB::M.round(MB::M.polylog(*k), 9)).to eq(MB::M.round(v, 9))
       end
     end
   end
@@ -134,6 +141,21 @@ RSpec.describe(MB::M::SpecialFunctions) do
     tests.each do |k, v|
       it "returns expected value for #{k}" do
         expect(MB::M.harmonic_number(k).round(8)).to eq(v.round(8))
+      end
+    end
+  end
+
+  describe '#eulerian_number' do
+    tests = {
+      [5, 1] => 26,
+      [5, 2] => 66,
+      [5, 3] => 26,
+      [13, 7] => 1505621508,
+    }
+
+    tests.each do |k, v|
+      it "returns expected value for #{k}" do
+        expect(MB::M.eulerian_number(*k).round(8)).to eq(v.round(8))
       end
     end
   end
