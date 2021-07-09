@@ -5,7 +5,9 @@ module MB
       # The first antiderivative of the cosecant function, using exponential
       # instead of sine to preserve both real and imaginary components.
       #
-      # The imaginary part looks like a square wave.
+      # This is only expected to work correctly for real arguments.
+      #
+      # The imaginary part of the output looks like a square wave.
       #
       # See https://en.wikipedia.org/wiki/Integral_of_the_secant_function#Hyperbolic_forms
       # See https://www.wolframalpha.com/input/?i=INTEGRATE+%282i%2F%28e%5E%28i*z%29-e%5E%28-i*z%29%29%29
@@ -20,14 +22,15 @@ module MB
       # accurate to ~5 decimal places (and possibly less when very close to
       # x=0).
       #
-      # The imaginary part looks like a triangle wave.
+      # The imaginary part of the output looks like a triangle wave.
       #
       # Sage command: f = integrate(-2*atanh(e^(i*x)), x)
       def csc_int_int(x)
         lookup_integrate_2_arctanh_e_i_x_x(x)
       end
 
-      # Direct implementation of the second antiderivative of the cosecant.
+      # Direct implementation of the second antiderivative of the cosecant,
+      # using the dilogarithm function.
       # This is extremely slow (~100ms+ per call).
       def csc_int_int_direct(x)
         # The derivative (#csc_int) has discontinuities at 0 and pi so we have

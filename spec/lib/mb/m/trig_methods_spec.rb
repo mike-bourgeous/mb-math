@@ -10,8 +10,6 @@ RSpec.describe(MB::M::TrigMethods) do
       expect(MB::M.round(MB::M.csc_int(-12), 6)).to eq(-1.23441073580.round(6))
       expect(MB::M.round(MB::M.csc_int(-7), 6)).to eq(MB::M.round(-0.9819348235 - 1i * Math::PI, 6))
     end
-
-    pending 'returns expected values for complex arguments'
   end
 
   context 'second cosecant antiderivative' do
