@@ -23,15 +23,37 @@ RSpec.describe(MB::M) do
         expect(90.degree.rotation.round(8)).to eq(Matrix[[0, -1], [1, 0]])
       end
     end
-  end
 
-  describe '.safe_power' do
-    it 'scales positive values' do
-      expect(MB::M.safe_power(0.25, 0.5)).to eq(0.5)
+    describe '#factorial' do
+      it 'can calculate a simple factorial' do
+        expect(5.factorial).to eq(5 * 4 * 3 * 2)
+      end
+
+      it 'returns 1 for 0' do
+        expect(0.factorial).to eq(1)
+      end
+
+      it 'returns gamma(n+1) for fractions' do
+        expect(5.5.factorial).to eq(Math.gamma(6.5))
+      end
+
+      it 'can calculate bigint factorials' do
+        expect(57.factorial).to eq(40526919504877216755680601905432322134980384796226602145184481280000000000000)
+      end
     end
 
-    it 'scales negative values' do
-      expect(MB::M.safe_power(-0.25, 0.5)).to eq(-0.5)
+    describe '#choose' do
+      it 'returns expected values for some integers' do
+        expect(5.choose(3)).to eq(10)
+        expect(11.choose(4)).to eq(330)
+        expect(11.choose(11)).to eq(1)
+        expect((-2..9).map { |v| 7.choose(v) }).to eq([0, 0, 1, 7, 21, 35, 35, 21, 7, 1, 0, 0])
+      end
+
+      it 'returns expected values for some floats' do
+        expect(8.35.choose(4).round(8)).to eq(86.8740523437500.round(8))
+        expect(6.2.choose(2.2).round(8)).to eq(18.0544000000000.round(8))
+      end
     end
   end
 

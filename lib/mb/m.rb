@@ -10,6 +10,8 @@ require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
 require_relative 'm/range_methods'
 require_relative 'm/array_methods'
+require_relative 'm/exponential_methods'
+require_relative 'm/special_functions'
 require_relative 'm/trig_methods'
 
 module MB
@@ -19,10 +21,15 @@ module MB
   # This is called M and not Math to avoid aliasing with the top-level ::Math
   # module.
   module M
+    # Catalan's constant, calculated to 53 bits using Sage.  Relevant to polylogarithms.
+    Catalan = 0.915965594177219
+
     extend InterpolationMethods
     extend PrecisionMethods
     extend RangeMethods
     extend ArrayMethods
+    extend ExponentialMethods
+    extend SpecialFunctions
     extend TrigMethods
 
     module NumericMathDSL
@@ -55,20 +62,29 @@ module MB
           [Math.sin(a).round(12), Math.cos(a).round(12)]
         ]
       end
+
+      # Computes the factorial function for positive integers, computes the
+      # gamma(n + 1) function for any other type of number.
+      def factorial
+        if self.is_a?(Integer) && self >= 0
+          if self <= 22
+            CMath.gamma(self + 1).to_i
+          else
+            self.to_i.downto(2).reduce(1, :*)
+          end
+        else
+          CMath.gamma(self + 1)
+        end
+      end
+
+      # Computes the binomial coefficient, or self choose other.
+      def choose(other)
+        return 0 if other < 0 || other > self
+        self.factorial / (other.factorial * (self - other).factorial)
+      end
     end
 
     Numeric.include(NumericMathDSL)
-
-    # Raises the given +value+ to the given +power+, but using the absolute
-    # value function to prevent complex results.  Useful for waveshaping.
-    def self.safe_power(value, power)
-      if value.is_a?(Numo::NArray)
-        return value.map { |v| safe_power(v, power) }
-      end
-
-      sign = value.positive? ? 1.0 : -1.0
-      value.abs ** power * sign
-    end
 
     # Returns an array with the two complex roots of a quadratic equation with
     # the given coefficients.

@@ -2,6 +2,8 @@ module MB
   module M
     # Rounding and significant figures.
     module PrecisionMethods
+      extend self
+
       # Rounds +value+ (Float, Complex, Numo::NArray, Array of Float) to
       # roughly +figs+ significant digits.  If +value+ is near the bottom end
       # of the floating point range (around 10**-307), 0 may be returned

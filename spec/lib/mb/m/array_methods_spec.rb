@@ -198,4 +198,39 @@ RSpec.describe(MB::M::ArrayMethods) do
       expect { MB::M.shr(Numo::SFloat[1,2,3], -1) }.to raise_error(ArgumentError)
     end
   end
+
+  describe '.fetch_bounce' do
+    let(:a) { [1, 2, 3, 4, 5] }
+    let(:na) { Numo::SFloat.cast(a) }
+
+    it 'returns elements for valid indicies normally' do
+      expect(MB::M.fetch_bounce(a, 0)).to eq(1)
+      expect(MB::M.fetch_bounce(a, 1)).to eq(2)
+      expect(MB::M.fetch_bounce(a, 2)).to eq(3)
+      expect(MB::M.fetch_bounce(a, 3)).to eq(4)
+      expect(MB::M.fetch_bounce(a, 4)).to eq(5)
+    end
+
+    it 'returns expected elements below 0' do
+      expect(MB::M.fetch_bounce(a, -1)).to eq(2)
+      expect(MB::M.fetch_bounce(a, -2)).to eq(3)
+      expect(MB::M.fetch_bounce(a, -3)).to eq(4)
+      expect(MB::M.fetch_bounce(a, -4)).to eq(5)
+      expect(MB::M.fetch_bounce(a, -5)).to eq(4)
+    end
+
+    it 'returns expected elements beyond the end' do
+      expect(MB::M.fetch_bounce(a, 5)).to eq(4)
+      expect(MB::M.fetch_bounce(a, 6)).to eq(3)
+      expect(MB::M.fetch_bounce(a, 7)).to eq(2)
+      expect(MB::M.fetch_bounce(a, 8)).to eq(1)
+      expect(MB::M.fetch_bounce(a, 9)).to eq(2)
+    end
+
+    it 'can retrieve elements from a Numo::NArray' do
+      expect(MB::M.fetch_bounce(na, -5)).to eq(4)
+      expect(MB::M.fetch_bounce(na, 2)).to eq(3)
+      expect(MB::M.fetch_bounce(na, 9)).to eq(2)
+    end
+  end
 end
