@@ -56,5 +56,29 @@ RSpec.describe(MB::M::TrigMethods) do
         end
       end
     end
+
+    describe '#cot_int' do
+      tests = {
+        # Values calculated in Sage
+        -Math::PI => -0.220635600152652 - 0.5i,
+        -Math::PI * 3 / 2 => -0.441271200305303,
+        -Math::PI / 2 - 0.01 => 2.93174504810231 - 0.996816901138161i,
+        -Math::PI / 2 + 0.01 => 2.93174504810230 + 0.996816901138161i,
+        0 => -0.220635600152652 + 0.5i,
+        1 => -0.414984380475852 + 0.181690113816209i,
+        Math::PI / 4 => -0.390867726245916 + 0.250000000000000i,
+        Math::PI / 2 => -0.441271200305303,
+        Math::PI * 3 / 2 - 0.01 => 2.93174504810231 - 0.996816901138161i,
+        Math::PI * 3 / 2 + 0.01 => 2.93174504810233 + 0.996816901138161i,
+        Math::PI => -0.220635600152652 - 0.5i,
+      }
+
+      tests.each do |input, output|
+        it "returns expected value for #{input}" do
+          result = MB::M.round(MB::M.cot_int(input), 6)
+          expect(result).to eq(MB::M.round(output, 6))
+        end
+      end
+    end
   end
 end

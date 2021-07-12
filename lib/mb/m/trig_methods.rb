@@ -46,6 +46,19 @@ module MB
           1i * dilog(-CMath.exp(1i * x) + 1)
       end
 
+      # The first antiderivative of a modified cotangent function, arrived at
+      # through a combination of exponential identities and trial and error.
+      #
+      # The imaginary part of the output looks like a sawtooth wave.
+      #
+      # Modified exponential cotangent to drop the negative exponent term from the sine.
+      # Sage command: integrate(e ^ (i * z) / (i * (e ^ (-i * z) - e ^ (i * z))), z)
+      # Sage result: 1/2*log(e^(I*z) + 1) + 1/2*log(e^(I*z) - 1)
+      # Modified to produce ramp: 2/pi * log(e^(I*z) + I) + I
+      def cot_int(x)
+        -2.0 / Math::PI * CMath.log(CMath.exp(1i * x) + 1i) + 1i
+      end
+
       private
 
       # Automatically generated lookup table of integrate(-2 * arctanh(e ^ (i * x)), x) from -1.5707963267948966 to 0.0
