@@ -59,6 +59,61 @@ module MB
         -2.0 / Math::PI * CMath.log(CMath.exp(1i * x) + 1i) + 1i
       end
 
+      # Returns an approximation of the cycloid as a function of +x+.
+      #
+      # The cycloid can only be described either parametrically, or as a
+      # function of Y, and not as a function of x.  This approximation uses a
+      # lookup table and interpolation to get around that limitation.
+      def cycloid(x, alpha: 0.5)
+        x %= 2.0 * Math::PI
+        @cyc ||= cycloid_table(tmin: -0.1 * Math::PI, tmax: 2.1 * Math::PI, steps: 441)
+
+        idx = @cyc.bsearch_index { |v| v[0] >= x }
+        idx = 1 if idx < 1
+        idx = @cyc.length - 3 if idx >= @cyc.length - 3
+
+        v1 = @cyc[idx]
+        return v1[1] if x == v1[0]
+
+        v0 = @cyc[idx - 1]
+        v2 = @cyc[idx + 1]
+        v3 = @cyc[idx + 2]
+
+        x1 = v1[0]
+        x2 = v1[1]
+        t = (x - x1) / (x2 - x1)
+
+        #v = MB::M.catmull_rom(v0, v1, v2, v3, t, alpha)
+        v = MB::M.interp(v1[1], v2[1], t) # XXX
+
+        v#[1]
+      end
+
+      # Generates a table of the cycloid, with t ranging from +:tmin+ to
+      # +:tmax+ in the given number of +:steps+.  The resulting X and Y values
+      # are scaled by +:xscale+ and +:yscale+.  If +:alternate+ is true, then
+      # every other repetition of the cycloid will be multiplied by -1, and the
+      # height scaled by half, to create an oscillating wave.  If +:power+ is
+      # not 1, then the shape of each individual cycloid is altered.  Using a
+      # power of 1.12 gives a pretty good approximation of the curve of
+      # #csc_int_int.
+      def cycloid_table(tmin: -10 * Math::PI, tmax: 10 * Math::PI, xscale: 1, yscale: 1, steps: 1001, alternate: false, power: 1)
+        Numo::DFloat.linspace(tmin, tmax, steps).to_a.map { |t|
+          cycloid_parametric(t, xscale: xscale, yscale: yscale, alternate: alternate, power: power)
+        }
+      end
+
+      # Returns the value of the cycloid at time +t+, as an [x, y] Array.  See
+      # #cycloid_table for other parameter descriptions.
+      def cycloid_parametric(t, xscale: 1, yscale: 1, alternate: false, power: 1)
+        x = t - Math.sin(t)
+        y = 1 - Math.cos(t)
+        y = y ** power * 2.0 / 2.0 ** power if power != 1
+        y *= 0.5 * (-1) ** ((t / (2.0 * Math::PI)).floor) if alternate
+
+        [x * xscale, y * yscale]
+      end
+
       private
 
       # Automatically generated lookup table of integrate(-2 * arctanh(e ^ (i * x)), x) from -1.5707963267948966 to 0.0
