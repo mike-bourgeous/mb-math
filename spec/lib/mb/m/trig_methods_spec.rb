@@ -112,5 +112,24 @@ RSpec.describe(MB::M::TrigMethods) do
         expect(diff.abs.max).to be < 0.00001
       end
     end
+
+    describe '#cycloid_parametric' do
+      it 'uses the power parameter' do
+        baseline = MB::M.cycloid_parametric(1)
+        result = MB::M.cycloid_parametric(1, power: 2)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to eq(baseline[1] ** 2 / 2)
+
+        baseline = MB::M.cycloid_parametric(3)
+        result = MB::M.cycloid_parametric(3, power: 2)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to eq(baseline[1] ** 2 / 2)
+
+        baseline = MB::M.cycloid_parametric(3)
+        result = MB::M.cycloid_parametric(3, power: 0.6)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to eq(baseline[1] ** 0.6 * 2 / 2 ** 0.6)
+      end
+    end
   end
 end
