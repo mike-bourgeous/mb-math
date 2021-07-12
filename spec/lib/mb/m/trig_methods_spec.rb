@@ -101,6 +101,16 @@ RSpec.describe(MB::M::TrigMethods) do
           expect(MB::M.cycloid(input)).to be_within(0.00001).of(output)
         end
       end
+
+      it 'closely matches parametric cycloid' do
+        t = Numo::DFloat.linspace(-2.01 * Math::PI, 2.01 * Math::PI, 8041)
+        x = t.map { |v| v - Math.sin(v) }
+        y = t.map { |v| 1 - Math.cos(v) }
+
+        result = x.map { |v| MB::M.cycloid(v) }
+        diff = result - y
+        expect(diff.abs.max).to be < 0.00001
+      end
     end
   end
 end
