@@ -59,34 +59,31 @@ module MB
         -2.0 / Math::PI * CMath.log(CMath.exp(1i * x) + 1i) + 1i
       end
 
-      # Returns an approximation of the cycloid as a function of +x+.
+      # Returns an approximation of the cycloid as a function of +x+.  A
+      # cycloid is the curve produced by a point at the circumference of a
+      # wheel moving horizontally without slipping.
       #
       # The cycloid can only be described either parametrically, or as a
-      # function of Y, and not as a function of x.  This approximation uses a
+      # function of Y, and not as a function of X.  This approximation uses a
       # lookup table and interpolation to get around that limitation.
       def cycloid(x, alpha: 0.5)
         x %= 2.0 * Math::PI
-        @cyc ||= cycloid_table(tmin: -0.1 * Math::PI, tmax: 2.1 * Math::PI, steps: 441)
+        @cyc ||= cycloid_table(tmin: -0.1 * Math::PI, tmax: 2.1 * Math::PI, steps: 881)
 
         idx = @cyc.bsearch_index { |v| v[0] >= x }
-        idx = 1 if idx < 1
-        idx = @cyc.length - 3 if idx >= @cyc.length - 3
 
-        v1 = @cyc[idx]
-        return v1[1] if x == v1[0]
-
-        v0 = @cyc[idx - 1]
-        v2 = @cyc[idx + 1]
-        v3 = @cyc[idx + 2]
+        v0 = @cyc[idx - 2]
+        v1 = @cyc[idx - 1]
+        v2 = @cyc[idx]
+        v3 = @cyc[idx + 1]
 
         x1 = v1[0]
-        x2 = v1[1]
+        x2 = v2[0]
         t = (x - x1) / (x2 - x1)
 
-        #v = MB::M.catmull_rom(v0, v1, v2, v3, t, alpha)
-        v = MB::M.interp(v1[1], v2[1], t) # XXX
+        v = MB::M.catmull_rom(v0, v1, v2, v3, t, alpha)
 
-        v#[1]
+        v[1]
       end
 
       # Generates a table of the cycloid, with t ranging from +:tmin+ to

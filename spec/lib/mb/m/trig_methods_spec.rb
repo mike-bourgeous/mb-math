@@ -80,5 +80,27 @@ RSpec.describe(MB::M::TrigMethods) do
         end
       end
     end
+
+    describe '#cycloid' do
+      tests = {
+        -Math::PI * 2 => 0,
+        -Math::PI * 3 / 2 - 1 => 1,
+        -Math::PI => 2,
+        -Math::PI / 2 + 1 => 1,
+        -0.1585290151921035 => 0.45969769413186023,
+        0 => 0,
+        0.0001665833531718508 => 0.0049958347219741794,
+        Math::PI / 2 - 1 => 1,
+        Math::PI => 2,
+        Math::PI * 3 / 2 + 1 => 1,
+        Math::PI * 2 => 0,
+      }
+
+      tests.each do |input, output|
+        it "returns expected value for #{input}" do
+          expect(MB::M.cycloid(input)).to be_within(0.00001).of(output)
+        end
+      end
+    end
   end
 end
