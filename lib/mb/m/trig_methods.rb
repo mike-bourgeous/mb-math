@@ -66,24 +66,20 @@ module MB
       # The cycloid can only be described either parametrically, or as a
       # function of Y, and not as a function of X.  This approximation uses a
       # lookup table and interpolation to get around that limitation.
-      def cycloid(x, alpha: 0.5)
-        x %= 2.0 * Math::PI
+      def cycloid(x)
         @cyc ||= cycloid_table(tmin: -0.1 * Math::PI, tmax: 2.1 * Math::PI, steps: 881)
 
+        x %= 2.0 * Math::PI
         idx = @cyc.bsearch_index { |v| v[0] >= x }
 
-        v0 = @cyc[idx - 2]
         v1 = @cyc[idx - 1]
         v2 = @cyc[idx]
-        v3 = @cyc[idx + 1]
 
         x1 = v1[0]
         x2 = v2[0]
         t = (x - x1) / (x2 - x1)
 
-        v = MB::M.catmull_rom(v0, v1, v2, v3, t, alpha)
-
-        v[1]
+        MB::M.interp(v1[1], v2[1], t)
       end
 
       # Generates a table of the cycloid, with t ranging from +:tmin+ to
