@@ -101,7 +101,7 @@ module MB
       def cycloid_parametric(t, xscale: 1, yscale: 1, alternate: false, power: 1)
         x = t - Math.sin(t)
         y = 1 - Math.cos(t)
-        y = y ** power * 2.0 / 2.0 ** power if power != 1
+        y = y ** power * 2.0 ** (1 - power) if power != 1
         y *= 0.5 * (-1) ** ((t / (2.0 * Math::PI)).floor) if alternate
 
         [x * xscale, y * yscale]
