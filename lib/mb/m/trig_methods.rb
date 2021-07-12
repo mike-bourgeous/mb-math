@@ -84,25 +84,21 @@ module MB
 
       # Generates a table of the cycloid, with t ranging from +:tmin+ to
       # +:tmax+ in the given number of +:steps+.  The resulting X and Y values
-      # are scaled by +:xscale+ and +:yscale+.  If +:alternate+ is true, then
-      # every other repetition of the cycloid will be multiplied by -1, and the
-      # height scaled by half, to create an oscillating wave.  If +:power+ is
-      # not 1, then the shape of each individual cycloid is altered.  Using a
-      # power of 1.12 gives a pretty good approximation of the curve of
-      # #csc_int_int.
-      def cycloid_table(tmin: -10 * Math::PI, tmax: 10 * Math::PI, xscale: 1, yscale: 1, steps: 1001, alternate: false, power: 1)
+      # are scaled by +:xscale+ and +:yscale+.  If +:power+ is not 1, then the
+      # shape of each individual cycloid is altered.  Using a power of 1.12
+      # gives a pretty good approximation of the curve of #csc_int_int.
+      def cycloid_table(tmin: -10 * Math::PI, tmax: 10 * Math::PI, xscale: 1, yscale: 1, steps: 1001, power: 1)
         Numo::DFloat.linspace(tmin, tmax, steps).to_a.map { |t|
-          cycloid_parametric(t, xscale: xscale, yscale: yscale, alternate: alternate, power: power)
+          cycloid_parametric(t, xscale: xscale, yscale: yscale, power: power)
         }
       end
 
       # Returns the value of the cycloid at time +t+, as an [x, y] Array.  See
       # #cycloid_table for other parameter descriptions.
-      def cycloid_parametric(t, xscale: 1, yscale: 1, alternate: false, power: 1)
+      def cycloid_parametric(t, xscale: 1, yscale: 1, power: 1)
         x = t - Math.sin(t)
         y = 1 - Math.cos(t)
         y = y ** power * 2.0 ** (1 - power) if power != 1
-        y *= 0.5 * (-1) ** ((t / (2.0 * Math::PI)).floor) if alternate
 
         [x * xscale, y * yscale]
       end
