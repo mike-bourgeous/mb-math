@@ -80,5 +80,56 @@ RSpec.describe(MB::M::TrigMethods) do
         end
       end
     end
+
+    describe '#cycloid' do
+      tests = {
+        -Math::PI * 2 => 0,
+        -Math::PI * 3 / 2 - 1 => 1,
+        -Math::PI => 2,
+        -Math::PI / 2 + 1 => 1,
+        -0.1585290151921035 => 0.45969769413186023,
+        0 => 0,
+        0.0001665833531718508 => 0.0049958347219741794,
+        Math::PI / 2 - 1 => 1,
+        Math::PI => 2,
+        Math::PI * 3 / 2 + 1 => 1,
+        Math::PI * 2 => 0,
+      }
+
+      tests.each do |input, output|
+        it "returns expected value for #{input}" do
+          expect(MB::M.cycloid(input)).to be_within(0.00001).of(output)
+        end
+      end
+
+      it 'closely matches parametric cycloid' do
+        t = Numo::DFloat.linspace(-2.01 * Math::PI, 2.01 * Math::PI, 8041)
+        x = t.map { |v| v - Math.sin(v) }
+        y = t.map { |v| 1 - Math.cos(v) }
+
+        result = x.map { |v| MB::M.cycloid(v) }
+        diff = result - y
+        expect(diff.abs.max).to be < 0.00001
+      end
+    end
+
+    describe '#cycloid_parametric' do
+      it 'uses the power parameter' do
+        baseline = MB::M.cycloid_parametric(1)
+        result = MB::M.cycloid_parametric(1, power: 2)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to be_within(0.000000001).of(baseline[1] ** 2 / 2)
+
+        baseline = MB::M.cycloid_parametric(3)
+        result = MB::M.cycloid_parametric(3, power: 2)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to be_within(0.000000001).of(baseline[1] ** 2 / 2)
+
+        baseline = MB::M.cycloid_parametric(3)
+        result = MB::M.cycloid_parametric(3, power: 0.6)
+        expect(result[0]).to eq(baseline[0])
+        expect(result[1]).to be_within(0.000000001).of(baseline[1] ** 0.6 * 2 / 2 ** 0.6)
+      end
+    end
   end
 end
