@@ -16,14 +16,28 @@ module MB
         narray.reshape(*narray.shape[1..-1])
       end
 
-      # Sets in-place processing to +inplace+ on the given +narray+, then yields
-      # the narray to the given block.
+      # Sets in-place processing to +inplace+ on the given +narray+, then
+      # yields the narray to the given block.
+      #
+      # Yields +narray+ unaltered if it is not a Numo::NArray and +inplace+ is
+      # false.
+      #
+      # Raises an error if +narray+ is not actually a Numo::NArray and
+      # +inplace+ is true.
       def with_inplace(narray, inplace)
-        was_inplace = narray.inplace?
-        inplace ? narray.inplace! : narray.not_inplace!
-        yield narray
-      ensure
-        was_inplace ? narray.inplace! : narray.not_inplace!
+        if narray.is_a?(Numo::NArray)
+          begin
+            was_inplace = narray.inplace?
+            inplace ? narray.inplace! : narray.not_inplace!
+            yield narray
+          ensure
+            was_inplace ? narray.inplace! : narray.not_inplace!
+          end
+        elsif inplace
+          raise ArgumentError, 'Inplace must be false if a non-Numo::NArray is given to #with_inplace'
+        else
+          yield narray
+        end
       end
 
       # Appends +append+ to +array+, removing elements from the start of

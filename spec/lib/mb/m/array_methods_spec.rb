@@ -13,6 +13,25 @@ RSpec.describe(MB::M::ArrayMethods) do
     end
   end
 
+  describe '.with_inplace' do
+    it 'yields a non-narray if inplace is false' do
+      result = nil
+      MB::M.with_inplace(4.0, false) do |v|
+        result = v
+      end
+      expect(result).to eq(4.0)
+    end
+
+    it 'raises an error with a non-narray if inplace is true' do
+      expect { MB::M.with_inplace(4.0, true) }.to raise_error(ArgumentError, /inplace.*false/i)
+    end
+
+    pending 'non-inplace narray with inplace false'
+    pending 'non-inplace narray with inplace true'
+    pending 'inplace narray with inplace false'
+    pending 'inplace narray with inplace true'
+  end
+
   describe '.append_shift' do
     let(:base) { Numo::SFloat[1,2,3,4,5].freeze }
 
