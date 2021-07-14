@@ -128,7 +128,7 @@ module MB
         @stdin.puts ''
         @stdin.puts ''
         @stdin.flush
-        wait_for(/plot>.*exit/) rescue err ||= $!
+        wait_for(/plot>[[:space:]]*exit/, join: true) rescue err ||= $!
 
         @stdin&.close
         @stdin = nil
@@ -349,9 +349,10 @@ module MB
       end
 
       # Waits for the given +text+ output from gnuplot (which must occur on a
-      # single line), with a default +timeout+ of 5s (or whatever was passed to the
-      # constructor).
-      def wait_for(text, timeout: nil)
+      # single line unless +:join+ is true), or a sequence of matching lines if
+      # +text+ is an Array, with a default +timeout+ of 5s (or whatever was
+      # passed to the constructor).
+      def wait_for(text, join: false, timeout: nil)
         timeout ||= @timeout
 
         start = ::MB::U.clock_now
@@ -363,11 +364,13 @@ module MB
             idx = @buf_idx
             @buf_idx = @buf.length
 
+            buf_subset = @buf[idx..-1]
+
             case text
             when String
-              return if @buf[idx..-1].any? { |line| line.include?(text) }
+              return if buf_subset.any? { |line| line.include?(text) } || (join && buf_subset.join.include?(text))
             when Regexp
-              return if @buf[idx..-1].any? { |line| line =~ text }
+              return if buf_subset.any? { |line| line =~ text } || (join && buf_subset.join =~ text)
             else
               raise "Invalid text #{text.inspect}"
             end
