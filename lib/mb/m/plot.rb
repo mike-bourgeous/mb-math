@@ -362,7 +362,7 @@ module MB
           @read_mutex.synchronize {
             # Maybe the text already arrived in the background read thread
             idx = @buf_idx
-            @buf_idx = @buf.length
+            @buf_idx = @buf.length unless join
 
             buf_subset = @buf[idx..-1]
 
