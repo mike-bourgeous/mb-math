@@ -2,6 +2,12 @@ module MB
   module M
     # Methods related to trigonometry.
     module TrigMethods
+      NEG_2_OVER_PI = -2.0 / Math::PI
+      PI_OVER_2I = Math::PI / 2i
+      TWO_PI = 2.0 * Math::PI
+      TWO_TWO_PI = 2.2 * Math::PI
+      POINT_ONE_PI = 0.1 * Math::PI
+
       # The first antiderivative of the cosecant function, using exponential
       # instead of sine to preserve both real and imaginary components.
       #
@@ -14,7 +20,7 @@ module MB
       def csc_int(x)
         # Scale and offset adjusted to match plot on Wolfram Alpha
         # FIXME: this does not return the correct imaginary component when given an imaginary argument
-        -2.0 * CMath.atanh(CMath.exp(1i * x)).conj + Math::PI / 2i
+        -2.0 * CMath.atanh(CMath.exp(1i * x)).conj + PI_OVER_2I
       end
 
       # The second antidervative of the cosecant (or at least the
@@ -51,12 +57,27 @@ module MB
       #
       # The imaginary part of the output looks like a sawtooth wave.
       #
+      # This is a lookup-table-based version that tries to be faster, but fails.
+      def cot_int(x)
+        @ci_table ||= Numo::DComplex.linspace(-0.1 * Math::PI, 2.1 * Math::PI, 2201).map { |v| cot_int_direct(v) }
+        x %= 2.0 * Math::PI
+        offset = (x + 0.1 * Math::PI) * 2200 / (2.2 * Math::PI)
+        idx = offset.floor
+        blend = offset - idx
+        (1.0 - blend) * @ci_table[idx] + blend * @ci_table[idx + 1]
+      end
+
+      # The first antiderivative of a modified cotangent function, arrived at
+      # through a combination of exponential identities and trial and error.
+      #
+      # The imaginary part of the output looks like a sawtooth wave.
+      #
       # Modified exponential cotangent to drop the negative exponent term from the sine.
       # Sage command: integrate(e ^ (i * z) / (i * (e ^ (-i * z) - e ^ (i * z))), z)
       # Sage result: 1/2*log(e^(I*z) + 1) + 1/2*log(e^(I*z) - 1)
       # Modified to produce ramp: 2/pi * log(e^(I*z) + I) + I
-      def cot_int(x)
-        -2.0 / Math::PI * CMath.log(CMath.exp(1i * x) + 1i) + 1i
+      def cot_int_direct(x)
+        NEG_2_OVER_PI * CMath.log(CMath.exp(1i * x) + 1i) + 1i
       end
 
       # Returns an approximation of the cycloid as a function of +x+.  A
