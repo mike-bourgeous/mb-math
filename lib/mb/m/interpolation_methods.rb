@@ -111,7 +111,7 @@ module MB
           b1 = (a1.inplace * (d2t / d20)).not_inplace!
           b1.inplace - (a2 * (d0t / d20))
           b2 = (a2.inplace * (d3t / d31)).not_inplace!
-          b2.inplace - (a3 * (d1t / d31))
+          b2.inplace - (a3.inplace * (d1t / d31))
 
           ((b1.inplace * (d2t / d21)).inplace - (b2.inplace * (d1t / d21))).not_inplace!
         else
