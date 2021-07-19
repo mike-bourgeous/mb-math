@@ -131,8 +131,22 @@ module MB
       def cr_distance_squared(p1, p2)
         p1 = [0, p1] if p1.is_a?(Numeric)
         p2 = [1, p2] if p2.is_a?(Numeric)
-        # TODO: this could be made faster without transposing
-        [p2.to_a, p1.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum
+
+        case p1.length
+        when 2
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2
+
+        when 3
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2 + (p2[2] - p1[2]).abs ** 2
+
+        when 4
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2 + (p2[2] - p1[2]).abs ** 2 + (p2[3] - p1[3]).abs ** 2
+
+        else
+          p1.length.times.reduce(0) { |obj, idx|
+            obj + (p2[idx] - p1[idx]).abs ** 2
+          }
+        end
       end
     end
   end
