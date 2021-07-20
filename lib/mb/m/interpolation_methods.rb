@@ -50,7 +50,7 @@ module MB
           }
         else
           blend = func.call(blend) if func
-          (1 - blend) * a + blend * b
+          a * (1 - blend) + b * blend
         end
       end
 
@@ -71,7 +71,7 @@ module MB
           p3 = Numo::NArray.cast(p3)
         end
 
-        # The distance between points is is used to space control "knots" t0..t3
+        # The distance between points is used to space control "knots" t0..t3
         if alpha != 0
           a = 0.5 * alpha # bake square root into alpha
           t0 = 0.0
@@ -99,13 +99,30 @@ module MB
         d1t = t1 - t
         d2t = t2 - t
         d3t = t3 - t
-        a1 = d1t / d10 * p0 - d0t / d10 * p1
-        a2 = d2t / d21 * p1 - d1t / d21 * p2
-        a3 = d3t / d32 * p2 - d2t / d32 * p3
-        b1 = d2t / d20 * a1 - d0t / d20 * a2
-        b2 = d3t / d31 * a2 - d1t / d31 * a3
 
-        d2t / d21 * b1 - d1t / d21 * b2
+        if p0.is_a?(Numo::NArray)
+          a1 = p0 * (d1t / d10)
+          a1.inplace - (p1 * (d0t / d10))
+          a2 = p1 * (d2t / d21)
+          a2.inplace - (p2 * (d1t / d21))
+          a3 = p2 * (d3t / d32)
+          a3.inplace - (p3 * (d2t / d32))
+
+          b1 = (a1.inplace * (d2t / d20)).not_inplace!
+          b1.inplace - (a2 * (d0t / d20))
+          b2 = (a2.inplace * (d3t / d31)).not_inplace!
+          b2.inplace - (a3.inplace * (d1t / d31))
+
+          ((b1.inplace * (d2t / d21)).inplace - (b2.inplace * (d1t / d21))).not_inplace!
+        else
+          a1 = p0 * (d1t / d10) - p1 * (d0t / d10)
+          a2 = p1 * (d2t / d21) - p2 * (d1t / d21)
+          a3 = p2 * (d3t / d32) - p3 * (d2t / d32)
+          b1 = a1 * (d2t / d20) - a2 * (d0t / d20)
+          b2 = a2 * (d3t / d31) - a3 * (d1t / d31)
+
+          b1 * (d2t / d21) - b2 * (d1t / d21)
+        end
       end
 
       private
@@ -114,8 +131,22 @@ module MB
       def cr_distance_squared(p1, p2)
         p1 = [0, p1] if p1.is_a?(Numeric)
         p2 = [1, p2] if p2.is_a?(Numeric)
-        # TODO: this could be made faster without transposing
-        [p2.to_a, p1.to_a].transpose.map { |v| (v[1] - v[0]).abs ** 2 }.sum
+
+        case p1.length
+        when 2
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2
+
+        when 3
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2 + (p2[2] - p1[2]).abs ** 2
+
+        when 4
+          (p2[0] - p1[0]).abs ** 2 + (p2[1] - p1[1]).abs ** 2 + (p2[2] - p1[2]).abs ** 2 + (p2[3] - p1[3]).abs ** 2
+
+        else
+          p1.length.times.reduce(0) { |obj, idx|
+            obj + (p2[idx] - p1[idx]).abs ** 2
+          }
+        end
       end
     end
   end

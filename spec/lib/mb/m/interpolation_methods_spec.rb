@@ -176,10 +176,34 @@ RSpec.describe(MB::M::InterpolationMethods) do
       expect(result.diff.min).to be > 0
     end
 
-    it 'can interpolate arrays' do
-      result = MB::M.catmull_rom([1, 5], [3, 3], [-2.5, 4.5], [-1, 4], 0.25, 0)
+    it 'can interpolate arrays of length 2' do
+      result = MB::M.catmull_rom([1, 5], [3, 3], [-2.5, 4.5], [-1, 4], 0.25, 0.1)
       expect(result[0]).to be_between(-2.6, 2.9)
       expect(result[1]).to be_between(3.1, 4.4)
+    end
+
+    it 'can interpolate arrays of length 3' do
+      result = MB::M.catmull_rom([1, 5, 1], [3, 3, 3], [-2.5, 4.5, -2.5], [-1, 4, -1], 0.25, 0.1)
+      expect(result[0]).to be_between(-2.6, 2.9)
+      expect(result[1]).to be_between(3.1, 4.4)
+      expect(result[2]).to be_between(-2.6, 2.9)
+    end
+
+    it 'can interpolate narrays of length 4' do
+      result = MB::M.catmull_rom(Numo::SFloat[1, 5, 1, 5], Numo::SFloat[3, 3, 3, 3], Numo::SFloat[-2.5, 4.5, -2.5, 4.5], Numo::SFloat[-1, 4, -1, 4], 0.25, 0.1)
+      expect(result[0]).to be_between(-2.6, 2.9)
+      expect(result[1]).to be_between(3.1, 4.4)
+      expect(result[2]).to be_between(-2.6, 2.9)
+      expect(result[3]).to be_between(3.1, 4.4)
+    end
+
+    it 'can interpolate narrays of length 5' do
+      result = MB::M.catmull_rom(Numo::SFloat[1, 5, 1, 5, 1], Numo::SFloat[3, 3, 3, 3, 3], Numo::SFloat[-2.5, 4.5, -2.5, 4.5, -2.5], Numo::SFloat[-1, 4, -1, 4, -1], 0.25, 0.1)
+      expect(result[0]).to be_between(-2.6, 2.9)
+      expect(result[1]).to be_between(3.1, 4.4)
+      expect(result[2]).to be_between(-2.6, 2.9)
+      expect(result[3]).to be_between(3.1, 4.4)
+      expect(result[4]).to be_between(-2.6, 2.9)
     end
 
     it 'does something with alpha' do
