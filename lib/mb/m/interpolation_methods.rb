@@ -50,7 +50,7 @@ module MB
           }
         else
           blend = func.call(blend) if func
-          (1 - blend) * a + blend * b
+          a * (1 - blend) + b * blend
         end
       end
 
