@@ -127,6 +127,7 @@ module MB
       # length of the NArray.  Returns the array unmodified if +n+ is zero.
       # Use negative values for +n+ to rotate right.
       def rol(array, n)
+        # TODO: Support in-place modification
         return array if n == 0
         a, b = array.split([n])
         b.concatenate(a)
@@ -134,12 +135,14 @@ module MB
 
       # Rotates a 1D NArray right by +n+ places (calls .rol(array, -n)).
       def ror(array, n)
+        # TODO: Support in-place modification
         rol(array, -n)
       end
 
       # Removes the first +n+ entries of 1D +array+ and adds +n+ zeros at the
       # end.  Cannot shift right; use .shr for that.
       def shl(array, n)
+        # TODO: Support in-place modification
         return array if n == 0 || array.size == 0
         return array.class.zeros(array.size) if array.size <= n
         array[n..-1].concatenate(array.class.zeros(n))
@@ -148,6 +151,7 @@ module MB
       # Removes the last +n+ entries of 1D +array+ and adds +n+ zeros at the
       # start.  Cannot shift left; use .shl for that.
       def shr(array, n)
+        # TODO: Support in-place modification
         return array if n == 0 || array.size == 0
         return array.class.zeros(array.size) if array.size <= n
         array.class.zeros(n).concatenate(array[0..-(n + 1)])
