@@ -96,6 +96,30 @@ module MB
         ((-b - disc) / denom).to_c
       ]
     end
+
+    # Parses +v+ as a Float or Complex.  Supports polar notation using degrees
+    # separated by a less-than sign, with or without spaces.
+    #
+    # Examples:
+    #     MB::M.parse_complex('.5')
+    #     # => 0.5
+    #
+    #     MB::M.parse_complex('3.0-.2i')
+    #     # => 3.0-0.2i
+    #
+    #     MB::M.parse_complex('1 < 90')
+    #     # => 0.0+1.0i
+    def self.parse_complex(v)
+      case v
+      when /\s*[+-]?(\.\d+|\d+(\.\d+)?)\s*<\s*[+-]?(\.\d+|\d+(\.\d+)?)\s*/
+        # Complex number in polar form with degrees, e.g. 0.5<37
+        mag, deg = v.split('<')
+        v = Complex.polar(Float(mag.strip), Float(deg.strip).degrees)
+
+      when String
+        v = (Float(v) rescue Complex(v.gsub(/\s+/, '')))
+      end
+    end
   end
 end
 
