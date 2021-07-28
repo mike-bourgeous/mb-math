@@ -104,7 +104,7 @@ module MB
     #     MB::M.parse_complex('.5')
     #     # => 0.5
     #
-    #     MB::M.parse_complex('3.0-.2i')
+    #     MB::M.parse_complex('3-.2i')
     #     # => 3.0-0.2i
     #
     #     MB::M.parse_complex('1 < 90')
@@ -114,10 +114,19 @@ module MB
       when /\s*[+-]?(\.\d+|\d+(\.\d+)?)\s*<\s*[+-]?(\.\d+|\d+(\.\d+)?)\s*/
         # Complex number in polar form with degrees, e.g. 0.5<37
         mag, deg = v.split('<')
-        v = Complex.polar(Float(mag.strip), Float(deg.strip).degrees)
+        Complex.polar(Float(mag.strip), Float(deg.strip).degrees)
 
-      when String
-        v = (Float(v) rescue Complex(v.gsub(/\s+/, '')))
+      else
+        begin
+          Float(v)
+        rescue
+          begin
+            Complex(v)
+          rescue
+            v = v.gsub(/\s+/, '') if v.is_a?(String)
+            Complex(v)
+          end
+        end
       end
     end
   end
