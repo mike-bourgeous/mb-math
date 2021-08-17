@@ -45,6 +45,11 @@ module MB
       end
       alias degree degrees
 
+      # Converts radians to degrees.
+      def to_degrees
+        self * 180.0 / Math::PI
+      end
+
       # Returns a non-augmented rotation matrix of the current numeric in radians.
       #
       # Example:

@@ -1,4 +1,30 @@
 RSpec.describe(MB::M::TrigMethods) do
+  describe '#angle' do
+    tests = {
+      [Complex.polar(1, 0), Complex.polar(1, 5.degrees)] => 5.degrees,
+      [Complex.polar(1, 0), Complex.polar(1, -5.degrees)] => -5.degrees,
+      [Complex.polar(1, 5.degrees), Complex.polar(1, 0)] => -5.degrees,
+      [Complex.polar(1, -5.degrees), Complex.polar(1, 0)] => 5.degrees,
+      [Complex.polar(1, 1), Complex.polar(1, 1)] => 0,
+      [Complex.polar(0.25, 1), Complex.polar(50, 1)] => 0,
+      [Complex.polar(0.0015, 0), Complex.polar(50, 5.degrees)] => 5.degrees,
+      [Complex.polar(0.0015, 5.degrees), Complex.polar(50, -5.degrees)] => -10.degrees,
+      [Complex.polar(1, 179.degrees), Complex.polar(1, -179.degrees)] => 2.degrees,
+      [Complex.polar(1, 181.degrees), Complex.polar(1, 179.degrees)] => -2.degrees,
+      [1, -1] => -180.degrees,
+      [1i, -1i] => -180.degrees,
+      [Complex.polar(3, 85.degrees), Complex.polar(4, -85.degrees)] => -170.degrees,
+      [Complex.polar(3, 95.degrees), Complex.polar(4, -95.degrees)] => 170.degrees,
+    }
+
+    tests.each do |(a, b), output|
+      it "returns the expected result for #{a.abs.round(4)}<#{a.arg.to_degrees.round(2)}\u00b0 and #{b.abs.round(2)}<#{b.arg.to_degrees.round(2)}\u00b0" do
+        # Using to_degrees so test failures are a bit easier to read
+        expect(MB::M.round(MB::M.angle(a, b).to_degrees, 8)).to eq(MB::M.round(output.to_degrees, 8))
+      end
+    end
+  end
+
   describe '#csc_int' do
     it 'returns expected values for real arguments' do
       expect(MB::M.round(MB::M.csc_int(2), 6)).to eq(0.443022724.round(6))

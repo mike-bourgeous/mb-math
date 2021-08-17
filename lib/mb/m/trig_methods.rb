@@ -2,15 +2,19 @@ module MB
   module M
     # Methods related to trigonometry.
     module TrigMethods
+      TWO_PI = 2.0 * Math::PI
+
       # Returns the relative angle between two complex numbers regardless of
-      # their magnitude, in the range [0, pi), using dot product.
+      # their magnitude, in the range [-pi, pi).  The returned value is the
+      # rotation to apply to +a+ to make its ray coincident with +b+.
+      # Returns a positive value if +a+ is clockwise of +b+.
+      # Returns a negative value if +a+ is counterclockwise of +b+.
+      # Returns 0 if one or both numbers are zero.
       def angle(a, b)
-        return 0 if a == 0 || b == 0
-        dot = a.real * b.real + a.imag * b.imag
-        cosine = dot.to_f / (a.abs * b.abs)
-        cosine = -1.0 if cosine < -1.0
-        cosine = 1.0 if cosine > 1.0
-        Math.acos(cosine)
+        c = b.arg - a.arg
+        c += TWO_PI while c < -Math::PI
+        c -= TWO_PI while c >= Math::PI
+        c
       end
 
       # The first antiderivative of the cosecant function, using exponential
