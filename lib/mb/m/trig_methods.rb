@@ -2,6 +2,17 @@ module MB
   module M
     # Methods related to trigonometry.
     module TrigMethods
+      # Returns the relative angle between two complex numbers regardless of
+      # their magnitude, in the range [0, pi), using dot product.
+      def angle(a, b)
+        return 0 if a == 0 || b == 0
+        dot = a.real * b.real + a.imag * b.imag
+        cosine = dot.to_f / (a.abs * b.abs)
+        cosine = -1.0 if cosine < -1.0
+        cosine = 1.0 if cosine > 1.0
+        Math.acos(cosine)
+      end
+
       # The first antiderivative of the cosecant function, using exponential
       # instead of sine to preserve both real and imaginary components.
       #
