@@ -177,5 +177,16 @@ RSpec.describe(MB::M::PrecisionMethods) do
         expect(MB::M.sigformat(*input)).to eq(output)
       end
     end
+
+    it 'includes the decimals if force_decimal is true' do
+      expect(MB::M.sigformat(4, force_decimal: true)).to eq('4.00')
+      expect(MB::M.sigformat(4000, force_decimal: true)).to eq('4.00k')
+
+      expect(MB::M.sigformat(4, 4, force_decimal: true)).to eq('4.000')
+      expect(MB::M.sigformat(40, 4, force_decimal: true)).to eq('40.00')
+      expect(MB::M.sigformat(400, 4, force_decimal: true)).to eq('400.0')
+      expect(MB::M.sigformat(4000, 4, force_decimal: true)).to eq('4.000k')
+      expect(MB::M.sigformat(40000, 4, force_decimal: true)).to eq('40.00k')
+    end
   end
 end

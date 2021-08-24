@@ -61,7 +61,8 @@ module MB
       end
 
       # Formats +value+ in with +figs+ significant figures, using SI magnitude
-      # prefixes.
+      # prefixes.  If +:force_decimal+ is true, then integer values will still
+      # print a decimal point.
       #
       # Examples (see specs for more examples):
       #     sigformat(0) # => '0'
@@ -73,7 +74,7 @@ module MB
       #     sigformat(0.12345) # => '123m'
       #     sgiformat(123, 1) # => '100'
       #     sigformat(0.0001234) # => "123\u00b5"
-      def sigformat(value, figs = 3)
+      def sigformat(value, figs = 3, force_decimal: false)
         return '0' if value == 0
 
         log = Math.log10(value.abs)
@@ -85,7 +86,7 @@ module MB
 
         prefix = SI_PREFIXES[kilo_order]
 
-        if extra <= 0 || sig == sig.round
+        if !force_decimal && (extra <= 0 || sig == sig.round)
           "%d#{prefix}" % sig
         else
           "%.#{extra}f#{prefix}" % sig
