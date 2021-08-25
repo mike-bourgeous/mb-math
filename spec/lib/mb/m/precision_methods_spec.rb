@@ -179,6 +179,7 @@ RSpec.describe(MB::M::PrecisionMethods) do
     end
 
     it 'includes the decimals if force_decimal is true' do
+      expect(MB::M.sigformat(0, force_decimal: true)).to eq('0.00')
       expect(MB::M.sigformat(4, force_decimal: true)).to eq('4.00')
       expect(MB::M.sigformat(4000, force_decimal: true)).to eq('4.00k')
 
@@ -187,6 +188,30 @@ RSpec.describe(MB::M::PrecisionMethods) do
       expect(MB::M.sigformat(400, 4, force_decimal: true)).to eq('400.0')
       expect(MB::M.sigformat(4000, 4, force_decimal: true)).to eq('4.000k')
       expect(MB::M.sigformat(40000, 4, force_decimal: true)).to eq('40.00k')
+    end
+
+    it 'honors force_sign for displayed integers' do
+      expect(MB::M.sigformat(0, force_sign: true)).to eq('+0')
+      expect(MB::M.sigformat(0.0 * -1.0, force_sign: true)).to eq('-0')
+      expect(MB::M.sigformat(-2, force_sign: true)).to eq('-2')
+      expect(MB::M.sigformat(1, force_sign: true)).to eq('+1')
+      expect(MB::M.sigformat(0.001, force_sign: true)).to eq('+1m')
+      expect(MB::M.sigformat(-0.001, force_sign: true)).to eq('-1m')
+    end
+
+    it 'honors force_sign for displayed decimals' do
+      expect(MB::M.sigformat(0, force_decimal: true, force_sign: true)).to eq('+0.00')
+      expect(MB::M.sigformat(0, 4, force_decimal: true, force_sign: true)).to eq('+0.000')
+      expect(MB::M.sigformat(0.0 * -1.0, force_decimal: true, force_sign: true)).to eq('-0.00')
+      expect(MB::M.sigformat(-2, force_decimal: true, force_sign: true)).to eq('-2.00')
+      expect(MB::M.sigformat(1, force_decimal: true, force_sign: true)).to eq('+1.00')
+      expect(MB::M.sigformat(0.001, force_decimal: true, force_sign: true)).to eq('+1.00m')
+      expect(MB::M.sigformat(-0.001, force_decimal: true, force_sign: true)).to eq('-1.00m')
+
+      expect(MB::M.sigformat(-0.0125, force_decimal: true, force_sign: true)).to eq('-12.5m')
+      expect(MB::M.sigformat(-0.125, force_decimal: true, force_sign: true)).to eq('-125.0m')
+      expect(MB::M.sigformat(0.0125, force_decimal: true, force_sign: true)).to eq('+12.5m')
+      expect(MB::M.sigformat(0.125, force_decimal: true, force_sign: true)).to eq('+125.0m')
     end
   end
 end

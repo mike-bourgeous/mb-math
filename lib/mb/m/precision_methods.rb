@@ -61,8 +61,14 @@ module MB
       end
 
       # Formats +value+ in with +figs+ significant figures, using SI magnitude
-      # prefixes.  If +:force_decimal+ is true, then integer values will still
-      # print a decimal point.
+      # prefixes.
+      #
+      # If +:force_decimal+ is true, then integer values will still print a
+      # decimal point.  This is useful for keeping the width of a displayed
+      # value nearly constant.
+      #
+      # If +:force_sign+ is true, then a plus sign will be placed in front of
+      # non-negative values.
       #
       # Examples (see specs for more examples):
       #     sigformat(0) # => '0'
@@ -74,22 +80,29 @@ module MB
       #     sigformat(0.12345) # => '123m'
       #     sgiformat(123, 1) # => '100'
       #     sigformat(0.0001234) # => "123\u00b5"
-      def sigformat(value, figs = 3, force_decimal: false)
-        return '0' if value == 0
+      def sigformat(value, figs = 3, force_decimal: false, force_sign: false)
+        if value != 0
+          log = Math.log10(value.abs)
+          order = log.floor
+          kilo_order = (log / 3.0).floor
+          extra = (figs - 1) - (order - kilo_order * 3)
 
-        log = Math.log10(value.abs)
-        order = log.floor
-        kilo_order = (log / 3.0).floor
-        extra = (figs - 1) - (order - kilo_order * 3)
+          sig = sigfigs(value, figs) / 1000.0 ** kilo_order
 
-        sig = sigfigs(value, figs) / 1000.0 ** kilo_order
+          prefix = SI_PREFIXES[kilo_order]
+        else
+          extra = figs - 1
+          sig = value
+        end
 
-        prefix = SI_PREFIXES[kilo_order]
+        sign_prefix = force_sign ? '+' : ''
+
+        extra = 1 if extra < 1 && force_decimal
 
         if !force_decimal && (extra <= 0 || sig == sig.round)
-          "%d#{prefix}" % sig
+          "%#{sign_prefix}.0f#{prefix}" % sig
         else
-          "%.#{extra}f#{prefix}" % sig
+          "%#{sign_prefix}.#{extra}f#{prefix}" % sig
         end
       end
     end
