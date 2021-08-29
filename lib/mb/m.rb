@@ -50,6 +50,14 @@ module MB
         self * 180.0 / Math::PI
       end
 
+      # Formats a number in complex polar form using degrees, using '∠'
+      # (\u2220) to separate the magnitude from angle, and '°' (\u00b0) to
+      # denote degrees.  The +digits+ parameter controls rounding before
+      # display.
+      def to_polar_s(digits = 4)
+        "#{MB::M.sigfigs(self.abs.to_f, digits).to_f}\u2220#{MB::M.sigfigs(self.arg.to_f.to_degrees, digits).to_f}\u00b0"
+      end
+
       # Returns a non-augmented rotation matrix of the current numeric in radians.
       #
       # Example:

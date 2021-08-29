@@ -18,6 +18,20 @@ RSpec.describe(MB::M) do
       end
     end
 
+    describe '#to_polar_s' do
+      it 'can format an Integer' do
+        expect(-2.to_polar_s).to eq("2.0\u2220180.0\u00b0")
+      end
+
+      it 'can use more digits' do
+        expect(Complex.polar(12.341234, 45.12341234.degrees).to_polar_s(6)).to eq("12.3412\u222045.1234\u00b0")
+      end
+
+      it 'can use fewer digits' do
+        expect(Complex.polar(1.2341234, 45.12341234.degrees).to_polar_s(1)).to eq("1.0\u222050.0\u00b0")
+      end
+    end
+
     describe '#rotation' do
       it 'can return a 90 degree rotation matrix' do
         expect(90.degree.rotation.round(8)).to eq(Matrix[[0, -1], [1, 0]])
