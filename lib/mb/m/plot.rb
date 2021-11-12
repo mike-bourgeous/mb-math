@@ -1,4 +1,18 @@
-require 'pty'
+begin
+  require 'pty'
+rescue LoadError => e
+  warn "Error loading pty, plotting will be unavailable: #{e}"
+  PTY ||= Class.new do
+    def self.method_missing(name, *_)
+      raise NotImplementedError, "PTY is unavailable, cannot call method #{name.inspect}"
+    end
+
+    def self.spawn(*_)
+      method_missing(:spawn)
+    end
+  end
+end
+
 require 'tempfile'
 require 'timeout'
 
