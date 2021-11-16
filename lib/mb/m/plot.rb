@@ -1,6 +1,8 @@
 begin
   require 'pty'
+  MB_M_PTY_AVAILABLE = true
 rescue LoadError => e
+  MB_M_PTY_AVAILABLE = false
   warn "Error loading pty, plotting will be unavailable: #{e}"
   PTY ||= Class.new do
     def self.method_missing(name, *_)
