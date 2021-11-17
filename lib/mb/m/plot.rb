@@ -14,6 +14,7 @@ module MB
     # Created because Numo::Gnuplot was giving an error.
     class Plot
       class StopReadLoop < RuntimeError; end
+      class PlotError < RuntimeError; end
 
       # Creates an ASCII-art plotter sized to the terminal.
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
@@ -69,6 +70,8 @@ module MB
         wait_for('')
 
         terminal(terminal: terminal, title: title)
+      rescue Errno::ENOENT => e
+        raise PlotError, "Make sure GNUplot is installed for plotting (see the instructions in the README)"
       end
 
       # Returns an Array with all lines of output from gnuplot up to this point and
@@ -83,7 +86,7 @@ module MB
       # Sends the given command to gnuplot, then waits for the gnuplot command
       # prompt to return.
       def command(cmd)
-        raise 'Plot is closed' unless @stdin
+        raise PlotError, 'Plot is closed' unless @stdin
 
         @stdin.puts cmd
         wait_prompt # wait for the 'gnuplot>' that came before the current line
@@ -111,7 +114,7 @@ module MB
         when '.png'
           term = 'pngcairo'
         else
-          raise "Unknown file extension #{ext}"
+          raise PlotError, "Unknown file extension #{ext}"
         end
 
         terminal(terminal: term, width: width, height: height, title: nil)
@@ -206,7 +209,7 @@ module MB
       # If +:print+ is true, then 'dumb' terminal plots are printed to the
       # console.  If false, then plots are returned as an array of lines.
       def plot(data, rows: nil, columns: nil, print: true)
-        raise 'Plotter is closed' unless @pid
+        raise PlotError, 'Plotter is closed' unless @pid
 
         @read_mutex.synchronize {
           if @terminal == 'dumb'
@@ -372,14 +375,14 @@ module MB
             when Regexp
               return if buf_subset.any? { |line| line =~ text } || (join && buf_subset.join =~ text)
             else
-              raise "Invalid text #{text.inspect}"
+              raise PlotError, "Invalid text #{text.inspect}"
             end
           }
 
           Thread.pass
         end
 
-        raise "Timed out waiting for #{text.inspect} after #{timeout} seconds: #{@buf}"
+        raise PlotError, "Timed out waiting for #{text.inspect} after #{timeout} seconds: #{@buf}"
       end
 
       # Background thread runs this to read GNUplot's output.
