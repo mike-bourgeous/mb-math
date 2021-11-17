@@ -208,6 +208,12 @@ Now install dependencies:
 
 ```bash
 bundle install
+
+# Ubuntu/Debian
+sudo apt-get install gnuplot-qt
+
+# macOS
+brew install gnuplot
 ```
 
 ### Using the project as a Gem
