@@ -127,6 +127,9 @@ module MB
       def close
         return if @pid.nil?
 
+        pid = @pid
+        @pid = nil
+
         err = nil
 
         if @stdin
@@ -143,12 +146,12 @@ module MB
         begin
           begin
             Timeout.timeout(@timeout) do
-              Process.wait(@pid)
+              Process.wait(pid)
             end
           rescue Timeout::Error
-            Process.kill(:TERM, @pid)
+            Process.kill(:TERM, pid)
             Timeout.timeout(@timeout) do
-              Process.wait(@pid)
+              Process.wait(pid)
             end
           end
         rescue => e
@@ -161,7 +164,6 @@ module MB
         @t&.join rescue err ||= $!
         @stdout = nil
 
-        @pid = nil
         @rows = nil
         @cols = nil
 
