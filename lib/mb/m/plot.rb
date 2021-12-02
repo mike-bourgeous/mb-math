@@ -35,6 +35,8 @@ module MB
       # If false, the dumb terminal plotter does not print to the terminal.
       attr_accessor :print
 
+      # The dimensions of the terminal or graphical plot window, in characters
+      # or pixels respectively.
       attr_reader :width, :height
 
       # Use a longer +timeout+ if you will be plotting lots of data.
@@ -162,6 +164,12 @@ module MB
         @cols = nil
 
         raise err if err
+      end
+
+      # Returns true if the plotter has been closed with #close, or because the
+      # terminal window was resized.
+      def closed?
+        @stdin.nil?
       end
 
       def logscale(enabled = true)

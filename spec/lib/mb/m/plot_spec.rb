@@ -2,6 +2,18 @@ require 'fileutils'
 require 'shellwords'
 
 RSpec.describe MB::M::Plot do
+  describe '#close' do
+    it 'closes the plotter' do
+      p = MB::M::Plot.terminal(width: 40, height: 20)
+      expect(p.closed?).to eq(false)
+      expect { p.plot({a: [1,2,-1]}, print: false) }.not_to raise_error
+
+      p.close
+      expect(p.closed?).to eq(true)
+      expect { p.plot({a: [1,2,-1]}, print: false) }.to raise_error(MB::M::Plot::PlotError)
+    end
+  end
+
   describe '#plot' do
     let(:data) { {test123: [1, 0, 0, 0, 0], data321: [1, 0, 1, 0, 0, 0]} }
 
