@@ -129,14 +129,16 @@ module MB
 
         err = nil
 
-        @stdin.puts 'exit'
-        @stdin.puts ''
-        @stdin.puts ''
-        @stdin.flush
-        wait_for(/plot>[[:space:]]*exit/, join: true) rescue err ||= $!
+        if @stdin
+          @stdin.puts 'exit'
+          @stdin.puts ''
+          @stdin.puts ''
+          @stdin.flush
+          wait_for(/plot>[[:space:]]*exit/, join: true) rescue err ||= $!
 
-        @stdin&.close
-        @stdin = nil
+          @stdin.close
+          @stdin = nil
+        end
 
         begin
           begin
