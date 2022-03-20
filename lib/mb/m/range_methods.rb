@@ -17,8 +17,12 @@ module MB
           value = value.to_f
         end
 
-        in_min, in_max = from_range.min || from_range.first, from_range.max || from_range.last
-        out_min, out_max = to_range.min || to_range.first, to_range.max || to_range.last
+        in_min, in_max = from_range.begin, from_range.end
+        out_min, out_max = to_range.begin, to_range.end
+
+        # Degenerate ranges should always return the output beginning
+        return out_min if in_min == in_max || out_min == out_max
+
         ratio = (out_max.to_f - out_min.to_f) / (in_max.to_f - in_min.to_f)
 
         (value - in_min) * ratio + out_min

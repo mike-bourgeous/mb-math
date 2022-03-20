@@ -17,6 +17,30 @@ RSpec.describe(MB::M::RangeMethods) do
     it 'can scale Numo::DComplex' do
       expect(MB::M.scale(Numo::DComplex[1+1i], 0.0..1.0, 0.0..-2.0)).to eq(Numo::DComplex[-2-2i])
     end
+
+    it 'can scale from a non-degenerate range to a degenerate range (always returning min)' do
+      expect(MB::M.scale(5, 1..6, -1..-1)).to eq(-1)
+      expect(MB::M.scale(-3, 1..6, -1..-1)).to eq(-1)
+      expect(MB::M.scale(-7.2, 1..6, -1..-1)).to eq(-1)
+      expect(MB::M.scale(-7.2, 6..1, -1..-1)).to eq(-1)
+    end
+
+    it 'can scale from a degenerate range to a non-degenerate range (always returning min)' do
+      expect(MB::M.scale(-1, -1..-1, 1..6)).to eq(1)
+      expect(MB::M.scale(-2, -1..-1, 1..6)).to eq(1)
+      expect(MB::M.scale(-0.5, -1..-1, 1..6)).to eq(1)
+      expect(MB::M.scale(-0.5, -1..-1, 6..1)).to eq(6)
+    end
+
+    it 'can scale from a degenerate range to a degenerate range (always returning min)' do
+      expect(MB::M.scale(1, 1..1, 2..2)).to eq(2)
+      expect(MB::M.scale(0, 1..1, 2..2)).to eq(2)
+      expect(MB::M.scale(2, 1..1, 2..2)).to eq(2)
+    end
+
+    it 'converts integer ranges to float' do
+      expect(MB::M.scale(1, 0..2, 0..1)).to eq(0.5)
+    end
   end
 
   describe '.clamp' do
