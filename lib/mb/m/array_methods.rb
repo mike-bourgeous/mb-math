@@ -67,6 +67,78 @@ module MB
         leftover
       end
 
+      # Reads +length+ elements at the given +offset+ from the +source+
+      # Numo::NArray, wrapping around at the end of the array.
+      #
+      # If a +target+ Numo::NArray is given, then the unwrapped data will be
+      # copied into +target+.  Otherwise this method returns a new NArray.
+      def circular_read(source, offset, length, target: nil)
+        if offset < -source.length || offset >= source.length
+          raise IndexError, "Offset #{offset} is out of bounds of source length #{source.length}"
+        end
+
+        if target && target.length < length
+          raise ArgumentError, "Target length #{target.length} is less than read length #{length}"
+        end
+
+        if length > source.length
+          # TODO: Should this method be capable of wrapping repeatedly?
+          raise ArgumentError, "Length to read (#{length}) is greater than the source length #{source.length}"
+        end
+
+        offset += source.length if offset < 0
+
+        endpoint = offset + length
+        if endpoint <= source.length
+          # Simple read
+          if target
+            target[0...length] = source[offset...endpoint]
+            target
+          else
+            source[offset...endpoint].dup
+          end
+        else
+          # Wrapped read
+          target ||= source.class.new(length).allocate
+          before = source.length - offset
+          after = length - before
+          target[0...before] = source[offset..-1]
+          target[before...length] = source[0...after]
+
+          target
+        end
+      end
+
+      # Writes the +source+ Numo::NArray into the +target+ starting at the
+      # given +offset+, wrapping around if necessary.  Behavior is undefined if
+      # +target+ and +source+ are the same array, or are views into the same
+      # array.  Returns the +target+.
+      def circular_write(target, source, offset)
+        if offset < -target.length || offset >= target.length
+          raise IndexError, "Write offset #{offset} is out of bounds of target buffer (#{target.length})"
+        end
+
+        if source.length > target.length
+          raise ArgumentError, "Target buffer (#{target.length}) is not large enough for source (#{source.length})"
+        end
+
+        offset += target.length if offset < 0
+
+        endpoint = offset + source.length
+        if endpoint <= target.length
+          # Simple copy
+          target[offset...endpoint] = source
+        else
+          # Wrapped copy
+          before = target.length - offset
+          after = source.length - before
+          target[offset..-1] = source[0...before]
+          target[0...after] = source[before..-1]
+        end
+
+        target
+      end
+
       # Returns a new array padded with the given +value+ (or +before+ before and
       # +after+ after) to provide a size of at least +min_length+.  Returns the
       # original array if it is already long enough.  The default value is zero if

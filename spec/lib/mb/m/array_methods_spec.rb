@@ -60,6 +60,140 @@ RSpec.describe(MB::M::ArrayMethods) do
     end
   end
 
+  describe '.circular_read' do
+    context 'without a target' do
+      it 'can read without wrapping' do
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], 0, 4)
+        expect(result).to eq(Numo::SFloat[1, 2, 3, 4])
+      end
+
+      it 'can read with wrapping' do
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], 3, 4)
+        expect(result).to eq(Numo::SFloat[4, 5, 1, 2])
+      end
+
+      it 'can read from a negative offset' do
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], -3, 4)
+        expect(result).to eq(Numo::SFloat[3, 4, 5, 1])
+      end
+    end
+
+    context 'with a target' do
+      it 'can read without wrapping' do
+        target = Numo::SFloat.zeros(4)
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], 0, 4, target: target)
+        expect(target).to equal(result)
+        expect(target).to eq(Numo::SFloat[1, 2, 3, 4])
+      end
+
+      it 'can read with wrapping' do
+        target = Numo::SFloat.zeros(4)
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], 3, 4, target: target)
+        expect(target).to equal(result)
+        expect(target).to eq(Numo::SFloat[4, 5, 1, 2])
+      end
+
+      it 'can read from a negative offset' do
+        target = Numo::SFloat.zeros(4)
+        result = MB::M.circular_read(Numo::SFloat[1, 2, 3, 4, 5], -3, 4, target: target)
+        expect(target).to equal(result)
+        expect(target).to eq(Numo::SFloat[3, 4, 5, 1])
+      end
+
+      it 'can write into an offset view of a base array' do
+        target = Numo::SComplex.zeros(7)
+        result = MB::M.circular_read(Numo::SFloat[1,2,3,4,5], 4, 3, target: target[3..-1])
+        expect(result).to eq(Numo::SComplex[5, 1, 2, 0])
+        expect(target).to eq(Numo::SComplex[0, 0, 0, 5, 1, 2, 0])
+      end
+    end
+  end
+
+  describe '.circular_write' do
+    it 'raises an error if the target buffer is too small' do
+      s = Numo::SFloat[1, 2, 3]
+      t = Numo::SFloat.zeros(2)
+      expect { MB::M.circular_write(t, s, 0) }.to raise_error(ArgumentError, /large/)
+    end
+
+    it 'raises an error if the write offset is out of bounds of the target' do
+      s = Numo::SFloat[1]
+      t = Numo::SFloat.zeros(2)
+      expect { MB::M.circular_write(t, s, 2) }.to raise_error(IndexError, /bounds/)
+    end
+
+    it 'returns the target buffer' do
+      s = Numo::SFloat.ones(7)
+      t = Numo::SFloat.zeros(7)
+
+      r = MB::M.circular_write(t, s, 0)
+      expect(r).to equal(t)
+      expect(r).not_to equal(s)
+    end
+
+    it 'can write into an equal sized buffer with no offset' do
+      s = Numo::SFloat.ones(7)
+      t = Numo::SFloat.zeros(7)
+
+      MB::M.circular_write(t, s, 0)
+      expect(t).to eq(s)
+    end
+
+    it 'can write into an equal sized buffer with an offset' do
+      s = Numo::Int32[1, 2, 3, 4]
+      t = Numo::Int32.zeros(4)
+
+      MB::M.circular_write(t, s, 1)
+      expect(t).to eq(Numo::Int32[4, 1, 2, 3])
+
+      MB::M.circular_write(t, s, 2)
+      expect(t).to eq(Numo::Int32[3, 4, 1, 2])
+
+      MB::M.circular_write(t, s, 3)
+      expect(t).to eq(Numo::Int32[2, 3, 4, 1])
+    end
+
+    it 'can write float values into a complex buffer' do
+      s = Numo::SFloat[1, 2, 3]
+      t = Numo::DComplex.zeros(6)
+
+      MB::M.circular_write(t, s, 4)
+      expect(t).to eq(Numo::DComplex[3, 0, 0, 0, 1, 2])
+    end
+
+    it 'can write into a larger buffer without wrapping' do
+      s = Numo::DComplex.ones(2)
+      t = Numo::DComplex.zeros(3)
+
+      MB::M.circular_write(t, s, 1)
+      expect(t).to eq(Numo::DComplex[0, 1, 1])
+
+      t.fill(2)
+      MB::M.circular_write(t, s, 0)
+      expect(t).to eq(Numo::DComplex[1, 1, 2])
+    end
+
+    it 'can write into a larger buffer with wrapping' do
+      s = Numo::RObject[false, true, Array]
+      t = Numo::RObject[nil, nil, nil, nil, nil]
+
+      MB::M.circular_write(t, s, 4)
+      expect(t).to eq(Numo::RObject[true, Array, nil, nil, false])
+    end
+
+    it 'can use a negative offset' do
+      s = Numo::UInt32[1, 2, 3]
+      t = Numo::Int64.zeros(6)
+
+      MB::M.circular_write(t, s, -1)
+      expect(t).to eq(Numo::Int64[2, 3, 0, 0, 0, 1])
+
+      t.fill(0)
+      MB::M.circular_write(t, s, -3)
+      expect(t).to eq(Numo::Int64[0, 0, 0, 1, 2, 3])
+    end
+  end
+
   describe '.pad' do
     it 'can right-pad with a single value' do
       expect(MB::M.pad(Numo::SFloat[1], 3, value: 2, alignment: 0)).to eq(Numo::SFloat[1, 2, 2])
