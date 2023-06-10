@@ -245,6 +245,27 @@ module MB
         idx = ((array.length - 2) - idx) if idx >= (array.length - 1)
         array[idx]
       end
+
+      # Repeatedly copies +:source+ into +:destination+, starting at the given
+      # +:source_offset+.  Wraps around +:source+ at the end, but does not wrap
+      # around +:destination+.  Both +:source+ and +:destination+ should be
+      # Numo::NArrays.
+      #
+      # Returns the new source offset to use to continue the repeating pattern.
+      def repeat(source:, destination:, source_offset: 0)
+        srclen = source.length
+        dstlen = destination.length
+
+        if source_offset < 0 || source_offset >= source.length
+          raise IndexError, "Source offset #{source_offset} is out of range of source length #{source.length}"
+        end
+
+        prefix_length = srclen - source_offset
+
+        # TODO: Prefix from source_offset to source_length or destination end
+        # TODO: Main loop copying all of source in srclen chunks
+        # TODO: Suffix from source 0 until end of destination
+      end
     end
   end
 end

@@ -130,6 +130,53 @@ RSpec.describe(MB::M::PrecisionMethods) do
     end
   end
 
+  describe '#round_to' do
+    context 'with an Integer multiple' do
+      it 'rounds numbers to nearest multiples' do
+        expect(MB::M.round_to(15, 30)).to eq(30)
+        expect(MB::M.round_to(14.999, 30)).to eq(0)
+        expect(MB::M.round_to(-14.999, 30)).to eq(0)
+        expect(MB::M.round_to(-15, 30)).to eq(-30)
+      end
+
+      it 'behaves the same with a negative multiple' do
+        expect(MB::M.round_to(-32, 3)).to eq(-33)
+        expect(MB::M.round_to(-32, -3)).to eq(-33)
+      end
+
+      it 'can round with an offset' do
+        expect(MB::M.round_to(16.5, 30, 1.5)).to eq(31.5)
+        expect(MB::M.round_to(16.499, 30, 1.5)).to eq(1.5)
+        expect(MB::M.round_to(-13.499, 30, 1.5)).to eq(1.5)
+        expect(MB::M.round_to(-13.5, 30, 1.5)).to eq(-28.5)
+      end
+    end
+
+    context 'with a fractional multiple' do
+      it 'rounds to multiples of the fraction' do
+        expect(MB::M.round_to(2.124, 0.25)).to eq(2)
+        expect(MB::M.round_to(2.125, 0.25)).to eq(2.25)
+        expect(MB::M.round_to(-2.3, 0.25)).to eq(-2.25)
+      end
+    end
+
+    context 'with a Numo::NArray' do
+      it 'rounds each value to the multiple' do
+        expect(MB::M.round_to(Numo::SFloat[0, 0.5, 2, 3, 4], 0.75)).to eq(Numo::SFloat[0, 0.75, 2.25, 3, 3.75])
+      end
+    end
+
+    context 'with an Array' do
+      it 'rounds each value to the multiple' do
+        expect(MB::M.round_to([0, 0.5, 2, 3, 4], 0.75)).to eq([0, 0.75, 2.25, 3, 3.75])
+      end
+    end
+
+    it 'can round Complex values' do
+      expect(MB::M.round_to(1.32+3.2i, 1+2i)).to eq(2+4i)
+    end
+  end
+
   describe '#sigformat' do
     tests = {
       0 => '0',

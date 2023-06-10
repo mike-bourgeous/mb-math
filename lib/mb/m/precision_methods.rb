@@ -60,6 +60,38 @@ module MB
         end
       end
 
+      # Rounds the given value to the closest multiple of +multiple+ starting
+      # from +offset+, or returns the value unmodified if +multiple+ is zero..
+      #
+      # Examples:
+      #     # Round to nearest multiple of 30
+      #     round_to(35, 30) # => 30
+      #     round_to(50, 30) # => 60
+      #
+      #     # Round to multiples of 2.5 with an offset of 0.5
+      #     round_to(4, 2.5, 0.5) # => 3.0
+      #     round_to(4.5, 2.5, 0.5) # => 5.5
+      #
+      #     # Round multiple values at once
+      #     round_to(Numo::SFloat[1, 2, 3, 4, 5], 2, 0.5) # => Numo::SFloat[0.5, 2.5, 2.5, 4.5, 4.5]
+      def round_to(value, multiple, offset = 0)
+        return value if multiple == 0
+
+        value = value.to_f if value.is_a?(Integer)
+
+        case value
+        when Numo::NArray, Numeric
+          round(((value - offset) / multiple)) * multiple + offset
+
+        else
+          if value.respond_to?(:map)
+            value.map { |v| round_to(v, multiple) }
+          else
+            raise ArgumentError, "Unsupported type for value to round to multiple: #{value.class}"
+          end
+        end
+      end
+
       # Formats +value+ in with +figs+ significant figures, using SI magnitude
       # prefixes.
       #
