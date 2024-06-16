@@ -152,7 +152,18 @@ module MB
       # resulting array, 1 to leave it at the end of the array, and something in
       # between to place it in the middle (e.g. 0.5 for centering the data).
       def pad(narray, min_length, value: nil, before: nil, after: nil, alignment: 0)
-        return narray if narray.size >= min_length
+        if narray.size >= min_length
+          if block_given?
+            result = yield narray
+            if result.shape != narray.shape
+              raise "Block result shape #{result.shape} does not match provided shape #{narray.shape}"
+            end
+
+            return result
+          end
+
+          return narray
+        end
 
         value ||= 0
         before ||= value
@@ -182,6 +193,9 @@ module MB
 
         if block_given?
           result = yield narray
+          if result.shape != narray.shape
+            raise "Block result shape #{result.shape} does not match provided shape #{narray.shape}"
+          end
           result[length_before..-(length_after + 1)]
         else
           narray

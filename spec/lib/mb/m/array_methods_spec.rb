@@ -282,6 +282,22 @@ RSpec.describe(MB::M::ArrayMethods) do
         result = MB::M.pad(data, 139, before: 2, after: 1, alignment: 0.37) do |p| p * 2 end
         expect(result).to eq(data * 2)
       end
+
+      it 'still yields to the block if the data is already long enough' do
+        data = Numo::SFloat[1, 2, 3]
+        padded = nil
+        result = MB::M.pad(data, 3, value: 0.5) do |p| padded = p end
+        expect(result).to eq(data)
+        expect(padded).to eq(data)
+      end
+
+      it 'still yields to the block if the data is already longer' do
+        data = Numo::SFloat[1, 2, 3]
+        padded = nil
+        result = MB::M.pad(data, 0, value: 0.5) do |p| padded = p end
+        expect(result).to eq(data)
+        expect(padded).to eq(data)
+      end
     end
   end
 
@@ -296,7 +312,15 @@ RSpec.describe(MB::M::ArrayMethods) do
 
     context 'when a block is given' do
       it 'returns original length data as modified by the block' do
-        expect(MB::M.zpad(Numo::SFloat.zeros(3), 5) { |p| p + 1 }).to eq(Numo::SFloat.ones(3))
+        expect(MB::M.zpad(Numo::SFloat.ones(3), 5) { |p| p + 1 }).to eq(Numo::SFloat.ones(3) * 2)
+      end
+
+      it 'works when the data is already long enough' do
+        expect(MB::M.zpad(Numo::SFloat.ones(3), 3) { |p| Numo::SFloat[4, 3, 2] }).to eq(Numo::SFloat[4, 3, 2])
+      end
+
+      it 'works when the data is already longer' do
+        expect(MB::M.zpad(Numo::SFloat.ones(3), 1) { |p| Numo::SFloat[1, 2, 3] }).to eq(Numo::SFloat[1, 2, 3])
       end
     end
   end
@@ -313,6 +337,14 @@ RSpec.describe(MB::M::ArrayMethods) do
     context 'when a block is given' do
       it 'returns original length data as modified by the block' do
         expect(MB::M.zpad(Numo::SFloat.zeros(3), 5) { |p| p + 3 }).to eq(Numo::SFloat.ones(3) * 3)
+      end
+
+      it 'works when the data is already long enough' do
+        expect(MB::M.zpad(Numo::SFloat.zeros(3), 3) { |p| Numo::SFloat.ones(3) }).to eq(Numo::SFloat.ones(3))
+      end
+
+      it 'works when the data is already longer' do
+        expect(MB::M.zpad(Numo::SFloat.zeros(3), 1) { |p| Numo::SFloat[1, 2, 3] }).to eq(Numo::SFloat[1, 2, 3])
       end
     end
   end
