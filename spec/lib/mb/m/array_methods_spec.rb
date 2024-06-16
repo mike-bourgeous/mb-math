@@ -266,6 +266,23 @@ RSpec.describe(MB::M::ArrayMethods) do
         end
       end
     end
+
+    context 'when a block is given' do
+      it 'returns the original data if the block does not modify the padded data' do
+        data = Numo::SFloat.linspace(-1, -2, 100)
+
+        padded = nil
+        result = MB::M.pad(data, 150, before: 1, after: 2, alignment: 0.25) do |p| padded = p end
+        expect(result).to eq(data)
+        expect(padded.length).to eq(150)
+      end
+
+      it 'returns data as modified by the block' do
+        data = Numo::SFloat.linspace(-1, -2, 127)
+        result = MB::M.pad(data, 139, before: 2, after: 1, alignment: 0.37) do |p| p * 2 end
+        expect(result).to eq(data * 2)
+      end
+    end
   end
 
   describe '.zpad' do
@@ -276,6 +293,12 @@ RSpec.describe(MB::M::ArrayMethods) do
     it 'can pad an empty narray' do
       expect(MB::M.zpad(Numo::SFloat[], 2)).to eq(Numo::SFloat[0, 0])
     end
+
+    context 'when a block is given' do
+      it 'returns original length data as modified by the block' do
+        expect(MB::M.zpad(Numo::SFloat.zeros(3), 5) { |p| p + 1 }).to eq(Numo::SFloat.ones(3))
+      end
+    end
   end
 
   describe '.opad' do
@@ -285,6 +308,12 @@ RSpec.describe(MB::M::ArrayMethods) do
 
     it 'can pad an empty narray' do
       expect(MB::M.opad(Numo::SFloat[], 2)).to eq(Numo::SFloat[1, 1])
+    end
+
+    context 'when a block is given' do
+      it 'returns original length data as modified by the block' do
+        expect(MB::M.zpad(Numo::SFloat.zeros(3), 5) { |p| p + 3 }).to eq(Numo::SFloat.ones(3) * 3)
+      end
     end
   end
 
