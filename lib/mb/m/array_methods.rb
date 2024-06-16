@@ -139,10 +139,14 @@ module MB
         target
       end
 
-      # Returns a new array padded with the given +value+ (or +before+ before and
-      # +after+ after) to provide a size of at least +min_length+.  Returns the
-      # original array if it is already long enough.  The default value is zero if
-      # not specified.
+      # If no block is given, returns a new array padded with the given +value+
+      # (or +before+ before and +after+ after) to provide a size of at least
+      # +min_length+.  Returns the original array if it is already long enough.
+      # The default value is zero if not specified.
+      #
+      # If a block is given, the padded array is yielded to the block, the
+      # padding regions are removed from whatever the block returns (must be
+      # the same length narray as given to the block), and the result returned.
       #
       # Use 0 for +alignment+ to leave the original data at the start of the
       # resulting array, 1 to leave it at the end of the array, and something in
@@ -176,23 +180,28 @@ module MB
           end
         end
 
-        narray
+        if block_given?
+          result = yield narray
+          result[length_before..-(length_after + 1)]
+        else
+          narray
+        end
       end
 
       # Returns a new array padded with zeros to provide a size of at least
       # +min_length+.  Returns the original array if it is already long enough.
       #
-      # See #pad for +alignment+.
-      def zpad(narray, min_length, alignment: 0)
-        pad(narray, min_length, value: 0, alignment: alignment)
+      # See #pad for +alignment+ and block behavior.
+      def zpad(narray, min_length, alignment: 0, &bl)
+        pad(narray, min_length, value: 0, alignment: alignment, &bl)
       end
 
       # Returns a new array padded with ones to provide a size of at least
       # +min_length+.  Returns the original array if it is already long enough.
       #
-      # See #pad for +alignment+.
-      def opad(narray, min_length, alignment: 0)
-        pad(narray, min_length, value: 1, alignment: alignment)
+      # See #pad for +alignment+ and block behavior.
+      def opad(narray, min_length, alignment: 0, &bl)
+        pad(narray, min_length, value: 1, alignment: alignment, &bl)
       end
 
       # Rotates a 1D NArray left by +n+ places, which must be less than the
