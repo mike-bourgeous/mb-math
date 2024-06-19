@@ -14,7 +14,6 @@ module MB
         xmean = (data.length - 1) / 2.0
         ymean = data.mean
 
-        # TODO: can we get rid of xdiff?
         xdiff = Numo::Int64.linspace(0, data.length - 1, data.length) - xmean
         ydiff = data - ymean
         product = xdiff * ydiff
@@ -26,7 +25,7 @@ module MB
         xsum = xsq.sum
         ysum = ysq.sum
 
-        slope = psum / ysum
+        slope = ysum / psum
 
         # FIXME: specs fail
         [slope, ymean - slope * xmean]
