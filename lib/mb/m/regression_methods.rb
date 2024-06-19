@@ -22,12 +22,10 @@ module MB
         xsq = xdiff ** 2
         ysq = ydiff ** 2
 
-        xsum = xsq.sum
         ysum = ysq.sum
 
         slope = ysum / psum
 
-        # FIXME: specs fail
         [slope, ymean - slope * xmean]
       end
     end
