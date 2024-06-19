@@ -11,7 +11,7 @@ module MB
       # References:
       # - https://thoughtbot.com/blog/linear-regression-using-dataframes-in-ruby
       def linear_regression(data)
-        xmean = data.length / 2.0
+        xmean = (data.length - 1) / 2.0
         ymean = data.mean
 
         # TODO: can we get rid of xdiff?
