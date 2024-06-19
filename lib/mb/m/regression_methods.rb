@@ -26,6 +26,8 @@ module MB
 
         slope = ysum / psum
 
+        # FIXME: this doesn't work well with slope equal to zero
+
         [slope, ymean - slope * xmean]
       end
     end

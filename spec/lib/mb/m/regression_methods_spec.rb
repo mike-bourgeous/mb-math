@@ -1,5 +1,9 @@
 RSpec.describe(MB::M::RegressionMethods, aggregate_failures: true) do
   context 'with perfect data' do
+    pending 'returns the correct slope and intercept for y=0' do
+      expect(MB::M.linear_regression(Numo::SFloat.zeros(5))).to eq([0, 0])
+    end
+
     it 'returns the correct slope and intercept for y=x' do
       expect(MB::M.linear_regression(Numo::SFloat[0, 1, 2, 3, 4, 5])).to eq([1, 0])
     end
@@ -40,6 +44,13 @@ RSpec.describe(MB::M::RegressionMethods, aggregate_failures: true) do
       m, b = MB::M.linear_regression(data + noise)
       expect(m).to be_within(0.002).of(-0.125)
       expect(b).to be_within(0.002).of(75.5)
+    end
+
+    pending 'returns expected coefficients for data centered around y=0' do
+      data = Numo::SFloat[1, -1, 1, -1, 1, -1, 1, -1]
+      m, b = MB::M.linear_regression(data)
+      expect(m).to eq(0)
+      expect(b).to eq(0)
     end
   end
 end
