@@ -3,9 +3,10 @@ module MB
     class Plot
       # Represents a function (i.e. y=x^2) for GNUplot.
       class Function
-        class DependentVariable
-          def initialize(name, function)
-            @name = name
+        class FuncPart
+          def initialize(name:, memoizer:, function:)
+            @name = name.to_s
+            @memoizer = memoizer
             @function = function
             @closed = false
           end
@@ -18,45 +19,49 @@ module MB
             @closed = true
           end
 
+          def coerce(a)
+            puts "Coerce #{MB::U.highlight(a)} for #{self.inspect}" # XXX
+            raise ArgumentError, 'Can only coerce Numeric into DSL expression' unless Numeric === a
+            [FuncNumber.new(name: a, memoizer: @memoizer, function: @function), self]
+          end
+
           def method_missing(name, *args, **kwargs)
-            puts 'depvar closed' if @closed # XXX
+            puts "#{self.class} closed" if @closed
             super if @closed
-            super if name == :to_hash # Ruby 2.7.x
+            super if name == :to_hash # Ruby 2.7
+            @memoizer.method_missing(name, *args, **kwargs, receiver: self)
+          end
+        end
+
+        class FuncNumber < FuncPart
+        end
+
+        class DependentVariable < FuncPart
+          def initialize(name, function)
+            super(name: name, memoizer: function.memoizer, function: function)
+          end
+
+          def method_missing(name, *args, **kwargs)
             puts "\e[34mdep var #{@name} received #{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}\e[0m" # XXX
-            @function.memoizer.method_missing(name, *args, **kwargs, receiver: self)
+            super
           end
         end
 
-        class IndependentVariable
+        class IndependentVariable < FuncPart
           def initialize(name, function)
-            @name = name
-            @function = function
-            @closed = false
-          end
-
-          def to_s
-            @name
-          end
-
-          def close
-            @closed = true
+            super(name: name, memoizer: function.memoizer, function: function)
           end
 
           def method_missing(name, *args, **kwargs)
-            puts 'indvar closed' if @closed # XXX
-            super if @closed
-            super if name == :to_hash # Ruby 2.7.x
             puts "\e[35mindep var #{@name} received #{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}\e[0m" # XXX
-            @function.memoizer.method_missing(name, *args, **kwargs, receiver: self)
+            super
           end
         end
 
-        class Expression
+        class Expression < FuncPart
           def initialize(name, args, function)
-            @name = name
+            super(name: name, memoizer: function.memoizer, function: function)
             @args = args
-            @function = function
-            @closed = false
           end
 
           def to_s
@@ -67,11 +72,8 @@ module MB
             end
           end
 
-          def close
-            @closed = true
-          end
+          # TODO: write call() method that takes indep vars as kwargs
 
-          # TODO: dedupe; these are all expressions maybe
           def method_missing(name, *args, **kwargs)
             puts 'expr closed' if @closed # XXX
             super if @closed
@@ -87,10 +89,13 @@ module MB
           end
 
           def method_missing(name, *args, receiver: @function, **kwargs)
-            dbginf = "#{receiver.class.name}.#{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}"
+            dbginf = "#{receiver.class.name}.#{name} #{args.map(&:to_s)} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}"
             name = name.to_s
             ret = @function
 
+            # TODO: Maybe split these out into individual method_missings or move into FuncPart or something?
+            # TODO: built-in functions like sin/cos/exp?
+            # TODO: constants like e, pi?
             case name
             when /\A[a-z][a-z0-9_]*\z/
               if args.empty?
@@ -99,8 +104,6 @@ module MB
                 ret = @function.indvars[name]
               else
                 puts "\e[36mfunction call: #{dbginf}\e[0m" # XXX
-                # TODO: dedupe; these are all expressions maybe
-                # TODO: built-in functions like sin/cos/exp?
                 if @function.depvars[name]
                   puts "found dependent variable #{@function.depvars[name]} for function call" # XXX
                 else
