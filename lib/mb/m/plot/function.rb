@@ -64,7 +64,11 @@ module MB
           def call(**vars)
             raise 'Cannot call an open function expression' unless @closed
 
-            vars[@name] || (raise "No value given for independent variable #{@name}")
+            val = vars[@name] || (raise "No value given for independent variable #{@name}")
+            if val.respond_to?(:call)
+              val = val.arity != 0 ? val.call(**vars) : val.call
+            end
+            val
           end
 
           def method_missing(name, *args, **kwargs)
@@ -93,7 +97,7 @@ module MB
             end
           end
 
-          def call(*vars)
+          def call(**vars)
             raise 'Cannot call an open function expression' unless @closed
 
             if @args.length == 1 && @name.to_s.end_with?('@')
@@ -103,7 +107,7 @@ module MB
               val.send(@name)
             else
               @args.map { |a|
-                a.respond_to?(:call) ? a.call(*vars) : a
+                a.respond_to?(:call) ? a.call(**vars) : a
               }.reduce(&@name)
             end
           end
@@ -187,8 +191,9 @@ module MB
           @final.to_s
         end
 
-        def call(*a, **kwa)
-          @final.call(*a, **kwa)
+        # Pass variable susbtitutions as keyword arguments
+        def call(**vars)
+          @final.call(**vars)
         end
       end
     end

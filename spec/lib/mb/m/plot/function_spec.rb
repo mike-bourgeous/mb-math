@@ -23,5 +23,11 @@ RSpec.describe(MB::M::Plot::Function, :aggregate_failures) do
       expect(f.to_s).to eq('((5 * x) + (y ** z))')
       expect(f.call(x: 10, y: 2, z: 4)).to eq(66)
     end
+
+    it 'accepts a proc for independent variables' do
+      f = MB::M::Plot::Function.new { q * 3 }
+      expect(f.to_s).to eq('(q * 3)')
+      expect(f.call(q: -> { 17 })).to eq(17 * 3)
+    end
   end
 end
