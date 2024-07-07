@@ -436,3 +436,5 @@ module MB
     end
   end
 end
+
+require_relative 'plot/function'
