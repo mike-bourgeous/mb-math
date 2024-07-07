@@ -1,4 +1,4 @@
-RSpec.describe(MB::M::Plot::Function) do
+RSpec.describe(MB::M::Plot::Function, :aggregate_failures) do
   describe '#initialize' do
     it 'can build a simple expression from DSL' do
       f = MB::M::Plot::Function.new { x * y + 5 }
@@ -8,6 +8,20 @@ RSpec.describe(MB::M::Plot::Function) do
     it 'can coerce numeric values for the DSL' do
       f = MB::M::Plot::Function.new { 1 + x }
       expect(f.to_s).to eq('(1 + x)')
+    end
+  end
+
+  describe '#call' do
+    it 'can evaluate a constant function' do
+      f = MB::M::Plot::Function.new { 42 }
+      expect(f.to_s).to eq('42')
+      expect(f.call).to eq(42)
+    end
+
+    it 'can evaluate the function given values for independent variables' do
+      f = MB::M::Plot::Function.new { 5 * x + y ** z }
+      expect(f.to_s).to eq('((5 * x) + (y ** z))')
+      expect(f.call(x: 10, y: 2, z: 4)).to eq(66)
     end
   end
 end
