@@ -4,5 +4,10 @@ RSpec.describe(MB::M::Plot::Function) do
       f = MB::M::Plot::Function.new { x * y + 5 }
       expect(f.to_s).to eq('((x * y) + 5)')
     end
+
+    it 'can coerce numeric values for the DSL' do
+      f = MB::M::Plot::Function.new { 1 + x }
+      expect(f.to_s).to eq('(1 + x)')
+    end
   end
 end
