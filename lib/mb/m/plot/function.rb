@@ -7,17 +7,23 @@ module MB
           def initialize(name, function)
             @name = name
             @function = function
+            @closed = false
           end
 
           def to_s
             @name
           end
 
+          def close
+            @closed = true
+          end
+
           def method_missing(name, *args, **kwargs)
+            puts 'depvar closed' if @closed # XXX
+            super if @closed
             super if name == :to_hash # Ruby 2.7.x
-            puts "\e[34mdep var #{@name} received #{name} #{args} #{kwargs} #{caller_locations[0..4].join("\n")}\e[0m"
+            puts "\e[34mdep var #{@name} received #{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}\e[0m" # XXX
             @function.memoizer.method_missing(name, *args, **kwargs, receiver: self)
-            self
           end
         end
 
@@ -25,17 +31,23 @@ module MB
           def initialize(name, function)
             @name = name
             @function = function
+            @closed = false
           end
 
           def to_s
             @name
           end
 
+          def close
+            @closed = true
+          end
+
           def method_missing(name, *args, **kwargs)
+            puts 'indvar closed' if @closed # XXX
+            super if @closed
             super if name == :to_hash # Ruby 2.7.x
-            puts "\e[35mindep var #{@name} received #{name} #{args} #{kwargs} #{caller_locations[0..4].join("\n")}\e[0m"
+            puts "\e[35mindep var #{@name} received #{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}\e[0m" # XXX
             @function.memoizer.method_missing(name, *args, **kwargs, receiver: self)
-            self
           end
         end
 
@@ -44,13 +56,28 @@ module MB
             @name = name
             @args = args
             @function = function
+            @closed = false
           end
 
+          def to_s
+            if @args.length == 1 && @name.to_s.end_with?('@')
+              "(#{@name[0..-2]}#{@args[0]})"
+            else
+              "(#{@args.map(&:to_s).join(" #{@name} ")})"
+            end
+          end
+
+          def close
+            @closed = true
+          end
+
+          # TODO: dedupe; these are all expressions maybe
           def method_missing(name, *args, **kwargs)
+            puts 'expr closed' if @closed # XXX
+            super if @closed
             super if name == :to_hash # Ruby 2.7.x
-            puts "\e[38;5;177mexpression #{@name} received #{name} #{args} #{kwargs} #{caller_locations[0..4].join("\n")}\e[0m"
+            puts "\e[38;5;177mexpression var #{@name} received #{name} #{args} #{kwargs}\n\t#{MB::U.highlight(caller_locations[0..4]).lines.join("\t")}\e[0m" # XXX
             @function.memoizer.method_missing(name, *args, **kwargs, receiver: self)
-            self
           end
         end
 
@@ -67,11 +94,13 @@ module MB
             case name
             when /\A[a-z][a-z0-9_]*\z/
               if args.empty?
-                puts "\e[33mindependent variable: #{dbginf}\e[0m"
+                puts "\e[33mindependent variable: #{dbginf}\e[0m" # XXX
                 @function.indvars[name] ||= IndependentVariable.new(name, @function)
                 ret = @function.indvars[name]
               else
                 puts "\e[36mfunction call: #{dbginf}\e[0m" # XXX
+                # TODO: dedupe; these are all expressions maybe
+                # TODO: built-in functions like sin/cos/exp?
                 if @function.depvars[name]
                   puts "found dependent variable #{@function.depvars[name]} for function call" # XXX
                 else
@@ -80,18 +109,19 @@ module MB
               end
 
             when /\A[a-z][a-z0-9_]*=\z/
-              puts "\e[32mdependent variable: #{dbginf}\e[0m"
+              puts "\e[32mdependent variable: #{dbginf}\e[0m" # XXX
               # TODO: argument should be an expression
+              # TODO: might want to use @y= instead of self.y=
               @function.depvars[name[0..-2]] = {var: DependentVariable.new(name[0..-2], @function), args: args, kwargs: kwargs}
               ret = @function.depvars[name[0..-2]][:var]
 
-            when /\A([*+-\/^]|\*\*)\z/
-              puts "\e[31moperator: #{dbginf}\e[0m"
+            when /\A([*+-\/^]|\*\*)@?\z/
+              puts "\e[31moperator: #{dbginf}\e[0m" # XXX
               raise "Can't operate on the memoizer!  This is a confusing error message!" if receiver == self
-              ret = Expression.new(name, [receiver, *args], self)
+              ret = Expression.new(name, [receiver, *args], @function)
 
             else
-              puts "\e[38;5;110munknown call: #{dbginf}\e[0m"
+              puts "\e[38;5;110munknown call: #{dbginf}\e[0m" # XXX
             end
 
             # FIXME: this basically needs to build a syntax tree kind of like Hashformer HF::G.chain
@@ -110,22 +140,13 @@ module MB
           @depvars = {}
           @calls = []
           @memoizer = Memoizer.new(self)
-          @final = @memoizer.instance_eval(&block)
-          puts "final: #{@final.inspect}"
+          @final = @memoizer.instance_exec(&block)
+          @final.close if @final.respond_to?(:close)
+          puts "final: #{@final}" # XXX
         end
 
         def to_s
-          # FIXME 
-          @calls.map(&:to_s)
-        end
-
-        # TODO can we get implicit self instead of local variables?
-        # probably have to use @x= or @y= in the DSL
-        def x=(*a)
-          method_missing(:y=, *a)
-        end
-        def y=(*a)
-          method_missing(:y=, *a)
+          @final.to_s
         end
       end
     end
