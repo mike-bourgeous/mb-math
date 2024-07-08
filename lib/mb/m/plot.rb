@@ -1,6 +1,7 @@
 require 'pty'
 require 'tempfile'
 require 'timeout'
+require 'shellwords'
 
 module MB
   module M
@@ -202,9 +203,169 @@ module MB
         end
       end
 
-      # Displays a multi-plot of the given +data+ hash of labels to arrays, with
-      # the given number of +columns+ and +rows+ (defaults to a roughly square
-      # layout based on number of graphs).
+      # For internal use by #plot.  Generates the string of arguments for the
+      # GNUPlot plot command for the given +plot+, which may be:
+      def plot_string(plot_type, tempfile, data)
+      end
+
+      # For internal use by #plot.  Determines whether a dataset is a
+      # sequential sample plot, a scatter plot, a function, or a group of the
+      # above.
+      def detect_type(data, depth: 0)
+        case data
+        when Array
+          return :array_numeric if data.all?(Numeric)
+
+          if array.all?(Array)
+            return :array_scatter if data.all? { |a| a.length == 2 && a.all?(Numeric) }
+          end
+
+          if depth == 0
+            nested_types = data.map { |a| detect_type(a, depth: depth + 1) }
+            return :array_overlay if nested_types.all?(Symbol)
+          end
+
+          raise ArgumentError, 'Unable to detect plot type(s) within Array'
+
+        when Numo::NArray
+          return :narray_numeric if data.ndim == 1
+          return :narray_scatter if data.ndim == 2 && data.shape[0] == 2
+
+          raise ArgumentError, "Unsupported shape #{data.shape} for Numo::NArray dataset"
+
+        when ::MB::M::Plot::Function
+          return :function
+
+        else
+          raise ArgumentError, "Unsupported dataset type #{data.class}"
+        end
+      end
+
+      # For internal use by #plot.  Determines a (hopefully) suitable X range
+      # for the given +data+.
+      def detect_xrange(data)
+        # TODO: would minmax or minmax_by be faster if we could skip infinities?
+        if data.is_a?(Array) && data.all?(Array)
+          range = data.map { |v| v[0].is_a?(Complex) ? v[1].abs : v[1] }
+
+        elsif data.is_a?(Numo::NArray)
+          if data.ndim != 1
+            range = data.not_inplace![1, nil]
+            range = range.abs if range[0].is_a?(Complex)
+          end
+        end
+
+        # Let GNUplot pick xrange if this isn't a scatter plot
+        return [] if range.nil?
+
+        finite = range.to_a.select { |v| v.finite? }
+        min = finite.min || -10
+        max = finite.max || 10
+
+        min = [0, min.floor].min
+        max = max > 0.2 ? max.ceil : 0.1
+
+        [min, max]
+      end
+
+      # For internal use by #plot.  Automatically determines a (hopefully)
+      # suitable Y range for the given +data+.
+      def detect_yrange(data)
+        # TODO: would minmax or minmax_by be faster if we could skip infinities?
+        if data.is_a?(Array) && data.all?(Array)
+          range = data.map { |v| v[1].is_a?(Complex) ? v[1].abs : v[1] }
+
+        elsif data.is_a?(Numo::NArray)
+          if data.ndim == 1
+            range = data.not_inplace!
+          else
+            range = data.not_inplace![1, nil]
+          end
+          range = range.abs if range[0].is_a?(Complex)
+
+        elsif data[0].is_a?(Complex)
+          range = data.map(&:abs)
+
+        else
+          range = data
+        end
+
+        finite = range.to_a.select { |v| v.finite? }
+        min = finite.min || -10
+        max = finite.max || 10
+
+        min = [0, min.floor].min
+        max = max > 0.2 ? max.ceil : 0.1
+
+        [min, max]
+      end
+
+      # For internal use by #plot.  Sends the commands for one plot to GNUplot
+      # including range, logscale, and plot.
+      #
+      # Returns an array with any temporary files created to prevent garbage
+      # collection from deleting them before GNUplot reads the data.
+      def plot_single(name, plotinfo)
+        # TODO: allow overlaying multiple plots on one graph
+
+        data = plotinfo[:data]
+        plot_type = detect_type(data)
+        puts "Plot type is #{MB::U.highlight(plot_type)}" # XXX
+
+        tmpfiles = []
+        plot_strings = []
+        data = [data] unless plot_type == :array_overlay
+        data.each do |d|
+          d_type = plot_type == :array_overlay ? detect_type(d) : plot_type
+
+          file = Tempfile.new("plotdata_#{name.to_s.shellescape}")
+          tmpfiles << file
+          write_data(file, d)
+
+          r, g, b = rand(255), rand(255), rand(255)
+          if r+g+b > 255
+            r /= 4
+            g /= 4
+            b /= 4
+          end
+
+          # Set graph range
+          # TODO: Coalesce ranges from overlaid datasets
+          plot_xrange = plotinfo[:xrange] || @xrange || detect_xrange(d)
+          plot_xrange = [plot_xrange.begin, plot_xrange.end] if plot_xrange.is_a?(Range)
+          xrange(plot_xrange[0], plot_xrange[1], false)
+
+          plot_yrange = plotinfo[:yrange] || @yrange || detect_yrange(d)
+          plot_yrange = [plot_yrange.begin, plot_yrange.end] if plot_yrange.is_a?(Range)
+          yrange(plot_yrange[0], plot_yrange[1], false)
+
+          if plotinfo[:logscale] == true || (plotinfo[:logscale] != false && @logscale)
+            command "set logscale x 10"
+          else
+            command "unset logscale x"
+          end
+
+          if d.is_a?(::MB::M::Plot::Function)
+            raise NotImplementedError, 'TODO: support plotting functions'
+          else
+            plot_strings << %Q{'#{file.path}' using 1:2 with #{@type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}}
+          end
+        end
+
+        command %Q{plot #{plot_strings.join(', ')}"}
+
+        tmpfiles.compact
+      end
+
+      # Displays a multi-plot of the given +data+ Hash of labels to datasets,
+      # with the given number of +columns+ and +rows+ (defaults to a roughly
+      # square layout based on number of graphs).
+      #
+      # A dataset may be:
+      # - An Array of Numeric or a 1D Numo::NArray to use indexes as X
+      # - An Array of two-number Arrays or a 2xN Numo::NArray for X/Y plot
+      # - An MB::M::Plot::Function for a computed function (1D or parametric)
+      # - Or, an Array of any of the above to overlay plots on one graph
       #
       # If each data element is Numeric, then the graph X axis is array index.
       # If each data element is a two-element Array, then the graph X axis is
@@ -222,6 +383,7 @@ module MB
       # console.  If false, then plots are returned as an array of lines.
       def plot(data, rows: nil, columns: nil, print: true)
         raise PlotError, 'Plotter is closed' unless @pid
+        raise ArgumentError, 'Pass a Hash mapping labels to datasets' unless data.is_a?(Hash)
 
         @read_mutex.synchronize {
           if @terminal == 'dumb'
@@ -240,85 +402,29 @@ module MB
 
         set_multiplot(rows, cols)
 
-        tmps = data.compact.each_with_index.map { |(name, a), idx| [Tempfile.new("plotdata_#{idx}"), name, a] }
-        tmps.each do |(file, name, plotinfo)|
-          if plotinfo.is_a?(Hash)
-            write_data(file, plotinfo[:data])
-          else
-            write_data(file, plotinfo)
+        tmpfiles = []
+
+        data.each do |label, plotinfo|
+          begin
+            plotinfo = { data: plotinfo } unless plotinfo.is_a?(Hash)
+            tmpfiles.concat(
+              plot_single(label, plotinfo)
+            )
+          rescue => e
+            raise PlotError, "Error plotting #{label} dataset: #{e.message}"
           end
         end
 
-        tmps.each_with_index do |(file, name, plotinfo), idx|
-          r, g, b = rand(255), rand(255), rand(255)
-          if r+g+b > 255
-            r /= 4
-            g /= 4
-            b /= 4
-          end
-
-          if plotinfo.is_a?(Hash)
-            array = plotinfo[:data]
-          else
-            array = plotinfo
-            plotinfo = {
-              data: plotinfo
-            }
-          end
-
-          # Set graph range
-          if plotinfo[:xrange]
-            xrange(*plotinfo[:xrange], false)
-          elsif @xrange
-            xrange(*@xrange, false)
-          else
-            xrange(nil, nil, false)
-          end
-
-          if plotinfo[:yrange]
-            yrange(*plotinfo[:yrange], false)
-          elsif @yrange
-            yrange(*@yrange, false)
-          else
-            if array.is_a?(Array) && array.all?(Array)
-              xr = array.map { |v| v[0].is_a?(Complex) ? v[0].abs : v[0] }
-              range = array.map { |v| v[1].is_a?(Complex) ? v[1].abs : v[1] }
-            elsif array.is_a?(Numo::DComplex) || array.is_a?(Numo::SComplex)
-              range = array.not_inplace!.abs
-            elsif array[0].is_a?(Complex)
-              range = array.map(&:abs)
-            else
-              range = array
-            end
-
-            finite = range.to_a.select { |v| v.finite? }
-            min = finite.min || -10
-            max = finite.max || 10
-
-            min = [0, min.floor].min
-            max = max > 0.2 ? max.ceil : 0.1
-            yrange(min, max, false)
-          end
-
-          if plotinfo[:logscale] == true || (plotinfo[:logscale] != false && @logscale)
-            command "set logscale x 10"
-          else
-            command "unset logscale x"
-          end
-
-          command %Q{plot '#{file.path}' using 1:2 with #{@type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}"}
-        end
-
-        command 'unset multiplot'
+        unset_multiplot
 
         if @terminal == 'dumb'
           print_terminal_plot(print)
         end
 
       ensure
-        tmps&.map { |(file, data)|
-          file&.close rescue puts $!
-          file&.unlink rescue puts $!
+        tmpfiles&.map { |(file, data)|
+          file&.close rescue puts MB::U.highlight($!)
+          file&.unlink rescue puts MB::U.highlight($!)
         }
       end
 
@@ -419,6 +525,12 @@ module MB
           command 'unset multiplot' if @rows && @cols
         end
         command "set multiplot layout #{rows}, #{cols}"
+      end
+
+      def unset_multiplot
+        @rows = nil
+        @cols = nil
+        command 'unset multiplot'
       end
 
       # Writes data to a temporary file.  Plotting larger amounts of data is faster
