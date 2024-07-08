@@ -216,7 +216,7 @@ module MB
         when Array
           return :array_numeric if data.all?(Numeric)
 
-          if array.all?(Array)
+          if data.all?(Array)
             return :array_scatter if data.all? { |a| a.length == 2 && a.all?(Numeric) }
           end
 
@@ -229,7 +229,7 @@ module MB
 
         when Numo::NArray
           return :narray_numeric if data.ndim == 1
-          return :narray_scatter if data.ndim == 2 && data.shape[0] == 2
+          return :narray_scatter if data.ndim == 2 && data.shape[0] == 2 # TODO: support column-wise narray too
 
           raise ArgumentError, "Unsupported shape #{data.shape} for Numo::NArray dataset"
 
