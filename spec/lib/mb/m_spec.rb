@@ -83,6 +83,13 @@ RSpec.describe(MB::M) do
     it 'can find complex roots of an equation with no real roots' do
       expect(MB::M.quadratic_roots(1, 0, 1).sort_by { |r| [r.real, r.imag] }).to eq([0-1i, 0+1i])
     end
+
+    it 'returns one real and one complex root when coefficients are complex' do
+      roots = MB::M.quadratic_roots(1.0, -4.0-1.0i, 3.0+3.0i)
+
+      expect(roots).to eq([3, 1+1i])
+      expect(roots.map(&:class)).to eq([Float, Complex])
+    end
   end
 
   describe '.parse_complex' do
