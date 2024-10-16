@@ -447,4 +447,59 @@ RSpec.describe(MB::M::ArrayMethods) do
       expect(MB::M.fetch_bounce(na, 9)).to eq(2)
     end
   end
+
+  describe '.fractional_index' do
+    let(:array) { [ 1, 3, 5, -5, 1.5, 2.5 + 1.0i, 1.0 - 1.0i ] }
+    let(:narray) { Numo::SComplex[1, 3, 5i] }
+
+    it 'can return original values' do
+      expect(MB::M.fractional_index(array, 0)).to eq(1)
+      expect(MB::M.fractional_index(array, 1)).to eq(3)
+      expect(MB::M.fractional_index(array, -1)).to eq(1.0 - 1.0i)
+    end
+
+    it 'can interpolate integers' do
+      expect(MB::M.fractional_index(array, 0.25)).to eq(1.5)
+    end
+
+    it 'can interpolate around the end of the array' do
+      expect(MB::M.fractional_index(array, -0.5)).to eq(1 - 0.5i)
+      expect(MB::M.fractional_index(array, -0.75)).to eq(1 - 0.75i)
+    end
+
+    it 'can interpolate with negative indices' do
+      expect(MB::M.fractional_index(array, -4.5)).to eq(0)
+      expect(MB::M.fractional_index(array, -4.75)).to eq(2.5)
+    end
+
+    it 'can interpolate integers and floats' do
+      expect(MB::M.fractional_index(array, 3.25)).to eq(-3.375)
+    end
+
+    it 'can interpolate complex values' do
+      expect(MB::M.fractional_index(array, 5.5)).to eq(1.75)
+    end
+
+    it 'can interpolate a Numo::NArray' do
+      expect(MB::M.fractional_index(narray, 0)).to eq(1)
+      expect(MB::M.fractional_index(narray, -0.5)).to eq(0.5 + 2.5i)
+      expect(MB::M.fractional_index(narray, 1.5)).to eq(1.5 + 2.5i)
+    end
+
+    it 'can interpolate across Arrays' do
+      a1 = [1, 2, 3]
+      a2 = [4, 5, 6]
+      a = [a1, a2]
+      expect(MB::M.fractional_index(a, 0.5)).to eq([2.5, 3.5, 4.5])
+    end
+
+    it 'can interpolate across Hashes' do
+      h1 = {a: 1, b: 2}
+      h2 = {a: 3, b: 4}
+      a = [h1, h2]
+      expect(MB::M.fractional_index(a, 0.25)).to eq({a: 1.5, b: 2.5})
+    end
+
+    pending 'can accept an interpolator function like smoothstep'
+  end
 end

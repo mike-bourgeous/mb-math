@@ -289,6 +289,16 @@ module MB
         # TODO: Main loop copying all of source in srclen chunks
         # TODO: Suffix from source 0 until end of destination
       end
+
+      # Interpolates between values neighboring +index+ in the given +array+,
+      # optionally using a given interpolation function.  See
+      # InterpolationMethods#interp.
+      def fractional_index(array, index, func: nil)
+        i1 = index.floor
+        i2 = index.ceil
+        blend = index - i1
+        MB::M.interp(array[i1], array[i2], blend, func: func)
+      end
     end
   end
 end
