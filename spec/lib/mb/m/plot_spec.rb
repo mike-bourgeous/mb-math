@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'shellwords'
 
-RSpec.describe MB::M::Plot do
+RSpec.describe MB::M::Plot, :aggregate_failures do
   describe '#close' do
     it 'closes the plotter' do
       p = MB::M::Plot.terminal(width: 40, height: 20)
@@ -35,6 +35,14 @@ RSpec.describe MB::M::Plot do
           [0.5, -0.3],
         ],
       }
+    }
+
+    let(:narray_1d) {
+      { narr_1d: Numo::SFloat[-1, 1, 0, 1] }
+    }
+
+    let(:narray_2d) {
+      { narr_2d: Numo::SFloat[[-0.9, 0.2, -0.3, 0.4, -0.8], [0.5, -0.5, 0.5, -0.5, 0.5]] }
     }
 
     context 'with the dumb terminal type' do
@@ -125,6 +133,34 @@ RSpec.describe MB::M::Plot do
         sideways_lines = lines.map { |l| l.ljust(80).chars }.transpose.map(&:join)
         overlapping_lines = sideways_lines.select { |l| l =~ /-(\s+\*+){2,}/ }
         expect(overlapping_lines.count).to be > 4
+      end
+
+      it 'can plot from a 1D Numo::NArray' do
+        lines = plot.plot(narray_1d, columns: 1, rows: 1, print: false)
+        lines.map!(&MB::U.method(:remove_ansi))
+        expect(lines.count).to be > 10
+        expect(lines.any? { |l| l.match?(/narr1d.*[*]{3,}/) }).to eq(true)
+
+        star_counts = lines.map { |l| l.count('*') }
+        min, max = star_counts.minmax
+        mean = star_counts.sum.to_f / star_counts.count
+        expect(min).to eq(0)
+        expect(mean.round).to eq(3)
+        expect(max).to be_between(8, 15)
+      end
+
+      it 'can plot a scatter plot from a 2D Numo::NArray' do
+        lines = plot.plot(narray_2d, columns: 1, rows: 1, print: false)
+        lines.map!(&MB::U.method(:remove_ansi))
+        puts MB::U.highlight(lines) # XXX
+        expect(lines.any? { |l| l.match?(/narr2d.*[*]{3,}/) }).to eq(true)
+
+        star_counts = lines.map { |l| l.count('*') }
+        min, max = star_counts.minmax
+        mean = star_counts.sum.to_f / star_counts.count
+        expect(min).to eq(0)
+        expect(mean.round).to eq(3)
+        expect(max).to be_between(8, 15)
       end
     end
 
