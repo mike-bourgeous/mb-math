@@ -1,4 +1,4 @@
-RSpec.describe(MB::M) do
+RSpec.describe(MB::M, :aggregate_failures) do
   describe 'NumericMathDSL' do
     describe '#degrees' do
       it 'converts Numeric degrees to radians' do
@@ -89,6 +89,16 @@ RSpec.describe(MB::M) do
 
       expect(roots).to eq([3, 1+1i])
       expect(roots.map(&:class)).to eq([Float, Complex])
+    end
+
+    it 'returns the root of a linear equation if a is zero and b is nonzero' do
+      expect(MB::M.quadratic_roots(0, 2, 0)).to eq([0])
+      expect(MB::M.quadratic_roots(0, 2, 1)).to eq([-0.5])
+    end
+
+    it 'raises RangeError if a and b are zero, regardless of c' do
+      expect { MB::M.quadratic_roots(0, 0, 0) }.to raise_error(RangeError)
+      expect { MB::M.quadratic_roots(0, 0, 1) }.to raise_error(RangeError)
     end
   end
 

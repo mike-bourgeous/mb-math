@@ -106,7 +106,16 @@ module MB
     # Returns real-valued types (not Complex) for real-valued roots whenever
     # possible, even if some of the coefficients are complex resulting in one
     # real and one complex root.
+    #
+    # If +a+ is zero and +b+ is nonzero, then a single-element array is
+    # returned with the one root of the corresponding linear equation.
+    #
+    # Raises RangeError if both +a+ and +b+ are zero.
     def self.quadratic_roots(a, b, c)
+      raise RangeError, 'A or B must be nonzero' if a == 0 && b == 0 # Horizontal line
+
+      return [1.0 * -c / b] if a == 0 # Linear equation (1.0 ensures float math)
+
       dsq = b * b - 4.0 * a * c
 
       # Checking if the number is complex is faster than always calling CMath.sqrt
