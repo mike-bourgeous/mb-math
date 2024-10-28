@@ -96,18 +96,24 @@ RSpec.describe(MB::M::RootMethods) do
         -0.004008680 - 0.999991965i,
         -0.001947212 - 0.999998104i,
         -1.000000000 + 0.000000000i,
-      ].map { |r| MB::M.round(r, 3) }.sort_by(&:real).sort_by(&:imag)
+      ].map { |r| MB::M.round(r, 6) }.sort_by(&:real).sort_by(&:imag)
 
       result = (-1..1).step(0.1).flat_map { |im|
         (-1..1).step(0.1).map { |re|
-          r = MB::M.find_one_root(re + 1i * im, iterations: 600, tolerance: 1e-15, &numerator)
+          begin
+            r = MB::M.find_one_root(re + 1i * im, iterations: 50, loops: 4, tolerance: 1e-14, &numerator)
 
-          # Result and expected rounded to 6 decimals to ensure match
-          MB::M.round(r, 3)
+            # Result and expected rounded to 6 decimals to ensure match
+            MB::M.round(r, 6)
+          rescue MB::M::RootMethods::ConvergenceError => e
+            puts MB::U.highlight(e)
+
+            next
+          end
         }
-      }.uniq.sort_by(&:real).sort_by(&:imag)
+      }
 
-      # FIXME: get this to match at 6 decimals; it currently matches only at 1
+      result = result.compact.uniq.sort_by(&:real).sort_by(&:imag)
 
       expect(result).to match_array(expected_roots)
     end
