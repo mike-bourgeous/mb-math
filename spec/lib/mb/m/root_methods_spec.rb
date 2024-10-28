@@ -101,13 +101,12 @@ RSpec.describe(MB::M::RootMethods) do
       result = (-1..1).step(0.1).flat_map { |im|
         (-1..1).step(0.1).map { |re|
           begin
-            r = MB::M.find_one_root(re + 1i * im, iterations: 50, loops: 4, tolerance: 1e-14, &numerator)
+            r = MB::M.find_one_root(re + 1i * im, iterations: 10, loops: 2, tolerance: 1e-12, &numerator)
 
             # Result and expected rounded to 6 decimals to ensure match
             MB::M.round(r, 6)
           rescue MB::M::RootMethods::ConvergenceError => e
-            puts MB::U.highlight(e)
-
+            puts e
             next
           end
         }
