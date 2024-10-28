@@ -106,7 +106,7 @@ RSpec.describe(MB::M::RootMethods) do
             # Result and expected rounded to 6 decimals to ensure match
             MB::M.round(r, 6)
           rescue MB::M::RootMethods::ConvergenceError => e
-            puts e
+            puts e if $DEBUG
             next
           end
         }

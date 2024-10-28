@@ -32,7 +32,7 @@ module MB
             yleft = base.call(x - delta)
             yright = base.call(x + delta)
 
-            puts "yleft=#{yleft} yright=#{yright} x=#{x} delta=#{delta}" # XXX
+            puts "yleft=#{yleft} yright=#{yright} x=#{x} delta=#{delta}" if $DEBUG # XXX
             (yright - yleft) / (delta * 2)
           }
         end
@@ -137,7 +137,7 @@ module MB
 
         f = ->(x) {
           y = yield x
-          puts "#{prefix}      f_#{depth}(#{x})=#{y}"
+          puts "#{prefix}      f_#{depth}(#{x})=#{y}" if $DEBUG
           y
         }
 
@@ -162,105 +162,108 @@ module MB
 
         loops.times do |l|
           last_loop = l
-          MB::U.headline "\e[1mLoop #{l}\e[0m", prefix: prefix
+          MB::U.headline("\e[1mLoop #{l}\e[0m", prefix: prefix) if $DEBUG
 
-          MB::U.headline "\e[1;36mTrying finite differences approximation\e[0m", prefix: prefix
+          MB::U.headline("\e[1;36mTrying finite differences approximation\e[0m", prefix: prefix) if $DEBUG
           new_x, new_y = approx_newton_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
           if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
-            puts "#{prefix}  \e[36mapprox \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            puts "#{prefix}  \e[36mapprox \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
             step = new_x - x
             x, y = new_x, new_y
           else
-            puts "#{prefix}  \e[36mapprox \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+            puts "#{prefix}  \e[36mapprox \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
           return x if y == 0
 
           # Try random shifts in case we are stuck.  The random seed is chosen
           # from the current X to make it deterministic.
-          MB::U.headline "\e[1;35mTrying random guesses\e[0m", prefix: prefix
+          MB::U.headline("\e[1;35mTrying random guesses\e[0m", prefix: prefix) if $DEBUG
 
           new_x, new_y = random_guess_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
           if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
-            puts "#{prefix}  \e[35mrandom \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            puts "#{prefix}  \e[35mrandom \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
             step = new_x - x
             x, y = new_x, new_y
           else
-            puts "#{prefix}  \e[35mrandom \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+            puts "#{prefix}  \e[35mrandom \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
           return x if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
           if yprime.abs < tolerance ** 2 && y != 0 && (step.nil? || step.abs > tolerance) && depth < 2
-            MB::U.headline "#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix
+            MB::U.headline("#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix) if $DEBUG
 
             new_x, new_y = multi_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, depth: depth, prefix: "#{prefix}  ")
             if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
-              puts "#{prefix}  \e[34mmultiroot \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+              puts "#{prefix}  \e[34mmultiroot \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
               step = new_x - x
               x, y = new_x, new_y
             else
-              puts "#{prefix}  \e[34mmultiroot \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+              puts "#{prefix}  \e[34mmultiroot \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
             end
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
           return x if y == 0
 
           # Secant method
           # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
           if y.abs > tolerance || step.nil? || step.abs > tolerance
-            MB::U.headline "\e[1;35mTrying secant method\e[0m", prefix: prefix
+            MB::U.headline("\e[1;35mTrying secant method\e[0m", prefix: prefix) if $DEBUG
 
             new_x, new_y = secant_root(x, guess, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
             if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
-              puts "#{prefix}  \e[35msecant \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+              puts "#{prefix}  \e[35msecant \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
               step = new_x - x
               x, y = new_x, new_y
             else
-              puts "#{prefix}  \e[35msecant \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+              puts "#{prefix}  \e[35msecant \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
             end
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
           return x if y == 0
 
           # Creeping method
-          MB::U.headline "\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix
+          MB::U.headline("\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix) if $DEBUG
           new_x, new_y = creeping_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
           if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
-            puts "#{prefix}  \e[38;5;150mcreeping \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            puts "#{prefix}  \e[38;5;150mcreeping \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
             step = new_x - x
             x, y = new_x, new_y
           else
-            puts "#{prefix}  \e[38;5;150mcreeping \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+            puts "#{prefix}  \e[38;5;150mcreeping \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
-          # TODO: do something if we aren't making progress
           x_gain = x - prev_x
           y_gain = y.abs - prev_y.abs
           if x_gain.abs < tolerance || y_gain.abs < tolerance
-            puts "#{prefix}\e[33mImprovement is very slow on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain})\e[0m"
+            puts "#{prefix}\e[33mImprovement is very slow on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain})\e[0m" if $DEBUG
           elsif y_gain > 0
-            puts "#{prefix}\e[33mY got worse on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain} x,y=#{x},#{y} prevx,prevy=#{prev_x},#{prev_y}\e[0m"
+            puts "#{prefix}\e[33mY got worse on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain} x,y=#{x},#{y} prevx,prevy=#{prev_x},#{prev_y}\e[0m" if $DEBUG
           end
+
+          # Stop if we made no progress
+          break if x_gain == 0
+
+          # Stop if we've reached "good enough"
+          break if y.abs < tolerance && step && step.abs < tolerance && x_gain.abs < tolerance
 
           prev_x = x
           prev_y = y
-
-          break if y.abs < tolerance && step && step.abs < tolerance && x_gain.abs < tolerance
         end
 
         raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain}" if y.abs > tolerance || x_gain.abs > tolerance
@@ -287,11 +290,11 @@ module MB
 
         # Finite differences
         iterations.times do |i|
-          puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" # XXX
+          puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" if $DEBUG # XXX
           break if y == 0 || step == 0
 
           if yprime == 0 || !yprime.abs.to_f.finite?
-            puts "#{prefix}  \e[36mapprox i=#{i} yprime is #{yprime}; trying random guesses\e[0m"
+            puts "#{prefix}  \e[36mapprox i=#{i} yprime is #{yprime}; trying random guesses\e[0m" if $DEBUG
             x, y = random_guess_root(
               x,
               f: f,
@@ -323,7 +326,7 @@ module MB
 
           yprime = f_prime.call(x)
 
-          puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" # XXX
+          puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" if $DEBUG # XXX
 
           x_diff = (x_prev - x).abs
           break if x_diff < tolerance ** 2
@@ -349,11 +352,11 @@ module MB
           # TODO: base range on min..max bounds and local slope as well
           new_x = complex_rand(r, x, 0.9..1.1, tolerance)
           new_y = f.call(new_x)
-          puts "#{prefix}  \e[35mguessing j=#{j} new_x=#{new_x}, new_y=#{new_y}\e[0m"
+          puts "#{prefix}  \e[35mguessing j=#{j} new_x=#{new_x}, new_y=#{new_y}\e[0m" if $DEBUG
           if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
             x, y = new_x, new_y
             yprime = f_prime.call(x)
-            puts "#{prefix}  \e[32mnow x=#{x} y=#{y} yprime=#{yprime}\e[0m"
+            puts "#{prefix}  \e[32mnow x=#{x} y=#{y} yprime=#{yprime}\e[0m" if $DEBUG
           end
         end
 
@@ -371,10 +374,14 @@ module MB
         iterations.times do |i|
           improved = false
 
+          # TODO: this could go faster if the creep increments are only
+          # computed when needed, if we first try the same direction as the
+          # last improvement, and if we go to the next iteration after one or
+          # two improvements instead of checking the entire list.
           complex_creep(x).each.with_index do |new_x, idx|
             new_y = f.call(new_x)
             if new_y.abs < y.abs
-              puts "#{prefix}  \e[38;5;150mcreeping improvement found: i=#{i} idx=#{idx}(#{idx % 5},#{idx / 5}) new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m"
+              puts "#{prefix}  \e[38;5;150mcreeping improvement found: i=#{i} idx=#{idx}(#{idx % 5},#{idx / 5}) new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m" if $DEBUG
               improved = true
               x = new_x
               y = new_y
@@ -393,13 +400,13 @@ module MB
         y_orig = f.call(x_orig)
 
         x = find_one_root(x_orig, real_range: real_range, imag_range: imag_range, loops: 1, iterations: iterations, tolerance: tolerance, depth: depth + 1, prefix: "#{prefix}  \e[34mmultiroot\e[0m ") { |v|
-          puts "#{prefix}    \e[34mmultiroot\e[0m Evaluating g(#{v})" # XXX
+          puts "#{prefix}    \e[34mmultiroot\e[0m Evaluating g(#{v})" if $DEBUG # XXX
 
           yg = f.call(v)
           ygp = f_prime.call(v)
           g = yg / ygp
 
-          puts "#{prefix}    \e[34mmultiroot\e[0m g=#{g} yg=#{yg} ygp=#{ygp}"
+          puts "#{prefix}    \e[34mmultiroot\e[0m g=#{g} yg=#{yg} ygp=#{ygp}" if $DEBUG
 
           g
         }
@@ -409,7 +416,7 @@ module MB
         return x, y
 
       rescue ConvergenceError => e
-        puts "#{prefix}  \e[34mmultiroot \e[33mNo convergence; returning original x and y (#{x_orig},#{y_orig}): #{e}"
+        puts "#{prefix}  \e[34mmultiroot \e[33mNo convergence; returning original x and y (#{x_orig},#{y_orig}): #{e}" if $DEBUG
 
         return x_orig, y_orig
       end
@@ -423,13 +430,13 @@ module MB
         step = tolerance * 100
 
         iterations.times do |i|
-          puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+          puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" if $DEBUG # XXX
 
           break if y.abs <= tolerance && step.abs <= tolerance && i >= 5
 
           xnext = (x2 * y - x * y2) / (y - y2)
           step = xnext - x
-          puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
+          puts "#{prefix}    secant xnext=#{xnext} step=#{step}" if $DEBUG # XXX
 
           break if step.abs < tolerance.abs ** 2 || !xnext.abs.to_f.finite?
 
@@ -457,7 +464,7 @@ module MB
           imag = complex_rand(random, value.imag, range, tolerance)
           real + 1i * imag
         elsif !value.abs.to_f.finite? || value.abs < tolerance.abs
-          puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? # XXX
+          puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? if $DEBUG # XXX
           span = (range.end - range.begin) / 2
           random.rand(-span..span)
         else
