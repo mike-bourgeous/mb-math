@@ -37,6 +37,7 @@ module MB
           }
         end
       end
+
       Proc.include(RootProcExtensions)
 
       # The default number of iterations to try in #find_one_root before giving
@@ -126,7 +127,9 @@ module MB
         f_prime = f.prime
 
         x = guess
+        x = x.to_f if x.is_a?(Integer)
         y = f.call(x)
+        y = y.to_f if y.is_a?(Integer)
         step = tolerance * 100
         yprime = step
 
@@ -157,7 +160,7 @@ module MB
             next
           end
 
-          step = y / yprime
+          step = -y / yprime
 
           puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
 
@@ -166,23 +169,28 @@ module MB
 
           # TODO: maybe try a few random guesses if we run out of iterations
 
-          x -= step
+          x += step
           y = f.call(x)
         end
 
         # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
-        if yprime < tolerance ** 2 && indent == 0
+        if yprime.abs < tolerance ** 2 && indent == 0
           puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
 
-          x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
+          x_new = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
             puts "#{prefix}    Evaluating g(#{v})" # XXX
 
             f.call(v) / f_prime.call(v)
           }
 
-          y = f.call(x)
-
-          puts "#{prefix}  \e[1;31mGot f(#{x})=#{y}\e[0m"
+          y_new = f.call(x_new)
+          if y_new.abs < y.abs
+            puts "#{prefix}  \e[1;31mGot f(#{x})=#{y}\e[0m"
+            x = x_new
+            y = y_new
+          else
+            puts "#{prefix}  \e[31mThis got worse\e[0m"
+          end
         end
 
         # Secant method
@@ -203,7 +211,7 @@ module MB
             xnext = (x2 * y - x * y2) / (y - y2)
             step = xnext - x
 
-            break if step.round(Math.log10(tolerance ** 2)) == 0
+            break if MB::M.round(step, Math.log10(tolerance ** 2)) == 0
 
             y2 = y
             x2 = x
@@ -213,7 +221,7 @@ module MB
           end
         end
 
-        raise "Failed to converge within #{tolerance} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > tolerance || step > tolerance
+        raise "Failed to converge within #{tolerance} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > tolerance || step.abs > tolerance
 
         x
       end

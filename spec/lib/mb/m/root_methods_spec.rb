@@ -51,6 +51,10 @@ RSpec.describe(MB::M::RootMethods) do
         .and satisfy { |v| [0, Math::PI.round(8)].include?(v.round(8)) }
     end
 
+    it 'can start from a complex guess' do
+      expect(MB::M.round(MB::M.find_one_root(1+1i) { |x| CMath.sin(x) }, 12)).to eq(0)
+    end
+
     pending 'with real roots'
     pending 'with complex roots'
 
