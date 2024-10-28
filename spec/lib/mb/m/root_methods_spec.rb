@@ -36,9 +36,8 @@ RSpec.describe(MB::M::RootMethods) do
       expect(MB::M.find_one_root(-2) { |x| x ** 2 - 1 }.round(12)).to eq(-1)
     end
 
-    it 'can find the root of quintic monomial' do
-      # FIXME: 0.002 ** 5 meets the range limit -- what can we do?
-      expect(MB::M.find_one_root(1) { |x| puts "    Evaluating at x=#{x} [XXX]"; x ** 5 }.round(12)).to eq(0)
+    it 'can find the root of a quintic monomial' do
+      expect(MB::M.find_one_root(1) { |x| x ** 5 }.round(12)).to eq(0)
     end
 
     it 'does not leave the root if the guess is a root' do

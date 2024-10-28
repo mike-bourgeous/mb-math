@@ -4,11 +4,14 @@ module MB
     module RootMethods
       # The default number of iterations to try in #find_one_root before giving
       # up.
-      FIND_ONE_ROOT_DEFAULT_ITERATIONS = 100
+      FIND_ONE_ROOT_DEFAULT_ITERATIONS = 150
 
-      # The default distance to a root for #find_one_root to consider as
-      # "equal".
-      FIND_ONE_ROOT_DEFAULT_RANGE = 1e-13
+      # The default tolerance for slope per iteration and distance to root for
+      # #find_one_root.
+      FIND_ONE_ROOT_DEFAULT_TOLERANCE = 1e-13
+
+      # The initial X offset for derivatives.
+      FIND_ONE_ROOT_DERIVATIVE_OFFSET = 1e-6
 
       # Returns an array with the two roots of a quadratic equation with the
       # given coefficients, whether the roots are real- or complex-valued.
@@ -48,6 +51,14 @@ module MB
       # +:min_imag+, and +:max_imag+ parameters place lower and upper bounds on
       # the real and imaginary parts of the root search.
       #
+      # +:iterations+ controls how many times to iterate for each method
+      # (finite difference, secant, and multiple-root) before giving up on
+      # convergence.
+      #
+      # +:tolerance+ controls the definition of success.  Both the increment
+      # per iteration and the function's value must be below this value (or a
+      # value derived from this value).
+      #
       # A central finite difference approximation of Newton's method is used
       # for finding the root, which will result in many nearby values being
       # yielded to the block in an unspecified order.
@@ -66,37 +77,52 @@ module MB
         min_real: nil, max_real: nil,
         min_imag: nil, max_imag: nil,
         iterations: FIND_ONE_ROOT_DEFAULT_ITERATIONS,
-        range: FIND_ONE_ROOT_DEFAULT_RANGE,
+        tolerance: FIND_ONE_ROOT_DEFAULT_TOLERANCE,
+        indent: 0,
         &block
       )
-        diff_delta = 1e-6
+        prefix = '  ' * indent
+        diff_delta = FIND_ONE_ROOT_DERIVATIVE_OFFSET
+
+        f = ->(x) {
+          y = yield x
+          puts "#{prefix}      f_#{indent}(#{x})=#{y}"
+          y
+        }
 
         x = guess
-        y = yield x
-        step = range * 100
+        y = f.call(x)
+        step = tolerance * 100
         yprime = step
 
         # Finite differences
+        puts "#{prefix}\e[1;32mFinite differences\e[0m"
         iterations.times do |i|
-          puts "  i=#{i} x=#{x} y=#{y} step=#{step}" # XXX
+          puts "#{prefix}  i=#{i} x=#{x} y=#{y} step=#{step}" # XXX
 
-          break if y.abs <= range && step.abs <= range * 2 && i >= 5
+          break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
-          yleft = yield (x - diff_delta)
-          yright = yield (x + diff_delta)
+          xleft = x - diff_delta
+          xleft = x.prev_float if xleft == x
+          xright = x + diff_delta
+          xright = x.next_float if xright == x
+          yleft = f.call(xleft)
+          yright = f.call(xright)
 
           # Central finite difference derivative, falling back to forward
           yprime = (yright - yleft) / (2.0 * diff_delta)
-          yprime = (yright - y) / diff_delta if yprime.abs < range
+          yprime = (yright - y) / diff_delta if yprime.abs < tolerance
+          step = y / yprime
+
+          puts "#{prefix}  yleft=#{yleft} yright=#{yright} yprime=#{yprime} step=#{step}" # XXX
 
           break if yprime == 0
 
-          step = y / yprime
 
           # Make sure our finite difference approximation isn't stepping too far
           if step.abs < diff_delta.abs && step.abs > 0
             # TODO: what does this look like for complex root finding?
-            puts "  Changing diff_delta from #{diff_delta} to #{step.abs}" # XXX
+            puts "#{prefix}  Changing diff_delta from #{diff_delta} to #{step.abs}" # XXX
             diff_delta = step.abs
           end
 
@@ -105,54 +131,69 @@ module MB
 
           # TODO: maybe try a few random guesses if we run out of iterations
 
-          puts "  yprime=#{yprime} step=#{step}" # XXX
-
           x -= step
-          y = yield x
+          y = f.call(x)
         end
 
         # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
-        if yprime < range ** 2 && step > range
-          puts "Trying multiple root method"
+        if yprime < tolerance ** 2 && indent == 0
+          puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
 
-          x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, range: range) { |v|
-            yleft = yield (x - diff_delta)
-            yright = yield (x + diff_delta)
-            yprime = (yright - yleft) / (2.0 * diff_delta)
+          puts "#{prefix}  diff_delta=#{diff_delta}"
 
-            (yield x) / yprime
+          x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
+            puts "#{prefix}    Evaluating g(#{v})" # XXX
+
+            vleft = v - diff_delta
+            vleft = v.prev_float if vleft == v
+            vright = v + diff_delta
+            vright = v.next_float if vright == v
+            gleft = f.call(vleft)
+            gright = f.call(vright)
+            g = f.call(v)
+            gprime = (gright - gleft) / (2.0 * diff_delta)
+            gprime = (gright - g) / diff_delta if gprime.abs < tolerance
+
+            g = g / gprime
+            puts "#{prefix}      gleft=#{gleft} gright=#{gright} gprime=#{gprime} g(#{v})=#{g}"
+
+            g
           }
 
-          y = yield x
+          y = f.call(x)
+
+          puts "#{prefix}  \e[1;31mGot f(#{x})=#{y}\e[0m"
         end
 
         # Secant method
-        if y.abs > range || step.abs > range
-          puts "Trying secant method"
+        if y.abs > tolerance || step.abs > tolerance
+          puts "#{prefix}\e[1;35mTrying secant method\e[0m"
 
           x = -x
-          y = yield x
+          y = f.call(x)
           x2 = guess
-          y2 = yield x2
-          step = range * 100
+          y2 = f.call(x2)
+          step = tolerance * 100
 
           iterations.times do |i|
-            puts "  i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+            puts "#{prefix}  i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
 
-            break if y.abs <= range && step.abs <= range * 2 && i >= 5
+            break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
             xnext = (x2 * y - x * y2) / (y - y2)
             step = xnext - x
+
+            break if step.round(Math.log10(tolerance ** 2)) == 0
 
             y2 = y
             x2 = x
             x = xnext
 
-            y = yield x
+            y = f.call(x)
           end
         end
 
-        raise "Failed to converge within #{range} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > range || step > range
+        raise "Failed to converge within #{tolerance} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > tolerance || step > tolerance
 
         x
       end
