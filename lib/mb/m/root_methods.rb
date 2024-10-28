@@ -146,11 +146,11 @@ module MB
           if yprime == 0
             puts "#{prefix}  y'(#{x}) is zero; finding a new guess"
             r = Random.new(x.to_s.delete('[^0-9]').to_i)
-            iterations.times do
+            iterations.times do |j|
               # TODO: base range on min..max bounds as well
               new_x = r.rand(0.9..1.1) * x
               new_y = f.call(new_x)
-              puts "#{prefix}    guessing #{new_x}, getting #{new_y}"
+              puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, getting new_y=#{new_y}"
               if new_y.abs < y.abs
                 x, y = new_x, new_y if new_y.abs < y.abs
                 puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{f_prime.call(x)}\e[0m"
@@ -174,26 +174,30 @@ module MB
         end
 
         # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
-        if yprime.abs < tolerance ** 2 && indent == 0
+        if yprime.abs < tolerance ** 2 && y != 0 && indent == 0
           puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
 
-          x_new = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
+          new_x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
             puts "#{prefix}    Evaluating g(#{v})" # XXX
 
             f.call(v) / f_prime.call(v)
           }
 
-          y_new = f.call(x_new)
-          if y_new.abs < y.abs
-            puts "#{prefix}  \e[1;31mGot f(#{x})=#{y}\e[0m"
-            x = x_new
-            y = y_new
+          new_y = f.call(new_x)
+          if new_y.abs < y.abs
+            puts "#{prefix}  \e[1;32mMultiroot got f(#{new_x})=#{new_y}\e[0m"
+            x = new_x
+            y = new_y
           else
             puts "#{prefix}  \e[31mThis got worse\e[0m"
           end
         end
 
         # Secant method
+        # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
+        # TODO: could reduce iterations within each method and cycle through
+        # the four methods (finite difference, random search, multi-root
+        # finite difference, secant) until we find a root
         if y.abs > tolerance || step.abs > tolerance
           puts "#{prefix}\e[1;35mTrying secant method\e[0m"
 
@@ -204,14 +208,14 @@ module MB
           step = tolerance * 100
 
           iterations.times do |i|
-            puts "#{prefix}  i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+            puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
 
             break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
             xnext = (x2 * y - x * y2) / (y - y2)
             step = xnext - x
 
-            break if MB::M.round(step, Math.log10(tolerance ** 2)) == 0
+            break if step.abs < tolerance.abs ** 2
 
             y2 = y
             x2 = x
