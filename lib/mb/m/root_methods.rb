@@ -266,6 +266,7 @@ module MB
           prev_y = y
         end
 
+        # FIXME: x_gain might be large if loops is 1
         raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain}" if y.abs > tolerance || x_gain.abs > tolerance
 
         x
