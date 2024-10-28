@@ -1,15 +1,15 @@
 GIT
   remote: https://github.com/mike-bourgeous/mb-util.git
-  revision: 71ef73cba4912c25197e3930e9def2f5124399c8
+  revision: e3053eb98b439d848a5186a6296ccd5b01d3a6e9
   specs:
-    mb-util (0.1.16.usegit)
+    mb-util (0.1.17.usegit)
 
 PATH
   remote: .
   specs:
     mb-math (0.2.1.usegit)
       cmath (~> 1.0.0)
-      mb-util (>= 0.1.0.usegit)
+      mb-util (>= 0.1.17.usegit)
       numo-narray (~> 0.9.1)
 
 GEM

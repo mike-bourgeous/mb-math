@@ -45,7 +45,8 @@ RSpec.describe(MB::M::RootMethods) do
     end
 
     it 'does not get stuck if starting where slope is zero' do
-      # TODO: constrain this further to be either 0 or pi
+      # Interesting thing about this test: math.h's sin(pi) ~= 1.2e-16 so it is
+      # impossible to find a value for which sin returns exactly zero
       expect(MB::M.find_one_root(Math::PI / 2) { |x| Math.sin(x) }.round(12))
         .to satisfy { |v| Math.sin(v).round(12) == 0 }
         .and satisfy { |v| [0, Math::PI.round(8)].include?(v.round(8)) }

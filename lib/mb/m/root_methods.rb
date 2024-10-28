@@ -37,8 +37,10 @@ module MB
           }
         end
       end
-
       Proc.include(RootProcExtensions)
+
+      # Raised when #find_one_root does not find a root
+      class ConvergenceError < RangeError; end
 
       # The default number of iterations to try in #find_one_root before giving
       # up.
@@ -79,24 +81,37 @@ module MB
         [r1, r2]
       end
 
-      # This method tries to find one approximate root of the given block, if
-      # the block represents a differentiable function of one variable.  The
-      # +guess+ (a Numeric, whether real or complex) is used as a starting
-      # point for iteration.  The optional +:min_real+, +:max_real+,
-      # +:min_imag+, and +:max_imag+ parameters place lower and upper bounds on
-      # the real and imaginary parts of the root search.
+      # This method tries to find one approximate root of a differentiable
+      # function of one variable using a collection of different methods to try
+      # to avoid getting stuck: an approximation of Newton's method, a random
+      # search, the secant method, and a variant of the preceding for possible
+      # multiple roots (e.g. x ** 5 has five roots at zero).
+      #
+      # The given block must accept one Numeric parameter and return a Numeric
+      # result (TODO: this could potentially be updated to operate on matrices
+      # or similar).
+      #
+      # The +guess+ (a Numeric, whether real or complex) is used as a starting
+      # point for iteration.  The guess should be complex to find a complex
+      # root.
+      #
+      # The optional +:real_range+ and +:imag_range+ parameters place lower and
+      # upper bounds on the real and imaginary parts of the root search.  Open
+      # ended ranges are supported (TODO: support ranges in the first place).
       #
       # +:iterations+ controls how many times to iterate for each method
-      # (finite difference, secant, and multiple-root) before giving up on
-      # convergence.
+      # (finite difference, random guess, secant, and multiple-root) before
+      # giving up on the search.
+      #
+      # +:loops+ controls how many times to repeat the collection of methods to
+      # try to find and refine a root.
       #
       # +:tolerance+ controls the definition of success.  Both the increment
       # per iteration and the function's value must be below this value (or a
-      # value derived from this value).
+      # value derived from this value) at the end of all loops and iterations.
       #
-      # A central finite difference approximation of Newton's method is used
-      # for finding the root, which will result in many nearby values being
-      # yielded to the block in an unspecified order.
+      # Raises ConvergenceError if the value of the function or the last update
+      # step are larger than +tolerance+ after all loops.
       #
       # Example:
       #   find_one_root(2) { |x| x ** 2 - 1 }
@@ -109,18 +124,20 @@ module MB
       # See https://en.wikipedia.org/wiki/Secant_method
       def find_one_root(
         guess,
-        min_real: nil, max_real: nil,
-        min_imag: nil, max_imag: nil,
+        real_range: nil,
+        imag_range: nil,
         iterations: FIND_ONE_ROOT_DEFAULT_ITERATIONS,
+        loops: 3,
         tolerance: FIND_ONE_ROOT_DEFAULT_TOLERANCE,
-        indent: 0,
+        depth: 0,
+        prefix: nil,
         &block
       )
-        prefix = '  ' * indent
+        prefix ||= '  ' * depth
 
         f = ->(x) {
           y = yield x
-          puts "#{prefix}      f_#{indent}(#{x})=#{y}"
+          puts "#{prefix}      f_#{depth}(#{x})=#{y}"
           y
         }
 
@@ -130,146 +147,313 @@ module MB
         x = x.to_f if x.is_a?(Integer)
         y = f.call(x)
         y = y.to_f if y.is_a?(Integer)
-        step = tolerance * 100
-        yprime = step
+        yprime = f_prime.call(x)
+        prev_x = x
+        prev_y = y
+
+        x_gain = 100 * tolerance
+        y_gain = 100 * tolerance
 
         # TODO: implement min/max clamping
         # FIXME: bail faster if we hit nan or infinity anywhere
         # TODO: do something about indeterminate forms (0 / 0) in the multi-root function
 
-        10.times do |l|
-          puts "#{prefix}\e[1mLoop #{l}\e[0m"
-          # Finite differences
-          puts "#{prefix}\e[1;32mFinite differences\e[0m"
-          iterations.times do |i|
-            puts "#{prefix}  i=#{i} x=#{x} y=#{y} step=#{step}" # XXX
+        last_loop = 0
 
-            break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
+        loops.times do |l|
+          last_loop = l
+          MB::U.headline "\e[1mLoop #{l}\e[0m", prefix: prefix
 
-            yprime = f_prime.call(x)
-            if yprime == 0 ||
-                (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
-                (yprime.is_a?(Complex) && (yprime.abs.nan? || yprime.abs.infinite?))
-              puts "#{prefix}  yprime(#{x}) is #{yprime}; finding a new guess"
-              r = Random.new(x.to_s.delete('[^0-9]').to_i)
-              iterations.times do |j|
-                # TODO: base range on min..max bounds and local slope as well
-                new_x = complex_rand(r, x, 0.9..1.1, tolerance)
-                new_y = f.call(new_x)
-                puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, new_y=#{new_y}"
-                if new_y.abs < y.abs
-                  x, y = new_x, new_y if new_y.abs < y.abs
-                  yprime = f_prime.call(x)
-                  puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{yprime}\e[0m"
-                end
-              end
-
-              next
-            end
-
-            step = -y / yprime
-
-            puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
-
-            # y / yprime will be infinity if yprime is zero so we can't continue
-            break if yprime == 0 ||
-              (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
-              (step.is_a?(Float) && (step.nan? || step.infinite?)) ||
-              (yprime.is_a?(Complex) && (yprime.abs.nan? || yprime.abs.infinite?)) ||
-              (step.is_a?(Complex) && (step.abs.nan? || step.abs.infinite?))
-
-            # TODO: maybe try a few random guesses if we run out of iterations
-
-            x += step
-            y = f.call(x)
+          MB::U.headline "\e[1;36mTrying finite differences approximation\e[0m", prefix: prefix
+          new_x, new_y = approx_newton_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
+          if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+            puts "#{prefix}  \e[36mapprox \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            step = new_x - x
+            x, y = new_x, new_y
+          else
+            puts "#{prefix}  \e[36mapprox \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
           end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          return x if y == 0
+
+          # Try random shifts in case we are stuck.  The random seed is chosen
+          # from the current X to make it deterministic.
+          MB::U.headline "\e[1;35mTrying random guesses\e[0m", prefix: prefix
+
+          new_x, new_y = random_guess_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
+          if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+            puts "#{prefix}  \e[35mrandom \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            step = new_x - x
+            x, y = new_x, new_y
+          else
+            puts "#{prefix}  \e[35mrandom \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+          end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          return x if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
-          if yprime.abs < tolerance ** 2 && y != 0 && step.abs > tolerance && indent == 0
-            puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
+          yprime = f_prime.call(x)
+          if yprime.abs < tolerance ** 2 && y != 0 && step.abs > tolerance && depth < 2
+            MB::U.headline "#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix
 
-            new_x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
-              puts "#{prefix}    Evaluating g(#{v})" # XXX
-
-              yg = f.call(v)
-              ygp = f_prime.call(v)
-              g = yg / ygp
-
-              puts "#{prefix}      g=#{g} yg=#{yg} ygp=#{ygp}"
-
-              g
-            }
-
-            new_y = f.call(new_x)
-            if new_y.abs < y.abs
-              puts "#{prefix}  \e[1;32mMultiroot got f(#{new_x})=#{new_y}\e[0m"
-              x = new_x
-              y = new_y
+            new_x, new_y = multi_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, depth: depth, prefix: "#{prefix}  ")
+            if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+              puts "#{prefix}  \e[34mmultiroot \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+              step = new_x - x
+              x, y = new_x, new_y
             else
-              puts "#{prefix}  \e[31mThis got worse\e[0m"
+              puts "#{prefix}  \e[34mmultiroot \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
             end
           end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          return x if y == 0
 
           # Secant method
           # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
-          # TODO: could reduce iterations within each method and cycle through
-          # the four methods (finite difference, random search, multi-root
-          # finite difference, secant) until we find a root
-          if y.abs > tolerance || step.abs > tolerance
-            puts "#{prefix}\e[1;35mTrying secant method\e[0m"
+          if y.abs > tolerance || step.nil? || step.abs > tolerance
+            MB::U.headline "\e[1;35mTrying secant method\e[0m", prefix: prefix
 
-            x = -x
-            y = f.call(x)
-            x2 = guess
-            y2 = f.call(x2)
-            step = tolerance * 100
-
-            iterations.times do |i|
-              puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
-
-              break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
-
-              xnext = (x2 * y - x * y2) / (y - y2)
-              step = xnext - x
-              puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
-
-              break if step.abs < tolerance.abs ** 2 ||
-                (xnext.is_a?(Complex) && (xnext.abs.nan? || xnext.abs.infinite?)) ||
-                (xnext.is_a?(Float) && (xnext.nan? || xnext.infinite?))
-
-              y2 = y
-              x2 = x
-              x = xnext
-
-              y = f.call(x)
+            new_x, new_y = secant_root(x, guess, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
+            if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+              puts "#{prefix}  \e[35msecant \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+              step = new_x - x
+              x, y = new_x, new_y
+            else
+              puts "#{prefix}  \e[35msecant \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
             end
           end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          return x if y == 0
+
+          # Creeping method
+          MB::U.headline "\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix
+          new_x, new_y = creeping_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
+          if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+            puts "#{prefix}  \e[38;5;150mcreeping \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m"
+            step = new_x - x
+            x, y = new_x, new_y
+          else
+            puts "#{prefix}  \e[38;5;150mcreeping \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m"
+          end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 # XXX
+          # XXX return x if y == 0
+
+          # TODO: do something if we aren't making progress
+          x_gain = x - prev_x
+          y_gain = y.abs - prev_y.abs
+          if x_gain.abs < tolerance || y_gain.abs < tolerance
+            puts "#{prefix}\e[33mImprovement is very slow on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain})\e[0m"
+          elsif y_gain > 0
+            puts "#{prefix}\e[33mY got worse on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain} x,y=#{x},#{y} prevx,prevy=#{prev_x},#{prev_y}\e[0m"
+          end
+
+          prev_x = x
+          prev_y = y
+
+          break if y.abs < tolerance && step && step.abs < tolerance
         end
 
-        raise "Failed to converge within #{tolerance} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > tolerance || step.abs > tolerance
+        raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain}" if y.abs > tolerance || x_gain.abs > tolerance
 
         x
       end
 
       private
 
+      # The finite differences approximation of Newton's method used by
+      # #find_one_root.  Returns the new value for X and Y after at most
+      # +:iterations+ steps.
+      def approx_newton_root(x_orig, f:, f_prime:, real_range:, imag_range:, iterations:, tolerance:, prefix:)
+        y_orig = f.call(x_orig)
+        yprime_orig = f_prime.call(x_orig)
+
+        x = x_orig
+        y = y_orig
+        yprime = yprime_orig
+
+        step = nil
+
+        # Finite differences
+        iterations.times do |i|
+          puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" # XXX
+          break if y == 0 || step == 0
+
+          if yprime == 0 || !yprime.abs.to_f.finite?
+            puts "#{prefix}  \e[36mapprox i=#{i} yprime is #{yprime}; trying random guesses\e[0m"
+            x, y = random_guess_root(
+              x,
+              f: f,
+              f_prime: f_prime,
+              real_range: real_range,
+              imag_range: imag_range,
+              iterations: [10, iterations - i].max,
+              tolerance: tolerance,
+              prefix: "#{prefix}  \e[36mapprox i=#{i}\e[0m "
+            )
+          end
+
+          step = -y / yprime
+
+          x += step
+          y = f.call(x)
+          yprime = f_prime.call(x)
+
+          puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" # XXX
+        end
+
+        return x, y
+      end
+
+      # The random guesses method used by #find_one_root.  Returns the new
+      # value for X and Y.
+      def random_guess_root(x_orig, f:, f_prime:, real_range:, imag_range:, iterations:, tolerance:, prefix:)
+        y_orig = f.call(x_orig)
+        yprime_orig = f_prime.call(x_orig)
+
+        x = x_orig
+        y = y_orig
+
+        r = Random.new(x.to_s.delete('[^0-9]').to_i)
+
+        iterations.times do |j|
+          # TODO: base range on min..max bounds and local slope as well
+          new_x = complex_rand(r, x, 0.9..1.1, tolerance)
+          new_y = f.call(new_x)
+          puts "#{prefix}  \e[35mguessing j=#{j} new_x=#{new_x}, new_y=#{new_y}\e[0m"
+          if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
+            x, y = new_x, new_y
+            yprime = f_prime.call(x)
+            puts "#{prefix}  \e[32mnow x=#{x} y=#{y} yprime=#{yprime}\e[0m"
+          end
+        end
+
+        return x, y
+      end
+
+      # Method that tries shifting by a few floating point minimum increments
+      # to see if Y improves.
+      def creeping_root(x_orig, f:, f_prime:, real_range:, imag_range:, iterations:, tolerance:, prefix:)
+        y_orig = f.call(x_orig)
+
+        x = x_orig
+        y = y_orig
+
+        complex_creep(x).each do |new_x|
+          new_y = f.call(new_x)
+          if new_y.abs < y.abs
+            puts "#{prefix}  \e[38;5;150mcreeping Improvement found: new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m"
+            x = new_x
+            y = new_y
+          end
+        end
+
+        return x, y
+      end
+
+      # The multiple-root method used by #find_one_root if Newton's method
+      # seems to converge really slowly.  Returns the new value for X and Y.
+      def multi_root(x_orig, f:, f_prime:, real_range:, imag_range:, iterations:, tolerance:, depth:, prefix:)
+        y_orig = f.call(x_orig)
+
+        x = find_one_root(x_orig, real_range: real_range, imag_range: imag_range, loops: 1, iterations: iterations, tolerance: tolerance, depth: depth + 1, prefix: "#{prefix}  \e[34mmultiroot\e[0m ") { |v|
+          puts "#{prefix}    \e[34mmultiroot\e[0m Evaluating g(#{v})" # XXX
+
+          yg = f.call(v)
+          ygp = f_prime.call(v)
+          g = yg / ygp
+
+          puts "#{prefix}    \e[34mmultiroot\e[0m g=#{g} yg=#{yg} ygp=#{ygp}"
+
+          g
+        }
+
+        y = f.call(x)
+
+        return x, y
+
+      rescue ConvergenceError => e
+        puts "#{prefix}  \e[34mmultiroot \e[33mNo convergence; returning original x and y (#{x_orig},#{y_orig}): #{e}"
+
+        return x_orig, y_orig
+      end
+
+      # The secant method used by #find_one_root if Newton's method and random
+      # guesses aren't converging.  Returns the new value for X and Y.
+      def secant_root(x_orig, x2, f:, f_prime:, real_range:, imag_range:, iterations:, tolerance:, prefix:)
+        x = x_orig
+        y = f.call(x)
+        y2 = f.call(x2)
+        step = tolerance * 100
+
+        iterations.times do |i|
+          puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+
+          break if y.abs <= tolerance && step.abs <= tolerance && i >= 5
+
+          xnext = (x2 * y - x * y2) / (y - y2)
+          step = xnext - x
+          puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
+
+          break if step.abs < tolerance.abs ** 2 || !xnext.abs.to_f.finite?
+
+          y2 = y
+          x2 = x
+          x = xnext
+
+          y = f.call(x)
+        end
+
+        return x, y
+      end
+
       # If +value+ is Complex, returns a randomly shifted value with a
       # different shift in the real and imaginary directions.  If +value+ is
       # real, returns a randomly shifted value within the range.
       #
       # The +range+ is a ratio of the existing values.  If a value is closer to
-      # zero than the given +tolerance+, then instead of a ratio, the range
-      # will be shifted to center around zero and sampled directly.
+      # zero than the given +tolerance+ or is NaN or infinity, then instead of
+      # a ratio, the range will be shifted to center around zero and sampled
+      # directly.
       def complex_rand(random, value, range, tolerance)
         if value.is_a?(Complex)
           real = complex_rand(random, value.real, range, tolerance)
           imag = complex_rand(random, value.imag, range, tolerance)
           real + 1i * imag
-        elsif value.abs < tolerance.abs
+        elsif !value.abs.to_f.finite? || value.abs < tolerance.abs
+          puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? # XXX
           span = (range.end - range.begin) / 2
           random.rand(-span..span)
         else
           random.rand(range) * value
+        end
+      end
+
+      # Returns an Array of values near the given value using tiny increments,
+      # used by #creeping_root.
+      def complex_creep(value)
+        if value.is_a?(Complex)
+          reals = complex_creep(value.real)
+          imags = complex_creep(value.imag)
+          reals.product(imags).map { |re, im| Complex(re, im) }
+        else
+          value = value.to_f
+          [
+            value + (10 * Float::EPSILON) * value,
+            value.next_float,
+            value,
+            value.prev_float,
+            value - (10 * Float::EPSILON) * value,
+          ]
         end
       end
     end
