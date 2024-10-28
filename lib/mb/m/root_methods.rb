@@ -197,7 +197,7 @@ module MB
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
-          if yprime.abs < tolerance ** 2 && y != 0 && step.abs > tolerance && depth < 2
+          if yprime.abs < tolerance ** 2 && y != 0 && (step.nil? || step.abs > tolerance) && depth < 2
             MB::U.headline "#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix
 
             new_x, new_y = multi_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, depth: depth, prefix: "#{prefix}  ")
@@ -260,7 +260,7 @@ module MB
           prev_x = x
           prev_y = y
 
-          break if y.abs < tolerance && step && step.abs < tolerance
+          break if y.abs < tolerance && step && step.abs < tolerance && x_gain.abs < tolerance
         end
 
         raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain}" if y.abs > tolerance || x_gain.abs > tolerance
