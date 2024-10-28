@@ -2,6 +2,41 @@ module MB
   module M
     # Methods for finding the roots of polynomials.
     module RootMethods
+      # Methods to compute root-finding-related functions from a proc, such as
+      # an approximate derivative.
+      module RootProcExtensions
+        # Returns a new proc which calculates an approximate derivative of this
+        # proc, if this proc is a numerical function of one input and output
+        # variable.
+        #
+        # :n - The order of the derivative (1 for first derivative, 2 for
+        #      second, etc.)
+        # :h - The relative scale to use for the finite difference (d = x * h
+        #      if x is nonzero).  The default, 1e-5, provides close to the
+        #      lowest error in most cases.
+        def prime(n: 1, h: 1e-5)
+          raise 'Can only create a derivative for arity=1 procs' unless arity == 1
+          raise 'N must be a positive integer' unless n.is_a?(Integer) && n > 0
+
+          # TODO: figure out an iterative way to do this
+          base = n == 1 ? self : prime(n: n - 1, h: h)
+
+          # TODO: look into the complex-step approximation
+          # See https://mdolab.engin.umich.edu/wiki/guide-complex-step-derivative-approximation
+
+          ->(x) {
+            delta = x * h
+            delta = Float::EPSILON if delta == 0
+            yleft = base.call(x - delta)
+            yright = base.call(x + delta)
+
+            puts "yleft=#{yleft} yright=#{yright} x=#{x} delta=#{delta}" # XXX
+            (yright - yleft) / (delta * 2)
+          }
+        end
+      end
+      Proc.include(RootProcExtensions)
+
       # The default number of iterations to try in #find_one_root before giving
       # up.
       FIND_ONE_ROOT_DEFAULT_ITERATIONS = 150
@@ -9,9 +44,6 @@ module MB
       # The default tolerance for slope per iteration and distance to root for
       # #find_one_root.
       FIND_ONE_ROOT_DEFAULT_TOLERANCE = 1e-13
-
-      # The initial X offset for derivatives.
-      FIND_ONE_ROOT_DERIVATIVE_OFFSET = 1e-6
 
       # Returns an array with the two roots of a quadratic equation with the
       # given coefficients, whether the roots are real- or complex-valued.
@@ -82,13 +114,14 @@ module MB
         &block
       )
         prefix = '  ' * indent
-        diff_delta = FIND_ONE_ROOT_DERIVATIVE_OFFSET
 
         f = ->(x) {
           y = yield x
           puts "#{prefix}      f_#{indent}(#{x})=#{y}"
           y
         }
+
+        f_prime = f.prime
 
         x = guess
         y = f.call(x)
@@ -102,29 +135,14 @@ module MB
 
           break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
-          xleft = x - diff_delta
-          xleft = x.prev_float if xleft == x
-          xright = x + diff_delta
-          xright = x.next_float if xright == x
-          yleft = f.call(xleft)
-          yright = f.call(xright)
+          yprime = f_prime.call(x)
 
-          # Central finite difference derivative, falling back to forward
-          yprime = (yright - yleft) / (2.0 * diff_delta)
-          yprime = (yright - y) / diff_delta if yprime.abs < tolerance
           step = y / yprime
 
-          puts "#{prefix}  yleft=#{yleft} yright=#{yright} yprime=#{yprime} step=#{step}" # XXX
+          puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
 
+          # y / yprime will be infinity if yprime is zero so we can't continue
           break if yprime == 0
-
-
-          # Make sure our finite difference approximation isn't stepping too far
-          if step.abs < diff_delta.abs && step.abs > 0
-            # TODO: what does this look like for complex root finding?
-            puts "#{prefix}  Changing diff_delta from #{diff_delta} to #{step.abs}" # XXX
-            diff_delta = step.abs
-          end
 
           # TODO: maybe Jump around if we are stuck on a zero derivative
           # yprime = rand(-diff_delta..diff_delta) if yprime == 0
@@ -139,25 +157,10 @@ module MB
         if yprime < tolerance ** 2 && indent == 0
           puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
 
-          puts "#{prefix}  diff_delta=#{diff_delta}"
-
           x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
             puts "#{prefix}    Evaluating g(#{v})" # XXX
 
-            vleft = v - diff_delta
-            vleft = v.prev_float if vleft == v
-            vright = v + diff_delta
-            vright = v.next_float if vright == v
-            gleft = f.call(vleft)
-            gright = f.call(vright)
-            g = f.call(v)
-            gprime = (gright - gleft) / (2.0 * diff_delta)
-            gprime = (gright - g) / diff_delta if gprime.abs < tolerance
-
-            g = g / gprime
-            puts "#{prefix}      gleft=#{gleft} gright=#{gright} gprime=#{gprime} g(#{v})=#{g}"
-
-            g
+            f.call(v) / f_prime.call(v)
           }
 
           y = f.call(x)
