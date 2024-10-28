@@ -138,7 +138,7 @@ module MB
         # TODO: do something about indeterminate forms (0 / 0) in the multi-root function
 
         10.times do |l|
-          puts "\e[1mLoop #{l}\e[0m"
+          puts "#{prefix}\e[1mLoop #{l}\e[0m"
           # Finite differences
           puts "#{prefix}\e[1;32mFinite differences\e[0m"
           iterations.times do |i|
@@ -147,18 +147,20 @@ module MB
             break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
             yprime = f_prime.call(x)
-            if yprime == 0 || (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?))
-
-              puts "#{prefix}  y'(#{x}) is #{yprime}; finding a new guess"
+            if yprime == 0 ||
+                (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
+                (yprime.is_a?(Complex) && (yprime.real.nan? || yprime.imag.nan?))
+              puts "#{prefix}  yprime(#{x}) is #{yprime}; finding a new guess"
               r = Random.new(x.to_s.delete('[^0-9]').to_i)
               iterations.times do |j|
-                # TODO: base range on min..max bounds as well
-                new_x = r.rand(0.9..1.1) * x
+                # TODO: base range on min..max bounds and local slope as well
+                new_x = complex_rand(r, x, 0.9..1.1, tolerance)
                 new_y = f.call(new_x)
-                puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, getting new_y=#{new_y}"
+                puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, new_y=#{new_y}"
                 if new_y.abs < y.abs
                   x, y = new_x, new_y if new_y.abs < y.abs
-                  puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{f_prime.call(x)}\e[0m"
+                  yprime = f_prime.call(x)
+                  puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{yprime}\e[0m"
                 end
               end
 
@@ -170,7 +172,11 @@ module MB
             puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
 
             # y / yprime will be infinity if yprime is zero so we can't continue
-            break if yprime == 0
+            break if yprime == 0 ||
+              (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
+              (step.is_a?(Float) && (step.nan? || step.infinite?)) ||
+              (yprime.is_a?(Complex) && (yprime.real.nan? || yprime.imag.nan?)) ||
+              (step.is_a?(Complex) && (step.real.nan? || step.imag.nan?))
 
             # TODO: maybe try a few random guesses if we run out of iterations
 
@@ -227,7 +233,9 @@ module MB
               step = xnext - x
               puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
 
-              break if step.abs < tolerance.abs ** 2 || (xnext.is_a?(Float) && (xnext.nan? || xnext.infinite?))
+              break if step.abs < tolerance.abs ** 2 ||
+                (xnext.is_a?(Complex) && (xnext.real.nan? || xnext.imag.nan? || xnext.abs.infinite?)) ||
+                (xnext.is_a?(Float) && (xnext.nan? || xnext.infinite?))
 
               y2 = y
               x2 = x
@@ -241,6 +249,28 @@ module MB
         raise "Failed to converge within #{tolerance} after #{iterations} iterations with x=#{x} y=#{y} step=#{step}" if y.abs > tolerance || step.abs > tolerance
 
         x
+      end
+
+      private
+
+      # If +value+ is Complex, returns a randomly shifted value with a
+      # different shift in the real and imaginary directions.  If +value+ is
+      # real, returns a randomly shifted value within the range.
+      #
+      # The +range+ is a ratio of the existing values.  If a value is closer to
+      # zero than the given +tolerance+, then instead of a ratio, the range
+      # will be shifted to center around zero and sampled directly.
+      def complex_rand(random, value, range, tolerance)
+        if value.is_a?(Complex)
+          real = complex_rand(random, value.real, range, tolerance)
+          imag = complex_rand(random, value.imag, range, tolerance)
+          real + 1i * imag
+        elsif value.abs < tolerance.abs
+          span = (range.end - range.begin) / 2
+          random.rand(-span..span)
+        else
+          random.rand(range) * value
+        end
       end
     end
   end
