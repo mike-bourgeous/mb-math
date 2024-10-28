@@ -134,94 +134,107 @@ module MB
         yprime = step
 
         # TODO: implement min/max clamping
+        # FIXME: bail faster if we hit nan or infinity anywhere
+        # TODO: do something about indeterminate forms (0 / 0) in the multi-root function
 
-        # Finite differences
-        puts "#{prefix}\e[1;32mFinite differences\e[0m"
-        iterations.times do |i|
-          puts "#{prefix}  i=#{i} x=#{x} y=#{y} step=#{step}" # XXX
-
-          break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
-
-          yprime = f_prime.call(x)
-          if yprime == 0
-            puts "#{prefix}  y'(#{x}) is zero; finding a new guess"
-            r = Random.new(x.to_s.delete('[^0-9]').to_i)
-            iterations.times do |j|
-              # TODO: base range on min..max bounds as well
-              new_x = r.rand(0.9..1.1) * x
-              new_y = f.call(new_x)
-              puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, getting new_y=#{new_y}"
-              if new_y.abs < y.abs
-                x, y = new_x, new_y if new_y.abs < y.abs
-                puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{f_prime.call(x)}\e[0m"
-              end
-            end
-
-            next
-          end
-
-          step = -y / yprime
-
-          puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
-
-          # y / yprime will be infinity if yprime is zero so we can't continue
-          break if yprime == 0
-
-          # TODO: maybe try a few random guesses if we run out of iterations
-
-          x += step
-          y = f.call(x)
-        end
-
-        # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
-        if yprime.abs < tolerance ** 2 && y != 0 && indent == 0
-          puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
-
-          new_x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
-            puts "#{prefix}    Evaluating g(#{v})" # XXX
-
-            f.call(v) / f_prime.call(v)
-          }
-
-          new_y = f.call(new_x)
-          if new_y.abs < y.abs
-            puts "#{prefix}  \e[1;32mMultiroot got f(#{new_x})=#{new_y}\e[0m"
-            x = new_x
-            y = new_y
-          else
-            puts "#{prefix}  \e[31mThis got worse\e[0m"
-          end
-        end
-
-        # Secant method
-        # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
-        # TODO: could reduce iterations within each method and cycle through
-        # the four methods (finite difference, random search, multi-root
-        # finite difference, secant) until we find a root
-        if y.abs > tolerance || step.abs > tolerance
-          puts "#{prefix}\e[1;35mTrying secant method\e[0m"
-
-          x = -x
-          y = f.call(x)
-          x2 = guess
-          y2 = f.call(x2)
-          step = tolerance * 100
-
+        10.times do |l|
+          puts "\e[1mLoop #{l}\e[0m"
+          # Finite differences
+          puts "#{prefix}\e[1;32mFinite differences\e[0m"
           iterations.times do |i|
-            puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+            puts "#{prefix}  i=#{i} x=#{x} y=#{y} step=#{step}" # XXX
 
             break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
-            xnext = (x2 * y - x * y2) / (y - y2)
-            step = xnext - x
+            yprime = f_prime.call(x)
+            if yprime == 0 || (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?))
 
-            break if step.abs < tolerance.abs ** 2
+              puts "#{prefix}  y'(#{x}) is #{yprime}; finding a new guess"
+              r = Random.new(x.to_s.delete('[^0-9]').to_i)
+              iterations.times do |j|
+                # TODO: base range on min..max bounds as well
+                new_x = r.rand(0.9..1.1) * x
+                new_y = f.call(new_x)
+                puts "#{prefix}    guessing j=#{j} new_x=#{new_x}, getting new_y=#{new_y}"
+                if new_y.abs < y.abs
+                  x, y = new_x, new_y if new_y.abs < y.abs
+                  puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{f_prime.call(x)}\e[0m"
+                end
+              end
 
-            y2 = y
-            x2 = x
-            x = xnext
+              next
+            end
 
+            step = -y / yprime
+
+            puts "#{prefix}  yprime=#{yprime} step=#{step}" # XXX
+
+            # y / yprime will be infinity if yprime is zero so we can't continue
+            break if yprime == 0
+
+            # TODO: maybe try a few random guesses if we run out of iterations
+
+            x += step
             y = f.call(x)
+          end
+
+          # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
+          if yprime.abs < tolerance ** 2 && y != 0 && step.abs > tolerance && indent == 0
+            puts "#{prefix}\e[1;33mTrying multiple root method\e[0m"
+
+            new_x = find_one_root(x, min_real: min_real, max_real: max_real, min_imag: min_imag, max_imag: max_imag, iterations: iterations, tolerance: tolerance, indent: indent + 1) { |v|
+              puts "#{prefix}    Evaluating g(#{v})" # XXX
+
+              yg = f.call(v)
+              ygp = f_prime.call(v)
+              g = yg / ygp
+
+              puts "#{prefix}      g=#{g} yg=#{yg} ygp=#{ygp}"
+
+              g
+            }
+
+            new_y = f.call(new_x)
+            if new_y.abs < y.abs
+              puts "#{prefix}  \e[1;32mMultiroot got f(#{new_x})=#{new_y}\e[0m"
+              x = new_x
+              y = new_y
+            else
+              puts "#{prefix}  \e[31mThis got worse\e[0m"
+            end
+          end
+
+          # Secant method
+          # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
+          # TODO: could reduce iterations within each method and cycle through
+          # the four methods (finite difference, random search, multi-root
+          # finite difference, secant) until we find a root
+          if y.abs > tolerance || step.abs > tolerance
+            puts "#{prefix}\e[1;35mTrying secant method\e[0m"
+
+            x = -x
+            y = f.call(x)
+            x2 = guess
+            y2 = f.call(x2)
+            step = tolerance * 100
+
+            iterations.times do |i|
+              puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" # XXX
+
+              break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
+
+              xnext = (x2 * y - x * y2) / (y - y2)
+              step = xnext - x
+              puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
+
+              break if step.abs < tolerance.abs ** 2 || (xnext.is_a?(Float) && (xnext.nan? || xnext.infinite?))
+
+              y2 = y
+              x2 = x
+              x = xnext
+
+              y = f.call(x)
+            end
           end
         end
 

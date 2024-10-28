@@ -55,6 +55,61 @@ RSpec.describe(MB::M::RootMethods) do
       expect(MB::M.round(MB::M.find_one_root(1+1i) { |x| CMath.sin(x) }, 12)).to eq(0)
     end
 
+    it 'can find complex roots of a polynomial using a grid of complex guesses' do
+      # Coefficients generated with Octave:
+      #     pkg load signal
+      #     [num, denom] = ellip(13, 0.5, 45, 0.5)
+      numerator = ->(x) {
+        0.052429 * x ** 13 +
+        0.127870 * x ** 12 +
+        0.414489 * x ** 11 +
+        0.718402 * x ** 10 +
+        1.263738 * x ** 9 +
+        1.645244 * x ** 8 +
+        1.956390 * x ** 7 +
+        1.956390 * x ** 6 +
+        1.645244 * x ** 5 +
+        1.263738 * x ** 4 +
+        0.718402 * x ** 3 +
+        0.414489 * x ** 2 +
+        0.127870 * x +
+        0.052429
+      }
+
+      # Roots (zeros) from Octave:
+      #     pkg load signal
+      #     output_precision(10)
+      #     [z, p, g] = ellip(13, 0.5, 45, 0.5)
+      expected_roots = [
+        -0.509783300 + 0.860302846i,
+        -0.149767566 + 0.988721233i,
+        -0.041837580 + 0.999124425i,
+        -0.012106248 + 0.999926717i,
+        -0.004008680 + 0.999991965i,
+        -0.001947212 + 0.999998104i,
+        -0.509783300 - 0.860302846i,
+        -0.149767566 - 0.988721233i,
+        -0.041837580 - 0.999124425i,
+        -0.012106248 - 0.999926717i,
+        -0.004008680 - 0.999991965i,
+        -0.001947212 - 0.999998104i,
+        -1.000000000 + 0.000000000i,
+      ].map { |r| MB::M.round(r, 3) }.sort_by(&:real).sort_by(&:imag)
+
+      result = (-1..1).step(0.1).flat_map { |im|
+        (-1..1).step(0.1).map { |re|
+          r = MB::M.find_one_root(re + 1i * im, iterations: 600, tolerance: 1e-15, &numerator)
+
+          # Result and expected rounded to 6 decimals to ensure match
+          MB::M.round(r, 3)
+        }
+      }.uniq.sort_by(&:real).sort_by(&:imag)
+
+      # FIXME: get this to match at 6 decimals; it currently matches only at 1
+
+      expect(result).to match_array(expected_roots)
+    end
+
     pending 'with real roots'
     pending 'with complex roots'
 
