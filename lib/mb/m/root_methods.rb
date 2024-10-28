@@ -149,7 +149,7 @@ module MB
             yprime = f_prime.call(x)
             if yprime == 0 ||
                 (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
-                (yprime.is_a?(Complex) && (yprime.real.nan? || yprime.imag.nan?))
+                (yprime.is_a?(Complex) && (yprime.abs.nan? || yprime.abs.infinite?))
               puts "#{prefix}  yprime(#{x}) is #{yprime}; finding a new guess"
               r = Random.new(x.to_s.delete('[^0-9]').to_i)
               iterations.times do |j|
@@ -175,8 +175,8 @@ module MB
             break if yprime == 0 ||
               (yprime.is_a?(Float) && (yprime.nan? || yprime.infinite?)) ||
               (step.is_a?(Float) && (step.nan? || step.infinite?)) ||
-              (yprime.is_a?(Complex) && (yprime.real.nan? || yprime.imag.nan?)) ||
-              (step.is_a?(Complex) && (step.real.nan? || step.imag.nan?))
+              (yprime.is_a?(Complex) && (yprime.abs.nan? || yprime.abs.infinite?)) ||
+              (step.is_a?(Complex) && (step.abs.nan? || step.abs.infinite?))
 
             # TODO: maybe try a few random guesses if we run out of iterations
 
@@ -234,7 +234,7 @@ module MB
               puts "#{prefix}    secant xnext=#{xnext} step=#{step}" # XXX
 
               break if step.abs < tolerance.abs ** 2 ||
-                (xnext.is_a?(Complex) && (xnext.real.nan? || xnext.imag.nan? || xnext.abs.infinite?)) ||
+                (xnext.is_a?(Complex) && (xnext.abs.nan? || xnext.abs.infinite?)) ||
                 (xnext.is_a?(Float) && (xnext.nan? || xnext.infinite?))
 
               y2 = y
