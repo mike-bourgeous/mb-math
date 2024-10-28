@@ -283,6 +283,8 @@ module MB
 
         step = nil
 
+        x_prev = x
+
         # Finite differences
         iterations.times do |i|
           puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" # XXX
@@ -306,9 +308,27 @@ module MB
 
           x += step
           y = f.call(x)
+
+          # Sometimes newton's gets stuck so try jiggling a very tiny amount
+          x, y = creeping_root(
+            x,
+            f: f,
+            f_prime: f_prime,
+            real_range: real_range,
+            imag_range: imag_range,
+            iterations: 10,
+            tolerance: tolerance,
+            prefix: "#{prefix}  \e[36mapprox i=#{i}\e[0m "
+          )
+
           yprime = f_prime.call(x)
 
           puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" # XXX
+
+          x_diff = (x_prev - x).abs
+          break if x_diff < tolerance ** 2
+
+          x_prev = x
         end
 
         return x, y
@@ -348,13 +368,20 @@ module MB
         x = x_orig
         y = y_orig
 
-        complex_creep(x).each do |new_x|
-          new_y = f.call(new_x)
-          if new_y.abs < y.abs
-            puts "#{prefix}  \e[38;5;150mcreeping Improvement found: new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m"
-            x = new_x
-            y = new_y
+        iterations.times do |i|
+          improved = false
+
+          complex_creep(x).each.with_index do |new_x, idx|
+            new_y = f.call(new_x)
+            if new_y.abs < y.abs
+              puts "#{prefix}  \e[38;5;150mcreeping improvement found: i=#{i} idx=#{idx}(#{idx % 5},#{idx / 5}) new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m"
+              improved = true
+              x = new_x
+              y = new_y
+            end
           end
+
+          break unless improved
         end
 
         return x, y
