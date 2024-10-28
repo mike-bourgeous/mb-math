@@ -44,6 +44,13 @@ RSpec.describe(MB::M::RootMethods) do
       expect(MB::M.find_one_root(0) { |x| x ** 5 }.round(12)).to eq(0)
     end
 
+    it 'does not get stuck if starting where slope is zero' do
+      # TODO: constrain this further to be either 0 or pi
+      expect(MB::M.find_one_root(Math::PI / 2) { |x| Math.sin(x) }.round(12))
+        .to satisfy { |v| Math.sin(v).round(12) == 0 }
+        .and satisfy { |v| [0, Math::PI.round(8)].include?(v.round(8)) }
+    end
+
     pending 'with real roots'
     pending 'with complex roots'
 
