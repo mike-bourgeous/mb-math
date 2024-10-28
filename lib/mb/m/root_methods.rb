@@ -9,6 +9,8 @@ module MB
         # proc, if this proc is a numerical function of one input and output
         # variable.
         #
+        # TODO: consider a name more likely to be unique?
+        #
         # :n - The order of the derivative (1 for first derivative, 2 for
         #      second, etc.)
         # :h - The relative scale to use for the finite difference (d = x * h
@@ -128,6 +130,8 @@ module MB
         step = tolerance * 100
         yprime = step
 
+        # TODO: implement min/max clamping
+
         # Finite differences
         puts "#{prefix}\e[1;32mFinite differences\e[0m"
         iterations.times do |i|
@@ -136,6 +140,22 @@ module MB
           break if y.abs <= tolerance && step.abs <= tolerance * 2 && i >= 5
 
           yprime = f_prime.call(x)
+          if yprime == 0
+            puts "#{prefix}  y'(#{x}) is zero; finding a new guess"
+            r = Random.new(x.to_s.delete('[^0-9]').to_i)
+            iterations.times do
+              # TODO: base range on min..max bounds as well
+              new_x = r.rand(0.9..1.1) * x
+              new_y = f.call(new_x)
+              puts "#{prefix}    guessing #{new_x}, getting #{new_y}"
+              if new_y.abs < y.abs
+                x, y = new_x, new_y if new_y.abs < y.abs
+                puts "#{prefix}    \e[32mnow x=#{x} y=#{y} yprime=#{f_prime.call(x)}\e[0m"
+              end
+            end
+
+            next
+          end
 
           step = y / yprime
 
@@ -143,9 +163,6 @@ module MB
 
           # y / yprime will be infinity if yprime is zero so we can't continue
           break if yprime == 0
-
-          # TODO: maybe Jump around if we are stuck on a zero derivative
-          # yprime = rand(-diff_delta..diff_delta) if yprime == 0
 
           # TODO: maybe try a few random guesses if we run out of iterations
 
