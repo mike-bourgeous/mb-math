@@ -124,5 +124,7 @@ RSpec.describe(MB::M::RootMethods) do
     pending 'with complex min and/or max'
     pending 'with different iteration count'
     pending 'with different range'
+
+    pending 'with a callable function object instead of a block'
   end
 end

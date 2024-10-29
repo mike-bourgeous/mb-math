@@ -119,11 +119,16 @@ module MB
       #   find_one_root(-2) { |x| x ** 2 - 1 }
       #   # => -1
       #
+      #   # With a callable instead of a block
+      #   find_one_root(2, ->(x) { x - 1 })
+      #   # => 1
+      #
       # See https://en.wikipedia.org/wiki/Newton%27s_method
       # See https://en.wikipedia.org/wiki/Finite_difference
       # See https://en.wikipedia.org/wiki/Secant_method
       def find_one_root(
         guess,
+        func = nil,
         real_range: nil,
         imag_range: nil,
         iterations: FIND_ONE_ROOT_DEFAULT_ITERATIONS,
@@ -135,7 +140,9 @@ module MB
       )
         prefix ||= '  ' * depth
 
-        f = ->(x) {
+        raise ArgumentError, "Pass only a callable function object, or a block; not both" if func && block_given?
+
+        f = func || ->(x) {
           y = yield x
           puts "#{prefix}      f_#{depth}(#{x})=#{y}" if $DEBUG
           y
