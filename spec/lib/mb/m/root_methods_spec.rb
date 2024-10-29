@@ -117,6 +117,18 @@ RSpec.describe(MB::M::RootMethods) do
       expect(result).to match_array(expected_roots)
     end
 
+    it 'can find roots of a second-order Polynomial object' do
+      p = MB::M::Polynomial.new(1, 0, -1)
+      expect(MB::M.find_one_root(3, p).round(12)).to eq(1)
+      expect(MB::M.find_one_root(-3, p).round(12)).to eq(-1)
+    end
+
+    it 'can find roots of a fifth-order monomial Polynomial object' do
+      p = MB::M::Polynomial.new(1, 0, 0, 0, 0, 0)
+      expect(MB::M.find_one_root(3, p).round(12)).to eq(0)
+      expect(MB::M.find_one_root(-3, p).round(12)).to eq(0)
+    end
+
     pending 'with real roots'
     pending 'with complex roots'
 
