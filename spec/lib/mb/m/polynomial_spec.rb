@@ -157,6 +157,26 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       p = o3 * o2
       expect(p.coefficients).to eq([6, 1, 9, -10, -7, -5])
     end
+
+    pending 'with empty polynomials'
+  end
+
+  describe '#/' do
+    it 'can divide by a Numeric' do
+      p = o2 / 3.0
+      expect(p.coefficients).to eq([1.0, 2.0 / 3.0, 1.0 / 3.0])
+    end
+
+    it "can step down Pascal's triangle" do
+      p1 = MB::M::Polynomial.new(1, 1)
+      p2 = MB::M::Polynomial.new(1, 4, 6, 4, 1)
+
+      result = p2 / p1
+
+      expect(MB::M.round(result.coefficients, 6)).to eq([1, 3, 3, 1])
+    end
+
+    pending 'with empty polynomials'
   end
 
   describe '#round' do

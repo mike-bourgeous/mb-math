@@ -1,3 +1,6 @@
+# TODO: try to remove fft dependency
+require 'numo/pocketfft'
+
 module MB
   module M
     # Represents a polynomial of arbitrary positive integer order of a single
@@ -141,10 +144,22 @@ module MB
       def /(other)
         case other
         when Numeric
+          other = other.to_r if other.is_a?(Integer) # TODO: use to_f instead?
           new_coefficients = @coefficients.map { |c| c / other }
 
         when Polynomial
-          raise NotImplementedError, 'TODO: division'
+          # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
+          length = (@order + 1).lcm(other.order + 1)
+          n1 = MB::M.zpad(Numo::DComplex.cast(@coefficients), length, alignment: 0.5)
+          n1 = MB::M.rol(n1, length / 2)
+          n2 = MB::M.zpad(Numo::DComplex.cast(other.coefficients), length, alignment: 0.5)
+          n2 = MB::M.rol(n2, length / 2)
+          f1 = Numo::Pocketfft.fft(n1)
+          f2 = Numo::Pocketfft.fft(n2)
+
+          require 'pry-byebug'; binding.pry # XXX
+
+          new_coefficients = Numo::Pocketfft.ifft(f1 / f2).to_a
 
         else
           raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
