@@ -139,6 +139,26 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  describe '#*' do
+    it 'can multiply zero-order constants' do
+      p = MB::M::Polynomial.new(3) * MB::M::Polynomial.new(-1i)
+      expect(p.coefficients).to eq([-3i])
+    end
+
+    it 'can multiply by a Numeric' do
+      p = MB::M::Polynomial.new(2, -2) * 5i
+      expect(p.coefficients).to eq([10i, -10i])
+    end
+
+    it 'can multiply longer polynomials' do
+      p = o2 * o3
+      expect(p.coefficients).to eq([6, 1, 9, -10, -7, -5])
+
+      p = o3 * o2
+      expect(p.coefficients).to eq([6, 1, 9, -10, -7, -5])
+    end
+  end
+
   describe '#round' do
     it 'rounds coefficients' do
       p = MB::M::Polynomial.new(3, 2.001, 1.9+1.0001i)

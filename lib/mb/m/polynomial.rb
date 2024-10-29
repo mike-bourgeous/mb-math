@@ -141,7 +141,7 @@ module MB
       def /(other)
         case other
         when Numeric
-          @coefficients.map! { |c| c / other }
+          new_coefficients = @coefficients.map { |c| c / other }
 
         when Polynomial
           raise NotImplementedError, 'TODO: division'
@@ -149,6 +149,8 @@ module MB
         else
           raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
         end
+
+        self.class.new(new_coefficients)
       end
 
       # Returns a new Polynomial with all coefficients rounded to the given
@@ -165,6 +167,14 @@ module MB
         self.class.new(@coefficients.map { |c|
           MB::M.round(c, digits)
         })
+      end
+
+      # Converts types as appropriate to allow arithmetic with Numerics in any
+      # order, e.g. by wrapping numeric values as constant Polynomials.
+      #
+      # This allows things like `5 * p` to work instead of just `p * 5`.
+      def coerce(numeric)
+        [self.class.new(numeric), self]
       end
 
       # TODO: addition, subtraction, multiplication, division
