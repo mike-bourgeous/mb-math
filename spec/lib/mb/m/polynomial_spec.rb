@@ -176,6 +176,17 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(MB::M.round(result.coefficients, 6)).to eq([1, 3, 3, 1])
     end
 
+    it 'can replicate the example from Wikipedia' do
+      # https://en.wikipedia.org/wiki/Polynomial_long_division#Example
+      p1 = MB::M::Polynomial.new(1, -3)
+      p2 = MB::M::Polynomial.new(1, -2, 0, -9) # FIXME: -9 should be -4 to give remainder of 5
+
+      result = p2 / p1
+
+      # FIXME: remainders??
+      expect(MB::M.round(result.coefficients, 6)).to eq([1, 1, 3]) # remainder=5?
+    end
+
     pending 'with empty polynomials'
   end
 

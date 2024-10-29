@@ -149,15 +149,18 @@ module MB
 
         when Polynomial
           # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
-          length = (@order + 1).lcm(other.order + 1)
-          n1 = MB::M.zpad(Numo::DComplex.cast(@coefficients), length, alignment: 0.5)
-          n2 = MB::M.zpad(Numo::DComplex.cast(other.coefficients), length, alignment: 0.5)
-          f1 = optimal_shift_fft(n1)
-          f2 = optimal_shift_fft(n2)
+          length = @order + other.order + 1
+          (f1, f2), offset = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
+
+          # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
+          f3 = f1 / f2
+          n3 = Numo::Pocketfft.ifft(f3)
 
           require 'pry-byebug'; binding.pry # XXX
 
-          new_coefficients = Numo::Pocketfft.ifft(f1 / f2).to_a
+          # FIXME: this is not the right offset and we need to truncate
+          shifted = MB::M.round(MB::M.ror(n3, offset), 6)
+          new_coefficients = shifted.to_a
 
         else
           raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
@@ -175,11 +178,10 @@ module MB
       end
 
       # Returns a new Polynomial with all coefficients rounded to the given
-      # number of digits after the decimal point.
+      # number of digits after the decimal point, coercing complex coefficients
+      # down to reals if possible.
       def round(digits)
-        self.class.new(@coefficients.map { |c|
-          MB::M.round(c, digits)
-        })
+        self.class.new(@coefficients.map { |c| MB::M.round(c, digits) })
       end
 
       # Converts types as appropriate to allow arithmetic with Numerics in any
@@ -191,6 +193,30 @@ module MB
       end
 
       private
+
+      # Experimental: finds an optimal padding in the time/space domain to
+      # minimize zeros or small values in the frequency domain.
+      #
+      # TODO: figure out if this is just an even vs. odd length thing
+      def optimal_pad_fft(*narrays, min_length: nil)
+        freqmin = nil
+        freq = nil
+        idx = nil
+
+        min_length ||= narrays.max(&:length)
+
+        for pad in 0..10
+          flist = narrays.map { |n| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1)) }
+          flistmin = flist.map { |f, idx| f.abs.min }.min
+          flistshift = flist.sum(&:last)
+
+          freq, freqmin, idx = flist, flistmin, pad if freq.nil? || flistmin > freqmin
+        end
+
+        puts "Best padding for starting length #{min_length}: #{idx} with min abs: #{freqmin} and max #{freq.map(&:first).map(&:abs).map(&:max).max}" # XXX
+
+        return freq.map(&:first), flistshift
+      end
 
       # Experimental: finds an optimal shift in the time/space domain to
       # minimize zeros or small values in the frequency domain.
@@ -204,16 +230,19 @@ module MB
       # small coefficients line up and don't explode as much when divided.
       def optimal_shift_fft(narray)
         freq = nil
+        idx = nil
 
         for offset in 0..(narray.length / 2)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
-          freq = f if freq.nil? || f.abs.min > freq.abs.min
+          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
 
           f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
-          freq = f if freq.nil? || f.abs.min > freq.abs.min
+          freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
         end
 
-        freq
+        puts "Best offset for length #{narray.length}: #{idx} with min #{freq.abs.min} and max #{freq.abs.max}" # XXX
+
+        return freq, idx
       end
     end
   end
