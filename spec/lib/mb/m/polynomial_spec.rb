@@ -1,4 +1,10 @@
 RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
+  let(:o2) { MB::M::Polynomial.new(3, 2, 1) }
+  let(:o2_2) { MB::M::Polynomial.new(-3, -2, 5) }
+  let(:o3) { MB::M::Polynomial.new(2, -1, 3, -5) }
+  let(:o100) { MB::M::Polynomial.new((1..101).to_a) }
+  let(:c4) { MB::M::Polynomial.new(4.0 + 1.5i, 0, 0, 0, -1i) }
+
   describe '#initialize' do
     it 'can create a polynomial from an Array' do
       p = MB::M::Polynomial.new([1, 2, 3])
@@ -17,6 +23,16 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
     it 'raises an error if given non-numeric arguments' do
       expect { MB::M::Polynomial.new([1], [2]) }.to raise_error(ArgumentError, /coefficients.*Numeric/)
+    end
+
+    it 'removes leading zeros from coefficients' do
+      p = MB::M::Polynomial.new(0, 0, 0, 1, 2)
+      expect(p.order).to eq(1)
+      expect(p.coefficients).to eq([1, 2])
+    end
+
+    it 'can create a polynomial with order 100' do
+      expect(o100.order).to eq(100)
     end
   end
 
@@ -44,7 +60,14 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(second_order.call(1i)).to eq(-6)
     end
 
-    pending 'with complex coefficients'
+    it 'can evaluate a 100-order polynomial' do
+      expect(o100.call(0)).to eq(101)
+    end
+
+    it 'can evaluate a polynomial with complex coefficients' do
+      expected = (5+3i) ** 4 * (4.0+1.5i) - 1i
+      expect(c4.call(5+3i)).to eq(expected)
+    end
   end
 
   describe '#prime' do
@@ -59,6 +82,76 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       p = MB::M::Polynomial.new(3, 2, 1, 0)
       p_prime2 = p.prime(2)
       expect(p_prime2.coefficients).to eq([18, 4])
+    end
+  end
+
+  describe '#+' do
+    it 'can add a polynomial of lesser order' do
+      s = o3 + o2
+      expect(s.coefficients).to eq([2, 2, 5, -4])
+      expect(s.order).to eq(3)
+    end
+
+    it 'can add a polynomial of greater order' do
+      s = o2 + o3
+      expect(s.coefficients).to eq([2, 2, 5, -4])
+      expect(s.order).to eq(3)
+    end
+
+    it 'cancels leading zeros' do
+      s = o2 + o2_2
+      expect(s.coefficients).to eq([6])
+      expect(s.order).to eq(0)
+
+      s_swap = o2_2 + o2
+      expect(s_swap.coefficients).to eq([6])
+      expect(s_swap.order).to eq(0)
+    end
+  end
+
+  describe '#-' do
+    it 'can subtract a polynomial of lesser order' do
+      s = o3 - o2
+      expect(s.coefficients).to eq([2, -4, 1, -6])
+      expect(s.order).to eq(3)
+    end
+
+    it 'can subtract a polynomial of greater order' do
+      s = o2 - o3
+      expect(s.coefficients).to eq([-2, 4, -1, 6])
+      expect(s.order).to eq(3)
+    end
+
+    it 'cancels leading zeros' do
+      s = o2 - MB::M::Polynomial.new(3, 2, 2)
+      expect(s.coefficients).to eq([-1])
+      expect(s.order).to eq(0)
+    end
+  end
+
+  describe '#-@' do
+    it 'negates the coefficients' do
+      p = MB::M::Polynomial.new(3,2,1,0)
+      pneg = -p
+
+      expect(pneg.coefficients).to eq([-3,-2,-1,-0])
+      expect(pneg.call(5)).to eq(-p.call(5))
+    end
+  end
+
+  describe '#round' do
+    it 'rounds coefficients' do
+      p = MB::M::Polynomial.new(3, 2.001, 1.9+1.0001i)
+      expect(p.round(3).coefficients).to eq([3, 2.001, 1.9+1.0i])
+      expect(p.round(0).coefficients).to eq([3, 2, 2+1i])
+    end
+  end
+
+  describe '#sigfigs' do
+    it 'rounds coefficients after significant figures' do
+      p = MB::M::Polynomial.new(34567, 2.001, 1.9111111+0.000123456i)
+      expect(p.sigfigs(3).coefficients).to eq([34600, 2.0, 1.91+0.000123i])
+      expect(p.sigfigs(1).coefficients).to eq([30000, 2.0, 2.0+0.0001i])
     end
   end
 end

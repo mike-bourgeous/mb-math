@@ -1,11 +1,15 @@
 module MB
   module M
-    # Represents a polynomial of arbitrary positive integer order for purposes
-    # of root finding, differentiation, etc.
+    # Represents a polynomial of arbitrary positive integer order of a single
+    # independent variable for purposes of root finding, differentiation, etc.
     class Polynomial
       # The coefficients of this polynomial, if any, in descending order of
       # term power.
       attr_reader :coefficients
+
+      # The order of this polynomial, or the highest integer power of the
+      # independent variable.
+      attr_reader :order
 
       # Initializes a polynomial with the given +coefficients+, which may be a
       # variable argument list or a single Array.  Coefficients may be any
@@ -25,7 +29,8 @@ module MB
         coefficients = coefficients[0].dup if coefficients.length == 1 && coefficients[0].is_a?(Array)
         raise ArgumentError, "All coefficients must be Numeric" unless coefficients.all?(Numeric)
 
-        @coefficients = coefficients.freeze
+        first_nonzero = coefficients.find_index { |v| v != 0 }
+        @coefficients = coefficients[first_nonzero..].freeze
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1
       end
 
@@ -56,6 +61,85 @@ module MB
             c
           }
         )
+      end
+
+      # Returns a new Polynomial with the result of adding the +other+
+      # Polynomial (or Numeric) to this one.
+      def +(other)
+        case other
+        when Numeric
+          new_coefficients = @coefficients.empty? ? [0] : @coefficients.dup
+          new_coefficients[-1] += other
+
+        when Polynomial
+          new_order = MB::M.max(@order, other.order)
+
+          pad_a = MB::M.zpad(@coefficients, new_order + 1, alignment: 1)
+          pad_b = MB::M.zpad(other.coefficients, new_order + 1, alignment: 1)
+
+          new_coefficients = pad_a.map.with_index { |v, idx| v + pad_b[idx] }
+
+        else
+          raise ArgumentError, "Must add a Polynomial or Numeric to a Polynomial, not #{other.class}"
+        end
+
+        self.class.new(new_coefficients)
+      end
+
+      # Returns a new Polynomial with the result of subtracting the +other+
+      # Polynomial (or Numeric) from this one.
+      def -(other)
+        # TODO: dedupe with +
+        case other
+        when Numeric
+          new_coefficients = @coefficients.empty? ? [0] : @coefficients.dup
+          new_coefficients[-1] -= other
+
+          when Polynomial
+          new_order = MB::M.max(@order, other.order)
+
+          pad_a = MB::M.zpad(@coefficients, new_order + 1, alignment: 1)
+          pad_b = MB::M.zpad(other.coefficients, new_order + 1, alignment: 1)
+
+          new_coefficients = pad_a.map.with_index { |v, idx| v - pad_b[idx] }
+
+        else
+          raise ArgumentError, "Must add a Polynomial or Numeric to a Polynomial, not #{other.class}"
+        end
+
+        self.class.new(new_coefficients)
+      end
+
+      # Returns a new Polynomial with all coefficients negated.
+      def -@
+        self.class.new(@coefficients.map(&:-@))
+      end
+
+      def *(other)
+        case other
+        when Numeric
+          @coefficients.map! { |c| c * other }
+
+        when Polynomial
+          # This seems basically like convolution
+          raise NotImplementedError, 'TODO: multiplication'
+        end
+      end
+
+      # Returns a new Polynomial with all coefficients rounded to the given
+      # number of significant figures.
+      def sigfigs(digits)
+        self.class.new(@coefficients.map { |c|
+          MB::M.sigfigs(c, digits)
+        })
+      end
+
+      # Returns a new Polynomial with all coefficients rounded to the given
+      # number of digits after the decimal point.
+      def round(digits)
+        self.class.new(@coefficients.map { |c|
+          MB::M.round(c, digits)
+        })
       end
 
       # TODO: addition, subtraction, multiplication, division
