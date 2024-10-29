@@ -151,11 +151,9 @@ module MB
           # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
           length = (@order + 1).lcm(other.order + 1)
           n1 = MB::M.zpad(Numo::DComplex.cast(@coefficients), length, alignment: 0.5)
-          n1 = MB::M.rol(n1, length / 2)
           n2 = MB::M.zpad(Numo::DComplex.cast(other.coefficients), length, alignment: 0.5)
-          n2 = MB::M.rol(n2, length / 2)
-          f1 = Numo::Pocketfft.fft(n1)
-          f2 = Numo::Pocketfft.fft(n2)
+          f1 = optimal_shift_fft(n1)
+          f2 = optimal_shift_fft(n2)
 
           require 'pry-byebug'; binding.pry # XXX
 
@@ -192,7 +190,31 @@ module MB
         [self.class.new(numeric), self]
       end
 
-      # TODO: addition, subtraction, multiplication, division
+      private
+
+      # Experimental: finds an optimal shift in the time/space domain to
+      # minimize zeros or small values in the frequency domain.
+      #
+      # TODO: I'm not expecting this to work, because I expect a sample offset
+      # to be purely a phase difference.
+      #
+      # TODO: Could try different padding lengths instead of different shifts
+      #
+      # TODO: Could try minimizing the difference between two ffts so that
+      # small coefficients line up and don't explode as much when divided.
+      def optimal_shift_fft(narray)
+        freq = nil
+
+        for offset in 0..(narray.length / 2)
+          f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
+          freq = f if freq.nil? || f.abs.min > freq.abs.min
+
+          f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
+          freq = f if freq.nil? || f.abs.min > freq.abs.min
+        end
+
+        freq
+      end
     end
   end
 end
