@@ -176,7 +176,7 @@ module MB
         if length_before > 0
           narray_before = narray.class.new(length_before).fill(before)
           if narray.size > 0
-            narray = narray_before.append(narray)
+            narray = array_append(narray_before, narray)
           else
             narray = narray_before
           end
@@ -185,7 +185,7 @@ module MB
         if length_after > 0
           narray_after = narray.class.new(length_after).fill(after)
           if narray.size > 0
-            narray = narray.append(narray_after)
+            narray = array_append(narray, narray_after)
           else
             narray = narray_after
           end
@@ -298,6 +298,20 @@ module MB
         i2 = index.ceil
         blend = index - i1
         MB::M.interp(array[i1], array[i2], blend, func: func)
+      end
+
+      private
+
+      # For #pad, do the right thing for Numo::NArray and Array to concatenate
+      # arrays to a new array.
+      def array_append(array1, array2)
+        case array1
+        when Numo::NArray
+          array1.append(array2)
+
+        when Array
+          array1 + array2
+        end
       end
     end
   end

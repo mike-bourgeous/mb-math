@@ -310,6 +310,11 @@ RSpec.describe(MB::M::ArrayMethods) do
       expect(MB::M.zpad(Numo::SFloat[], 2)).to eq(Numo::SFloat[0, 0])
     end
 
+    it 'can pad a Ruby Array' do
+      expect(MB::M.zpad([1,2,3], 5, alignment: 0)).to eq([1, 2, 3, 0, 0])
+      expect(MB::M.zpad([1,2,3], 5, alignment: 1)).to eq([0, 0, 1, 2, 3])
+    end
+
     context 'when a block is given' do
       it 'returns original length data as modified by the block' do
         expect(MB::M.zpad(Numo::SFloat.ones(3), 5) { |p| p + 1 }).to eq(Numo::SFloat.ones(3) * 2)
