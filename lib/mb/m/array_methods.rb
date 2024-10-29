@@ -300,6 +300,28 @@ module MB
         MB::M.interp(array[i1], array[i2], blend, func: func)
       end
 
+      # Performs direct convolution of +array1+ with +array2+, returning a new
+      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm.
+      def convolve(array1, array2)
+        array1, array2 = array2, array1 if array2.length > array1.length
+
+        length = array1.length + array2.length - 1
+
+        if array1.is_a?(Array) && array2.is_a?(Array)
+          result = Array.new(length, 0)
+        else
+          result = promoted_array_type(array1, array2).zeros(length)
+        end
+
+        for i in 0...array1.length
+          for j in 0...array2.length
+            result[i + j] += array2[j] * array1[i]
+          end
+        end
+
+        result
+      end
+
       private
 
       # For #pad, do the right thing for Numo::NArray and Array to concatenate
@@ -312,6 +334,31 @@ module MB
         when Array
           array1 + array2
         end
+      end
+
+      PROMOTED_NARRAY_TYPE_MAP = {
+        [false, false] => Numo::SFloat,
+        [false, true] => Numo::SComplex,
+        [true, false] => Numo::DFloat,
+        [true, true] => Numo::DComplex,
+      }.freeze
+
+      # Returns the Array or Numo::NArray class that should hold (most) of the
+      # range of both +array1+ and +array2+.  Returns Array if both objects are
+      # Ruby Arrays.
+      def promoted_array_type(array1, array2)
+        double = array1.is_a?(Numo::DFloat) || array1.is_a?(Numo::DComplex) ||
+          array1.is_a?(Numo::Int32) || array1.is_a?(Numo::Int64) ||
+          array2.is_a?(Numo::DFloat) || array2.is_a?(Numo::DComplex) ||
+          array2.is_a?(Numo::Int32) || array2.is_a?(Numo::Int64) ||
+          array1.is_a?(Array) || array2.is_a?(Array)
+
+        complex = array1.is_a?(Numo::SComplex) || array1.is_a?(Numo::DComplex) ||
+          array2.is_a?(Numo::SComplex) || array2.is_a?(Numo::DComplex) ||
+          (array1.is_a?(Array) && array1.any?(Complex)) ||
+          (array2.is_a?(Array) && array2.any?(Complex))
+
+        PROMOTED_NARRAY_TYPE_MAP[[double, complex]]
       end
     end
   end

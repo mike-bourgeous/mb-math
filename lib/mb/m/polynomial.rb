@@ -104,7 +104,7 @@ module MB
           new_coefficients = pad_a.map.with_index { |v, idx| v - pad_b[idx] }
 
         else
-          raise ArgumentError, "Must add a Polynomial or Numeric to a Polynomial, not #{other.class}"
+          raise ArgumentError, "Must subtract a Polynomial or Numeric from a Polynomial, not #{other.class}"
         end
 
         self.class.new(new_coefficients)
@@ -115,14 +115,39 @@ module MB
         self.class.new(@coefficients.map(&:-@))
       end
 
+      # Returns a new Polynomial scaled by +other+ if given a Numeric, or
+      # multiplied by the +other+ polynomial.
       def *(other)
         case other
         when Numeric
-          @coefficients.map! { |c| c * other }
+          new_coefficients = @coefficients.map { |c| c * other }
 
         when Polynomial
-          # This seems basically like convolution
-          raise NotImplementedError, 'TODO: multiplication'
+          # This seems basically like convolution (confirmed by Octave's
+          # documentation of its conv() function).
+          new_coefficients = MB::M.convolve(@coefficients, other.coefficients)
+
+        else
+          raise ArgumentError, "Must multiply a Polynomial by a Polynomial or Numeric, not #{other.class}"
+        end
+
+        self.class.new(new_coefficients)
+      end
+
+      # Returns a new Polynomial with this polynomial's coefficients divided by
+      # +other+ if given a Numeric, or long-divided by the +other+ polynomial.
+      #
+      # TODO: what happens if there is a remainder?
+      def /(other)
+        case other
+        when Numeric
+          @coefficients.map! { |c| c / other }
+
+        when Polynomial
+          raise NotImplementedError, 'TODO: division'
+
+        else
+          raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
         end
       end
 

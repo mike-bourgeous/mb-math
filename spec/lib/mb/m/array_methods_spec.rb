@@ -507,4 +507,141 @@ RSpec.describe(MB::M::ArrayMethods) do
 
     pending 'can accept an interpolator function like smoothstep'
   end
+
+  describe '#convolve' do
+    let(:array_int) { [1, 2, 3] }
+    let(:array_float) { [0.5, -1, 0.25] }
+    let(:array_float4) { [0.5, -1, 0.25, 9] }
+    let(:array_complex) { [1, 2.0, 3+3i] }
+    let(:i16) { Numo::Int16[1, 3, 5] }
+    let(:i32) { Numo::Int32[1, 2, 4, -1] }
+    let(:i64) { Numo::Int64[-1, 1, -1, -2] }
+    let(:sfloat) { Numo::SFloat[-0.1, 0.5, -0.3] }
+    let(:dfloat) { Numo::DFloat[-0.25, 0.75, -0.1] }
+    let(:scomplex) { Numo::SComplex[-0.1 - 0.25i, 0.25 - 0.75i, 0.3] }
+    let(:dcomplex) { Numo::DComplex[5, -3i, 1i, -1] }
+
+    it "can produce Pascal's triangle" do
+      result = Array.new(5) do |i|
+        ([[1, 1]] * (i + 1)).reduce(&MB::M.method(:convolve))
+      end
+
+      expect(result).to eq([
+        [1, 1],
+        [1, 2, 1],
+        [1, 3, 3, 1],
+        [1, 4, 6, 4, 1],
+        [1, 5, 10, 10, 5, 1],
+      ])
+    end
+
+    shared_examples_for :type_correct_convolution do
+      it "returns the expected class" do
+        result = MB::M.convolve(a1, a2)
+        expect(result).to be_a(expected.class)
+
+        result = MB::M.convolve(a2, a1)
+        expect(result).to be_a(expected.class)
+      end
+
+      it "convolves correctly" do
+        result = MB::M.convolve(a1, a2)
+        expect(MB::M.round(result, 6)).to eq(expected)
+
+        result = MB::M.convolve(a2, a1)
+        expect(MB::M.round(result, 6)).to eq(expected)
+      end
+    end
+
+    # Expected values below were calculated using Octave's conv() function
+
+    context 'with Ruby Arrays' do
+      it 'can convolve Arrays of the same length' do
+        expected = [0.5, 0, -0.25, -2.5, 0.75]
+        expect(MB::M.convolve(array_int, array_float)).to eq(expected)
+        expect(MB::M.convolve(array_float, array_int)).to eq(expected)
+      end
+
+      it 'can convolve Arrays of differing lengths' do
+        expected = [0.25, -1.0, 1.25, 4.0, -8.9375, 2.25]
+        expect(MB::M.convolve(array_float4, array_float)).to eq(expected)
+        expect(MB::M.convolve(array_float, array_float4)).to eq(expected)
+      end
+
+      it 'can convolve Arrays containing Complex values' do
+        expected = [1, 4, 10+3i, 12+6i, 9+9i]
+
+        expect(MB::M.convolve(array_int, array_complex)).to eq(expected)
+        expect(MB::M.convolve(array_complex, array_int)).to eq(expected)
+      end
+    end
+
+    context 'with Numo::NArrays' do
+      context 'with Numo::SFloat and Numo::DComplex returning Numo::DComplex' do
+        let(:a1) { sfloat }
+        let(:a2) { dcomplex }
+        let(:expected) { Numo::DComplex[-0.5+0i, 2.5+0.3i, -1.5-1.6i, 0.1+1.4i, -0.5-0.3i, 0.3+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::DFloat and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { dfloat }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[0.025+0.0625i, -0.1375+0i, 0.1225-0.5375i, 0.2+0.075i, -0.03+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int16 and Numo::SComplex returning Numo::SComplex' do
+        let(:a1) { i16 }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::SComplex[-0.1-0.25i, -0.05-1.5i, 0.55-3.5i, 2.15-3.75i, 1.5+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int32 and Numo::SFloat returning Numo::DFloat' do
+        let(:a1) { i32 }
+        let(:a2) { sfloat }
+        let(:expected) { Numo::DFloat[-0.1, 0.3, 0.3, 1.5, -1.7, 0.3] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int64 and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { i64 }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[0.1+0.25i, -0.35+0.5i, 0.05-0.5i, 0.25+1.25i, -0.8+1.5i, -0.6+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+    end
+
+    context 'with Array and NArray (in either order)' do
+      context 'with float Array and Numo::SFloat returning Numo::DFloat' do
+        let(:a1) { array_float }
+        let(:a2) { sfloat }
+        let(:expected) { Numo::DFloat[-0.05, 0.35, -0.675, 0.425, -0.075] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with complex Array amd Numo::DFloat returning Numo::DComplex' do
+        let(:a1) { array_complex }
+        let(:a2) { dfloat }
+        let(:expected) { Numo::DComplex[-0.25+0i, 0.25+0i, 0.65-0.75i, 2.05+2.25i, -0.3-0.3i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with float Array and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { array_float }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[-0.05-0.125i, 0.225-0.125i, -0.125+0.6875i, -0.2375-0.1875i, 0.075+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+    end
+  end
 end
