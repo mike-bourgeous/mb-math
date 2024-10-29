@@ -139,3 +139,4 @@ module MB
 end
 
 require_relative 'm/plot'
+require_relative 'm/polynomial'
