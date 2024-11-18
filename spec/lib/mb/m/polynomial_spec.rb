@@ -34,6 +34,12 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     it 'can create a polynomial with order 100' do
       expect(o100.order).to eq(100)
     end
+
+    it 'converts Complex to real if the imaginary part is zero' do
+      result = MB::M::Polynomial.new(Complex(Rational(3, 2), 0), 1.75 + 0i).coefficients
+      expect(result).to eq([Rational(3, 2), 1.75])
+      expect(result.any?(Complex)).to eq(false)
+    end
   end
 
   describe '#call' do

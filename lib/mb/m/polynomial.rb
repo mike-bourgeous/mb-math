@@ -29,11 +29,16 @@ module MB
       #     Polynomial.new(5, 2, -6)
       def initialize(*coefficients)
         # TODO: it might be possible to make this work on vectors by allowing vectors for coefficients
+        # TODO: it might be possible to handle multivariable polynomials by using an N-dimensional array
+
         coefficients = coefficients[0].dup if coefficients.length == 1 && coefficients[0].is_a?(Array)
-        raise ArgumentError, "All coefficients must be Numeric" unless coefficients.all?(Numeric)
+        raise ArgumentError, "All coefficients must be Numeric; got #{coefficients.map(&:class).uniq}" unless coefficients.all?(Numeric)
 
         first_nonzero = coefficients.find_index { |v| v != 0 }
-        @coefficients = coefficients[first_nonzero..].freeze
+        @coefficients = coefficients[first_nonzero..].map { |c|
+          c.is_a?(Complex) && c.imag == 0 ? c.real : c
+        }.freeze
+
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1
       end
 
