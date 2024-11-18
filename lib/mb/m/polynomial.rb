@@ -517,7 +517,16 @@ module MB
           end
 
         when Rational
-          c.denominator == 1 ? "#{c.numerator.to_s}#{imag}" : "(#{c.numerator}r#{imag}/#{c.denominator})"
+          if c.denominator == 1
+            "#{c.numerator.to_s}#{imag}"
+          else
+            prefix = ''
+            if c < 0
+              c = -c
+              prefix = '-'
+            end
+            "#{prefix}(#{c.numerator}r#{imag}/#{c.denominator})"
+          end
 
         else
           "#{c}#{imag}"
