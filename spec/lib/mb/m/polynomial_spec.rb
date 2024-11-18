@@ -281,4 +281,6 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect((o1_r * 1i).to_f.coefficients).to eq([0.6i, -3.5i])
     end
   end
+
+  pending '#to_s'
 end

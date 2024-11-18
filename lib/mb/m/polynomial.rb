@@ -243,6 +243,45 @@ module MB
         [self.class.new(numeric), self]
       end
 
+      # Returns a String representing this Polynomial
+      def to_s
+        return '1' if @coefficients.empty?
+
+        return "#{@coefficients[0]}" if @order == 0
+
+        s = String.new
+
+        s << "#{@coefficients[0]} * x ** #{@order}"
+
+        coefficients.each.with_index do |c, idx|
+          # Skip terms with a coefficient of zero and skip the first term since
+          # it's handled above
+          next if c == 0 || idx == 0
+
+          exponent = order - idx
+
+          if c.is_a?(Complex) || c > 0
+            s << ' + '
+          else
+            s << ' - '
+            c = -c
+          end
+
+          case exponent
+          when 0
+            s << "#{c}"
+
+          when 1
+            s << "#{c} * x"
+
+          else
+            s << "#{c} * x ** #{exponent}"
+          end
+        end
+
+        s
+      end
+
       private
 
       # Experimental: finds an optimal padding in the time/space domain to
