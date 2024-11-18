@@ -211,4 +211,12 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p.sigfigs(1).coefficients).to eq([30000, 2.0, 2.0+0.0001i])
     end
   end
+
+  describe '#fft_divide' do
+    pending
+  end
+
+  describe '#long_divide' do
+    pending
+  end
 end

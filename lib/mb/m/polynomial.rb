@@ -153,25 +153,39 @@ module MB
           new_coefficients = @coefficients.map { |c| c / other }
 
         when Polynomial
-          # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
-          length = @order + other.order + 1
-          (f1, f2), offset = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
-
-          # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
-          f3 = f1 / f2
-          n3 = Numo::Pocketfft.ifft(f3)
-
-          require 'pry-byebug'; binding.pry # XXX
-
-          # FIXME: this is not the right offset and we need to truncate
-          shifted = MB::M.round(MB::M.ror(n3, offset), 6)
-          new_coefficients = shifted.to_a
+          fft_divide(other)
 
         else
           raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
         end
 
         self.class.new(new_coefficients)
+      end
+
+      # Returns a new Polynomial with the result of dividing this polynomial by
+      # the +other+ using deconvolution.
+      #
+      # FIXME: this only works when there is no remainder
+      def fft_divide(other)
+        # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
+        length = @order + other.order + 1
+        (f1, f2), offset = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
+
+        # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
+        f3 = f1 / f2
+        n3 = Numo::Pocketfft.ifft(f3)
+
+        # FIXME: this is not the right offset and we need to truncate to the
+        # correct order.  Rounding to 6 figures is also probably not enough
+        # precision.
+        shifted = MB::M.round(MB::M.ror(n3, offset), 6)
+        new_coefficients = shifted.to_a
+      end
+
+      # Returns quotient and remainder Polynomials with the result of dividing
+      # this polynomial by the +other+ using long division.
+      def long_divide(other)
+        raise NotImplementedError, 'TODO'
       end
 
       # Returns a new Polynomial with all coefficients rounded to the given
