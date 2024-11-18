@@ -550,9 +550,38 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   end
 
   describe '#to_s' do
-    pending 'with all 1'
-    pending 'with all -1'
-    pending 'empty'
+    it 'returns an empty String for an empty Polynomial' do
+      expect(o0_empty.to_s).to eq('')
+    end
+
+    it 'omits coefficients equal to one' do
+      p = MB::M::Polynomial.new(1, 1, 1, 1, 1, 1)
+      expect(p.to_s).to eq('x ** 5 + x ** 4 + x ** 3 + x ** 2 + x + 1')
+    end
+
+    it 'omits coefficients equal to negative one' do
+      p = MB::M::Polynomial.new(-1, -1, -1, -1, -1, -1)
+      expect(p.to_s).to eq('-x ** 5 - x ** 4 - x ** 3 - x ** 2 - x - 1')
+    end
+
+    it 'omits exponent on first-order term' do
+      p = MB::M::Polynomial.new(2, 0)
+      expect(p.to_s).to eq('2 * x')
+    end
+
+    it 'skips zero terms' do
+      p = MB::M::Polynomial.new(-5, 0, 5, 0, 0, 2i, 0)
+      expect(p.to_s).to eq('-5 * x ** 6 + 5 * x ** 4 + 2i * x')
+    end
+
+    it 'returns only the numeric as string for zero-order polynomials' do
+      expect(o0.to_s).to eq('42')
+      expect(MB::M::Polynomial.new(5r/3).to_s).to eq('5/3')
+      expect(MB::M::Polynomial.new(2.5).to_s).to eq('2.5')
+      expect(MB::M::Polynomial.new(1+3i).to_s).to eq('1+3i')
+      expect(MB::M::Polynomial.new(0+(3r/5)*1i).to_s).to eq('3/5i')
+    end
+
     pending 'zero-order'
     pending 'linear'
     pending 'quadratic'

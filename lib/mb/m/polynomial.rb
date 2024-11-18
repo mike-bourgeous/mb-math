@@ -380,15 +380,16 @@ module MB
         @coefficients.empty?
       end
 
-      # Returns a String representing this Polynomial
+      # Returns a String representing this Polynomial in Ruby-compatible
+      # notation.  Returns an empty String for an empty Polynomial.
       def to_s
-        return '1' if @coefficients.empty?
+        return '' if @coefficients.empty?
 
-        return "#{@coefficients[0]}" if @order == 0
+        return num_str(@coefficients[0]) if @order == 0
 
         s = String.new
 
-        s << "#{coeff_str(@coefficients[0])}x ** #{@order}"
+        s << "#{coeff_str(@coefficients[0])}#{var_str(@order)}"
 
         coefficients.each.with_index do |c, idx|
           # Skip terms with a coefficient of zero and skip the first term since
@@ -406,15 +407,10 @@ module MB
 
           cstr = coeff_str(c)
 
-          case exponent
-          when 0
+          if exponent == 0
             s << "#{c}"
-
-          when 1
-            s << "#{cstr}x"
-
           else
-            s << "#{cstr}x ** #{exponent}"
+            s << "#{cstr}#{var_str(exponent)}"
           end
         end
 
@@ -475,9 +471,45 @@ module MB
       end
 
       # Helper for #to_s to generate text and multiplication symbol for
-      # coefficients, unless the coefficient is equal to 1.
+      # coefficients, with special handling for when the coefficient is equal
+      # to 1 or -1 or is an imaginary value.
       def coeff_str(c)
-        c == 1 ? '' : "#{c} * "
+        case c
+        when 1
+          ''
+
+        when -1
+          '-'
+
+        else
+          "#{num_str(c)} * "
+        end
+      end
+
+      # Helper for #to_s and #coeff_str to format numbers, e.g. showing complex
+      # values without the real part if the real part is zero.
+      def num_str(c)
+        # TODO: consider rational simplification when denominator is 1 as well,
+        # especially within complex values
+        if c.is_a?(Complex) && c.real == 0
+          "#{num_str(c.imag)}i"
+        else
+          c.to_s
+        end
+      end
+
+      # Helper for #to_s to generate text for variable and exponent.
+      def var_str(exponent)
+        case exponent
+        when 0
+          raise 'Handle zero-order term elsewhere'
+
+        when 1
+          'x'
+
+        else
+          "x ** #{exponent}"
+        end
       end
     end
   end
