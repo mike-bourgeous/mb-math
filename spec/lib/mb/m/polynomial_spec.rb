@@ -127,6 +127,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect((o3 + 1r/2r).coefficients).to eq([2, -1, 3, Rational(-9, 2)])
       expect((o3 + -0.5).coefficients).to eq([2, -1, 3, -5.5])
     end
+
+    it 'raises an error if given something other than Numeric or Polynomial' do
+      expect { o3 + 'hi' }.to raise_error(ArgumentError, /Must add/)
+    end
   end
 
   describe '#-' do
@@ -148,9 +152,27 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(s.order).to eq(0)
     end
 
-    pending 'can subtract Numerics'
+    context 'with a Numeric' do
+      it 'subtracts the numeric from the final coefficient' do
+        a = MB::M::Polynomial.new(1, 2, 3, 4, 5)
+        expect((a - 1i).coefficients).to eq([1, 2, 3, 4, 5 - 1i])
+        expect((a - -5.0).coefficients).to eq([1, 2, 3, 4, 10])
+      end
+    end
 
-    pending 'with an empty polynomial'
+    context 'with an empty polynomial' do
+      it 'returns an equivalent polynomial if an empty is subtracted' do
+        expect((o2 - o0_empty).coefficients).to eq(o2.coefficients)
+      end
+
+      it 'returns a negated polynomial if subtracted from an empty' do
+        expect((o0_empty - o2).coefficients).to eq(o2.coefficients.map(&:-@))
+      end
+    end
+
+    it 'raises an error if given something other than Numeric or Polynomial' do
+      expect { o3 - 'hi' }.to raise_error(ArgumentError, /Must subtract/)
+    end
   end
 
   describe '#-@' do
@@ -162,7 +184,9 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(pneg.call(5)).to eq(-p.call(5))
     end
 
-    pending 'with an empty polynomial'
+    it 'does not explode with an empty polynomial' do
+      expect((-o0_empty).coefficients).to eq([])
+    end
   end
 
   describe '#*' do
@@ -193,15 +217,21 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     context 'with empty polynomials' do
       it 'can multiply an order-0 polynomial and an empty polynomial' do
         expect((o0_empty * o0).coefficients).to eq([42])
+        expect((o0 * o0_empty).coefficients).to eq([42])
       end
 
       it 'can multiply an empty polynomial by a longer polynomial' do
         expect((o0_empty * o2).coefficients).to eq([3, 2, 1])
+        expect((o2 * o0_empty).coefficients).to eq([3, 2, 1])
       end
 
       it 'returns an empty polynomial when multiplying two empty polynomials' do
         expect((o0_empty * o0_empty).coefficients).to eq([])
       end
+    end
+
+    it 'raises an error if given a non-Numeric/non-Polynomial type' do
+      expect { o3 * 'test' }.to raise_error(ArgumentError, /Must multiply/)
     end
   end
 
@@ -220,8 +250,32 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(MB::M.round(quotient.coefficients, 6)).to eq([1, 3, 3, 1])
     end
 
+    it 'returns quotient and remainder from example on Polynomial#/ doc comment' do
+      a = MB::M::Polynomial.new(1, 2, 3, 4)
+      b = MB::M::Polynomial.new(5, 6, 7)
+      c = MB::M::Polynomial.new(-8, -9)
+
+      quotient, remainder = (a * b + c) / b
+      expect(quotient.coefficients).to eq([1, 2, 3, 4])
+      expect(remainder.coefficients).to eq([-8, -9])
+    end
+
+    it 'returns quotient and remainder' do
+      a = MB::M::Polynomial.new(1, 2, 3)
+      b = MB::M::Polynomial.new(4, 5)
+      c = MB::M::Polynomial.new(6, -7)
+
+      quotient, remainder = (a * b + c) / b
+      expect(quotient.coefficients).to eq([1, 2, 9r/2])
+      expect(remainder.coefficients).to eq([-29r/2])
+    end
+
     pending 'with empty polynomials'
     pending 'complex'
+
+    it 'raises an error if given a non-Numeric/non-Polynomial type' do
+      expect { o3 / 'test' }.to raise_error(ArgumentError, /Must divide/)
+    end
   end
 
   describe '#round' do
@@ -382,20 +436,42 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
 
     it 'can divide first-order polynomials with a constant scale' do
-      a = MB::M::Polynomial.new(-5, 2)
-      b = a * 5
+      a = MB::M::Polynomial.new(-25, 10)
+      b = MB::M::Polynomial.new(-5, 2)
 
-      expect(b.long_divide(a)).to eq([[5], [0]])
+      expect(a.long_divide(b)).to eq([[5], [0]])
+    end
+
+    it 'can divide higher-order polynomials with a constant scale' do
+      expect((o100 * -7i).long_divide(o100)).to eq([[-7i], [0] * 100])
     end
 
     it 'can divide a polynomial by a zero-order polynomial' do
       expect(o3.long_divide(o0)).to eq([[2r/42, -1r/42, 3r/42, -5r/42], [0]])
     end
 
-    pending 'zero-order'
+    it 'can divide a zero-order polynomial by a larger order' do
+      expect(o0.long_divide(o2)).to eq([[0], [42]])
+    end
+
+    it 'raises a division by zero error when dividing by f(x)=0' do
+      a = MB::M::Polynomial.new(1)
+      b = MB::M::Polynomial.new(0)
+
+      expect { a.long_divide(b) }.to raise_error(ZeroDivisionError)
+    end
+
+    it 'can divide polynomials with complex coefficients' do
+      a = MB::M::Polynomial.new(5+3i, -1-4i, 0+2i)
+      b = MB::M::Polynomial.new(3, 5-1i, -5)
+      c = MB::M::Polynomial.new(-3, 5i)
+      d = a * b + c
+
+      expect(d.long_divide(b)).to eq([[5+3i, -1-4i, 2i], [-3, 5i]])
+      expect(d.long_divide(a)).to eq([[3, 5-1i, -5], [-3, 5i]])
+    end
+
     pending 'empty'
-    pending 'complex coefficients'
-    pending 'floats'
   end
 
   describe '#normalize' do

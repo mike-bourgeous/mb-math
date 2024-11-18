@@ -20,9 +20,11 @@ module MB
       # conversion to Float (or Complex with Float values).
       #
       # Coefficients correspond to descending powers of the independent
-      # variable, with the last coefficient being a constant.  If the
-      # coefficient list is empty, then this Polynomial will always evaluate to
-      # 0.
+      # variable, with the last coefficient being a constant.
+      #
+      # If the coefficient list is empty, then this Polynomial will always
+      # evaluate to 0 for addition and subtraction, 1 for multiplication
+      # and division as denominator, and 0 for division as numerator.
       #
       # Example:
       #     # 5*x**2 + x - 6
@@ -147,16 +149,23 @@ module MB
         self.class.new(new_coefficients)
       end
 
-      # Returns a new Polynomial with this polynomial's coefficients divided by
-      # +other+ if given a Numeric, or long-divided by the +other+ polynomial.
+      # Returns two new Polynomials with quotient and remainder after dividing
+      # this polynomial by +other+.  The +other+ value must be a Numeric or
+      # Polynomial.
       #
-      # TODO: what happens if there is a remainder?  should we raise an error?  or change the return value to always include a quotient and remainder?
+      # Example:
+      #     a = MB::M::Polynomial.new(1, 2, 3, 4)
+      #     b = MB::M::Polynomial.new(5, 6, 7)
+      #     c = MB::M::Polynomial.new(-8, -9)
+      #
+      #     (a * b + c) / b
+      #     # => [MB::M::Polynomial.new(1, 2, 3, 4), MB::M::Polynomial.new(-8, -9)]
       def /(other)
         case other
         when Numeric
           other = other.to_r if other.is_a?(Integer) # TODO: use to_f instead?
           quotient = @coefficients.map { |c| c / other }
-          remainder = nil
+          remainder = [0]
 
         when Polynomial
           quotient, remainder = long_divide(other)
@@ -195,6 +204,11 @@ module MB
       # References:
       # https://en.wikipedia.org/wiki/Synthetic_division
       def long_divide(other)
+        # Empty polynomials are 0 for addition/subtraction, 1 for
+        # multiplication, 0 for division as numerator, 1 for division as
+        # denominator.
+        return self.dup if other.empty?
+
         # Synthetic division uses as many rows above the line as the order of
         # the divisor, plus one.  The first row contains the coefficients of
         # the dividend, and each following row holds one of the divisor
@@ -220,26 +234,26 @@ module MB
         # The first row is just the coefficients of the dividend
         rows[0][:right].replace(@coefficients)
 
-        other.coefficients[1..-1].each.with_index do |c, idx|
+        other.coefficients[1..-1]&.each&.with_index do |c, idx|
           rows[-(idx + 1)][:left][-idx] = -c
         end
 
-        MB::U.headline('After construction')
-        puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+        # XXX MB::U.headline('After construction')
+        # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
-        c0 = other.coefficients[0]
+        c0 = other.coefficients[0] || 1
 
         for col in 0...right_count
           # Sum the completed column
           result[col] = rows.map { |r| r[:right][col] || 0 }.sum
 
-          MB::U.headline("After sum #{col}")
-          puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+          # XXX MB::U.headline("After sum #{col}")
+          # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
           # Stop writing diagonals and scaling sum if the diagonal will fall
           # off the right (this means we're working on the remainder)
           if col + left_count >= right_count
-            puts "skip diag #{col}"
+            # XXX puts "skip diag #{col}"
             next
           end
 
@@ -257,16 +271,27 @@ module MB
             rows[-(idx + 1)][:right][col + idx + 1] = result[col] * -other.coefficients[idx + 1]
           end
 
-          MB::U.headline("After diagonal #{col}")
-          puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+          # XXX MB::U.headline("After diagonal #{col}")
+          # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
         end
 
-        MB::U.headline("After loops")
-        puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+        # XXX MB::U.headline("After loops")
+        # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
-        remainder = result[-left_count..-1]
-        quotient = result[0...-left_count]
-        quotient = [0] if quotient.empty?
+        # TODO: maybe there's a better way to do the sizing arithmetic rather
+        # than having these if cases
+        if left_count == 0
+          quotient = result
+          remainder = [0]
+        elsif left_count >= result.length
+          quotient = [0]
+          remainder = result
+        else
+          remainder = result[-left_count..-1]
+          quotient = result[0...-left_count]
+        end
+
+        # XXX require 'pry-byebug'; binding.pry # XXX
 
         return quotient, remainder
       end
