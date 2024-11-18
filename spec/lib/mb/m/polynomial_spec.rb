@@ -299,6 +299,22 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
       expect(a.long_divide(b)).to eq([[2, 3], [8, -4]])
     end
+
+    it 'returns the correct result for the Wikipedia long division example' do
+      # https://en.wikipedia.org/wiki/Polynomial_long_division#Polynomial_long_division
+      a = MB::M::Polynomial.new(1, -2, 0, -4)
+      b = MB::M::Polynomial.new(1, -3)
+
+      expect(a.long_divide(b)).to eq([[1, 1, 3], [5]])
+    end
+
+    it 'returns the correct result for the Wikipedia tangent example' do
+      # https://en.wikipedia.org/wiki/Polynomial_long_division#Finding_tangents_to_polynomial_functions
+      a = MB::M::Polynomial.new(1, -12, 0, -42)
+      b = MB::M::Polynomial.new(1, -1)
+
+      expect(a.long_divide(b * b)).to eq([[1, -10], [-21, -32]])
+    end
   end
 
   describe '#normalize' do

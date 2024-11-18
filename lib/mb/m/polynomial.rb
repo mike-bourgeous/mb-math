@@ -186,7 +186,7 @@ module MB
       end
 
       # Returns quotient and remainder Polynomials with the result of dividing
-      # this polynomial by the +other+ using long division.
+      # this polynomial by the +other+ using synthetic long division.
       #
       # References:
       # https://en.wikipedia.org/wiki/Synthetic_division
@@ -223,6 +223,8 @@ module MB
         MB::U.headline('After construction')
         puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
+        c0 = other.coefficients[0]
+
         for col in 0...right_count
           # Sum the completed column
           result[col] = rows.map { |r| r[:right][col] || 0 }.sum
@@ -230,10 +232,20 @@ module MB
           MB::U.headline("After sum #{col}")
           puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
-          # Stop writing diagonals if the diagonal will fall off the right
+          # Stop writing diagonals and scaling sum if the diagonal will fall
+          # off the right (this means we're working on the remainder)
           if col + left_count >= right_count
             puts "skip diag #{col}"
             next
+          end
+
+          # Scale sum by leading coefficient of divisor (non-monic)
+          if c0 != 1
+            sum = result[col]
+            sum = sum.to_r if sum.is_a?(Integer) && c0.is_a?(Integer)
+            sum /= c0
+            sum = sum.to_i if sum.is_a?(Rational) && sum % 1 == 0
+            result[col] = sum
           end
 
           # Fill diagonal
@@ -250,14 +262,6 @@ module MB
 
         remainder = result[-left_count..-1]
         quotient = result[0...-left_count]
-
-        c0 = other.coefficients[0]
-        if c0 != 1
-          quotient.map! { |c|
-            c = c.to_r if c.is_a?(Integer) && c0.is_a?(Integer)
-            c / c0
-          }
-        end
 
         return quotient, remainder
       end
