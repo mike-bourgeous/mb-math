@@ -298,5 +298,15 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
   pending '#complex?'
   pending '#empty?'
-  pending '#to_s'
+
+  describe '#to_s' do
+    pending 'with all 1'
+    pending 'with all -1'
+    pending 'empty'
+    pending 'zero-order'
+    pending 'linear'
+    pending 'quadratic'
+    pending 'with complex coefficients'
+    pending 'with rational coefficients'
+  end
 end

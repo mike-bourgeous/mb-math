@@ -281,7 +281,7 @@ module MB
 
         s = String.new
 
-        s << "#{@coefficients[0]} * x ** #{@order}"
+        s << "#{coeff_str(@coefficients[0])}x ** #{@order}"
 
         coefficients.each.with_index do |c, idx|
           # Skip terms with a coefficient of zero and skip the first term since
@@ -297,15 +297,17 @@ module MB
             c = -c
           end
 
+          cstr = coeff_str(c)
+
           case exponent
           when 0
             s << "#{c}"
 
           when 1
-            s << "#{c} * x"
+            s << "#{cstr}x"
 
           else
-            s << "#{c} * x ** #{exponent}"
+            s << "#{cstr}x ** #{exponent}"
           end
         end
 
@@ -363,6 +365,12 @@ module MB
         puts "Best offset for length #{narray.length}: #{idx} with min #{freq.abs.min} and max #{freq.abs.max}" # XXX
 
         return freq, idx
+      end
+
+      # Helper for #to_s to generate text and multiplication symbol for
+      # coefficients, unless the coefficient is equal to 1.
+      def coeff_str(c)
+        c == 1 ? '' : "#{c} * "
       end
     end
   end
