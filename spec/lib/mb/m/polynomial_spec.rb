@@ -1,4 +1,7 @@
 RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
+  let(:o0_empty) { MB::M::Polynomial.new }
+  let(:o0) { MB::M::Polynomial.new(42) }
+  let(:o1_r) { MB::M::Polynomial.new(Rational(3, 5), Rational(-7, 2)) }
   let(:o2) { MB::M::Polynomial.new(3, 2, 1) }
   let(:o2_2) { MB::M::Polynomial.new(-3, -2, 5) }
   let(:o3) { MB::M::Polynomial.new(2, -1, 3, -5) }
@@ -113,6 +116,13 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(s_swap.coefficients).to eq([6])
       expect(s_swap.order).to eq(0)
     end
+
+    it 'can add Numerics' do
+      expect((o3 + 1).coefficients).to eq([2, -1, 3, -4])
+      expect((o3 + 1i).coefficients).to eq([2, -1, 3, -5+1i])
+      expect((o3 + 1r/2r).coefficients).to eq([2, -1, 3, Rational(-9, 2)])
+      expect((o3 + -0.5).coefficients).to eq([2, -1, 3, -5.5])
+    end
   end
 
   describe '#-' do
@@ -133,6 +143,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(s.coefficients).to eq([-1])
       expect(s.order).to eq(0)
     end
+
+    pending 'can subtract Numerics'
+
+    pending 'with an empty polynomial'
   end
 
   describe '#-@' do
@@ -143,17 +157,14 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(pneg.coefficients).to eq([-3,-2,-1,-0])
       expect(pneg.call(5)).to eq(-p.call(5))
     end
+
+    pending 'with an empty polynomial'
   end
 
   describe '#*' do
     it 'can multiply zero-order constants' do
       p = MB::M::Polynomial.new(3) * MB::M::Polynomial.new(-1i)
       expect(p.coefficients).to eq([-3i])
-    end
-
-    it 'can multiply by a Numeric' do
-      p = MB::M::Polynomial.new(2, -2) * 5i
-      expect(p.coefficients).to eq([10i, -10i])
     end
 
     it 'can multiply longer polynomials' do
@@ -164,7 +175,30 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p.coefficients).to eq([6, 1, 9, -10, -7, -5])
     end
 
-    pending 'with empty polynomials'
+    context 'with Numeric' do
+      it 'can multiply by a Complex' do
+        p = MB::M::Polynomial.new(2, -2) * 5i
+        expect(p.coefficients).to eq([10i, -10i])
+      end
+
+      it 'can multiply by a Rational' do
+        expect((o2 * Rational(1, 2)).coefficients).to eq([Rational(3, 2), 1, Rational(1, 2)])
+      end
+    end
+
+    context 'with empty polynomials' do
+      it 'can multiply an order-0 polynomial and an empty polynomial' do
+        expect((o0_empty * o0).coefficients).to eq([42])
+      end
+
+      it 'can multiply an empty polynomial by a longer polynomial' do
+        expect((o0_empty * o2).coefficients).to eq([3, 2, 1])
+      end
+
+      it 'returns an empty polynomial when multiplying two empty polynomials' do
+        expect((o0_empty * o0_empty).coefficients).to eq([])
+      end
+    end
   end
 
   describe '#/' do
@@ -193,6 +227,8 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(MB::M.round(result.coefficients, 6)).to eq([1, 1, 3]) # remainder=5?
     end
 
+    pending 'can divide by a Numeric'
+
     pending 'with empty polynomials'
   end
 
@@ -212,11 +248,37 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  describe '#coerce' do
+    context 'with Numeric' do
+      pending 'allows addition'
+      pending 'allows subtraction'
+      pending 'allows multiplication'
+      pending 'allows division' # TODO: only if order is zero?
+    end
+  end
+
   describe '#fft_divide' do
     pending
   end
 
   describe '#long_divide' do
     pending
+  end
+
+  describe '#normalize' do
+    pending 'converts Integer to Rational'
+    pending
+  end
+
+  describe '#to_f' do
+    it 'converts Rational values' do
+      result = o1_r.to_f.coefficients
+      expect(result).to eq([0.6, -3.5])
+      expect(result).to all(be_a(Float))
+    end
+
+    it 'converts Complex values' do
+      expect((o1_r * 1i).to_f.coefficients).to eq([0.6i, -3.5i])
+    end
   end
 end

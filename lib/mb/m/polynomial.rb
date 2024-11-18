@@ -131,6 +131,9 @@ module MB
           new_coefficients = @coefficients.map { |c| c * other }
 
         when Polynomial
+          return self.dup if other.empty?
+          return other.dup if empty?
+
           # This seems basically like convolution (confirmed by Octave's
           # documentation of its conv() function).
           new_coefficients = MB::M.convolve(@coefficients, other.coefficients)
@@ -201,6 +204,35 @@ module MB
       # down to reals if possible.
       def round(digits)
         self.class.new(@coefficients.map { |c| MB::M.round(c, digits) })
+      end
+
+      # Returns a new Polynomial with all coefficients divided by the
+      # highest-order coefficient, making the highest-order coefficient 1.0.
+      def normalize
+        return Polynomial.new if @coefficients.empty?
+
+        c0 = @coefficients[0]
+        return self.dup if c0 == 1
+
+        Polynomial.new(
+          @coefficients.map.with_index { |c, idx|
+            c = c.to_r if c.is_a?(Integer) && c0.is_a?(Integer)
+
+            idx == 0 ? 1 : c / c0
+          }
+        )
+      end
+
+      # Returns a new Polynomial with all coefficients converted to Float or
+      # Complex with Float.
+      def to_f
+        Polynomial.new(
+          @coefficients.map { |c|
+            c.is_a?(Complex) ?
+              Complex(c.real.to_f, c.imag.to_f) :
+              c.to_f
+          }
+        )
       end
 
       # Converts types as appropriate to allow arithmetic with Numerics in any
