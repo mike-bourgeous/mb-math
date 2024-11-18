@@ -207,7 +207,7 @@ module MB
         # Empty polynomials are 0 for addition/subtraction, 1 for
         # multiplication, 0 for division as numerator, 1 for division as
         # denominator.
-        return self.dup if other.empty?
+        return [@coefficients, [0]] if other.empty?
 
         # Synthetic division uses as many rows above the line as the order of
         # the divisor, plus one.  The first row contains the coefficients of
