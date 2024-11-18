@@ -276,7 +276,29 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   end
 
   describe '#long_divide' do
-    pending
+    it 'returns the correct result for the Wikipedia linear synthetic division example' do
+      # https://en.wikipedia.org/wiki/Synthetic_division#Regular_synthetic_division
+      a = MB::M::Polynomial.new(1, -12, 0, -42)
+      b = MB::M::Polynomial.new(1, -3)
+
+      expect(a.long_divide(b)).to eq([[1, -9, -27], [-123]])
+    end
+
+    it 'returns the correct result for the Wikipedia expanded synthetic division example' do
+      # https://en.wikipedia.org/wiki/Synthetic_division#Expanded_synthetic_division
+      a = MB::M::Polynomial.new(1, -12, 0, -42)
+      b = MB::M::Polynomial.new(1, 1, -3)
+
+      expect(a.long_divide(b)).to eq([[1, -13], [16, -81]])
+    end
+
+    it 'returns the correct result for the Wikipedia non-monic division example' do
+      # https://en.wikipedia.org/wiki/Synthetic_division#For_non-monic_divisors
+      a = MB::M::Polynomial.new(6, 5, 0, -7)
+      b = MB::M::Polynomial.new(3, -2, -1)
+
+      expect(a.long_divide(b)).to eq([[2, 3], [8, -4]])
+    end
   end
 
   describe '#normalize' do

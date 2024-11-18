@@ -204,6 +204,8 @@ module MB
         right_count = @order + 1
         row_count = other.order + 1
 
+        result = Array.new(right_count)
+
         # TODO: in the final implementation we don't really need any columns
         # left of the bar because each row only has one populated left-column
         #
@@ -218,9 +220,46 @@ module MB
           rows[-(idx + 1)][:left][-idx] = -c
         end
 
-        puts MB::U.table(rows.map { |r| r[:left] + r[:right] }) # XXX
+        MB::U.headline('After construction')
+        puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
-        raise NotImplementedError, 'TODO'
+        for col in 0...right_count
+          # Sum the completed column
+          result[col] = rows.map { |r| r[:right][col] || 0 }.sum
+
+          MB::U.headline("After sum #{col}")
+          puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+
+          # Stop writing diagonals if the diagonal will fall off the right
+          if col + left_count >= right_count
+            puts "skip diag #{col}"
+            next
+          end
+
+          # Fill diagonal
+          left_count.times do |idx|
+            rows[-(idx + 1)][:right][col + idx + 1] = result[col] * -other.coefficients[idx + 1]
+          end
+
+          MB::U.headline("After diagonal #{col}")
+          puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+        end
+
+        MB::U.headline("After loops")
+        puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+
+        remainder = result[-left_count..-1]
+        quotient = result[0...-left_count]
+
+        c0 = other.coefficients[0]
+        if c0 != 1
+          quotient.map! { |c|
+            c = c.to_r if c.is_a?(Integer) && c0.is_a?(Integer)
+            c / c0
+          }
+        end
+
+        return quotient, remainder
       end
 
       # TODO
