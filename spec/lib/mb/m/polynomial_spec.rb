@@ -98,9 +98,21 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p_prime2.coefficients).to eq([18, 4])
     end
 
-    pending 'with Complex coefficients'
+    it 'can differentiate with complex coefficients' do
+      p = MB::M::Polynomial.new(2i, 3+5i, 6, -2i)
 
-    pending 'with Rational coefficients'
+      p_prime = p.prime
+      expect(p_prime.coefficients).to eq([6i, 6+10i, 6])
+
+      p_prime2 = p.prime(2)
+      expect(p_prime2.coefficients).to eq([12i, 6+10i])
+    end
+
+    it 'preserves the precision of Rational coefficients' do
+      p = MB::M::Polynomial.new(-6r/27, 5r/3, -1r/7, 13r/10, 1r/5)
+      p_prime = p.prime
+      expect(p_prime.coefficients).to eq([-24r/27, 5, -2r/7, 13r/10])
+    end
   end
 
   describe '#+' do
@@ -300,11 +312,21 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   end
 
   describe '#coerce' do
-    context 'with Numeric' do
-      pending 'allows addition'
-      pending 'allows subtraction'
-      pending 'allows multiplication'
-      pending 'allows division' # TODO: only if order is zero?
+    it 'allows addition' do
+      expect((1 + o0).coefficients).to eq([43])
+    end
+
+    it 'allows subtraction' do
+      expect((1 - o0).coefficients).to eq([-41])
+    end
+
+    it 'allows multiplication' do
+      expect((2i * o2).coefficients).to eq([6i, 4i, 2i])
+    end
+
+    it 'allows division' do
+      expect((84 / o0).map(&:coefficients)).to eq([[2], [0]])
+      expect((60 / o2).map(&:coefficients)).to eq([[0], [60]])
     end
   end
 
