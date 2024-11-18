@@ -257,6 +257,20 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  describe '#terms' do
+    it 'can return terms for an example polynomial' do
+      expect(MB::M::Polynomial.new(5, 4, -3, 2).terms).to eq([[5, 3], [4, 2], [-3, 1], [2, 0]])
+    end
+
+    it 'returns a single term of [1, 0] for an empty polynomial' do
+      expect(MB::M::Polynomial.new().terms).to eq([[1, 0]])
+    end
+  end
+
+  describe '#roots' do
+    pending
+  end
+
   describe '#fft_divide' do
     pending
   end
@@ -282,5 +296,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  pending '#complex?'
+  pending '#empty?'
   pending '#to_s'
 end

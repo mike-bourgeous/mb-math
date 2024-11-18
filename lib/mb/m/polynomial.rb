@@ -191,6 +191,11 @@ module MB
         raise NotImplementedError, 'TODO'
       end
 
+      # TODO
+      def roots
+        raise NotImplementedError, 'TODO'
+      end
+
       # Returns a new Polynomial with all coefficients rounded to the given
       # number of significant figures.
       def sigfigs(digits)
@@ -241,6 +246,31 @@ module MB
       # This allows things like `5 * p` to work instead of just `p * 5`.
       def coerce(numeric)
         [self.class.new(numeric), self]
+      end
+
+      # Returns an Array of Arrays with the coefficient and exponent of each
+      # term in this polynomial.
+      #
+      # Example:
+      #     Polynomial.new(5, 4, -3, 2).terms
+      #     # =>
+      #     [[5, 3], [4, 2], [-3, 1], [2, 0]]
+      def terms
+        return [[1, 0]] if @coefficients.empty?
+
+        @coefficients.map.with_index { |c, idx|
+          [c, order - idx]
+        }
+      end
+
+      # Returns true if any of the coefficients are Complex.
+      def complex?
+        @coefficients.any?(Complex)
+      end
+
+      # Returns true if the polynomial has no coefficients at all.
+      def empty?
+        @coefficients.empty?
       end
 
       # Returns a String representing this Polynomial
