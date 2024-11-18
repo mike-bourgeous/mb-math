@@ -474,11 +474,6 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     pending 'empty'
   end
 
-  describe '#normalize' do
-    pending 'converts Integer to Rational'
-    pending
-  end
-
   describe '#to_f' do
     it 'converts Rational values' do
       result = o1_r.to_f.coefficients

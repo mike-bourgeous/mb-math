@@ -316,23 +316,6 @@ module MB
         self.class.new(@coefficients.map { |c| MB::M.round(c, digits) })
       end
 
-      # Returns a new Polynomial with all coefficients divided by the
-      # highest-order coefficient, making the highest-order coefficient 1.0.
-      def normalize
-        return Polynomial.new if @coefficients.empty?
-
-        c0 = @coefficients[0]
-        return self.dup if c0 == 1
-
-        Polynomial.new(
-          @coefficients.map.with_index { |c, idx|
-            c = c.to_r if c.is_a?(Integer) && c0.is_a?(Integer)
-
-            idx == 0 ? 1 : c / c0
-          }
-        )
-      end
-
       # Returns a new Polynomial with all coefficients converted to Float or
       # Complex with Float.
       def to_f
