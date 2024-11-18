@@ -300,6 +300,34 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(a.long_divide(b)).to eq([[2, 3], [8, -4]])
     end
 
+    it 'can divide a modified non-monic example with rational coefficients' do
+      # Sage:
+      # f(x) = 6*x^3 - 5*x^2 - 7
+      # g(x) = -3*x^2 + 2*x - 1
+      # f.maxima_methods().divide(g)
+      # [-2*x + 1/3, -8/3*x - 20/3]
+      a = MB::M::Polynomial.new(6, -5, 0, -7)
+      b = MB::M::Polynomial.new(-3, 2, -1)
+
+      result = a.long_divide(b)
+      expect(result).to eq([[-2, 1r/3], [-8r/3, -20r/3]])
+      expect(result.flatten).to all(be_a(Integer).or be_a(Rational))
+    end
+
+    it 'can divide a modified non-monic example with floating point coefficients' do
+      # Sage:
+      # f(x) = 6*x^3 - 5*x^2 - 7
+      # g(x) = -3*x^2 + 2*x - 1
+      # f.maxima_methods().divide(g)
+      # [-2*x + 1/3, -8/3*x - 20/3]
+      a = MB::M::Polynomial.new(6, -5, 0, -7)
+      b = MB::M::Polynomial.new(-3.0, 2.0, -1.0)
+
+      result = a.long_divide(b)
+      expect(result).to eq([[-2.0, 1.0 / 3.0], [-8.0 / 3.0, -20.0 / 3.0]])
+      expect(result.flatten).to all(be_a(Float))
+    end
+
     it 'returns the correct result for the Wikipedia long division example' do
       # https://en.wikipedia.org/wiki/Polynomial_long_division#Polynomial_long_division
       a = MB::M::Polynomial.new(1, -2, 0, -4)
@@ -312,9 +340,23 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       # https://en.wikipedia.org/wiki/Polynomial_long_division#Finding_tangents_to_polynomial_functions
       a = MB::M::Polynomial.new(1, -12, 0, -42)
       b = MB::M::Polynomial.new(1, -1)
+      b *= b
 
-      expect(a.long_divide(b * b)).to eq([[1, -10], [-21, -32]])
+      expect(a.long_divide(b)).to eq([[1, -10], [-21, -32]])
     end
+
+    it 'returns 1 for division by self' do
+      expect(o100.long_divide(o100)).to eq([[1], [0] * 100])
+    end
+
+    it 'returns 0 remainder self for division by larger order' do
+      expect(o2.long_divide(o3)).to eq([[0], o2.coefficients])
+    end
+
+    pending 'zero-order'
+    pending 'empty'
+    pending 'complex coefficients'
+    pending 'floats'
   end
 
   describe '#normalize' do

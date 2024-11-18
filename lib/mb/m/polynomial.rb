@@ -262,6 +262,7 @@ module MB
 
         remainder = result[-left_count..-1]
         quotient = result[0...-left_count]
+        quotient = [0] if quotient.empty?
 
         return quotient, remainder
       end
