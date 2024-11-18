@@ -39,7 +39,7 @@ module MB
         first_nonzero = coefficients.find_index { |v| v != 0 }
         @coefficients = coefficients[first_nonzero..].map { |c|
           c = c.real if c.is_a?(Complex) && c.imag == 0
-          c = c.to_i if c.is_a?(Rational) && c % 1 == 0
+          c = c.to_i if c.is_a?(Rational) && c.denominator == 1
           c
         }.freeze
 
@@ -262,7 +262,7 @@ module MB
             sum = result[col]
             sum = sum.to_r if sum.is_a?(Integer) && c0.is_a?(Integer)
             sum /= c0
-            sum = sum.to_i if sum.is_a?(Rational) && sum % 1 == 0
+            sum = sum.to_i if sum.is_a?(Rational) && sum.denominator == 1
             result[col] = sum
           end
 

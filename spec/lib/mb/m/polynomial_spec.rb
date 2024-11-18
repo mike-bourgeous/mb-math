@@ -43,6 +43,11 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(result).to eq([Rational(3, 2), 1.75])
       expect(result.any?(Complex)).to eq(false)
     end
+
+    it 'converts Rational to Integer if the denominator is one' do
+      c0 = MB::M::Polynomial.new(6r/2).coefficients[0]
+      expect(c0).to be_a(Integer).and eq(3)
+    end
   end
 
   describe '#call' do
