@@ -92,6 +92,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       p_prime2 = p.prime(2)
       expect(p_prime2.coefficients).to eq([18, 4])
     end
+
+    pending 'with Complex coefficients'
+
+    pending 'with Rational coefficients'
   end
 
   describe '#+' do
@@ -203,7 +207,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
   describe '#/' do
     it 'can divide by a Numeric' do
-      p = o2 / 3.0
+      p, _r = o2 / 3.0
       expect(p.coefficients).to eq([1.0, 2.0 / 3.0, 1.0 / 3.0])
     end
 
@@ -211,25 +215,13 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       p1 = MB::M::Polynomial.new(1, 1)
       p2 = MB::M::Polynomial.new(1, 4, 6, 4, 1)
 
-      result = p2 / p1
+      quotient, _remainder = p2 / p1
 
-      expect(MB::M.round(result.coefficients, 6)).to eq([1, 3, 3, 1])
+      expect(MB::M.round(quotient.coefficients, 6)).to eq([1, 3, 3, 1])
     end
-
-    it 'can replicate the example from Wikipedia' do
-      # https://en.wikipedia.org/wiki/Polynomial_long_division#Example
-      p1 = MB::M::Polynomial.new(1, -3)
-      p2 = MB::M::Polynomial.new(1, -2, 0, -9) # FIXME: -9 should be -4 to give remainder of 5
-
-      result = p2 / p1
-
-      # FIXME: remainders??
-      expect(MB::M.round(result.coefficients, 6)).to eq([1, 1, 3]) # remainder=5?
-    end
-
-    pending 'can divide by a Numeric'
 
     pending 'with empty polynomials'
+    pending 'complex'
   end
 
   describe '#round' do
@@ -272,6 +264,25 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   end
 
   describe '#fft_divide' do
+    it "can step down Pascal's triangle" do
+      p1 = MB::M::Polynomial.new(1, 1)
+      p2 = MB::M::Polynomial.new(1, 4, 6, 4, 1)
+
+      result = p2.fft_divide(p1)
+
+      expect(MB::M.round(result, 6)).to eq([1, 3, 3, 1])
+    end
+
+    it 'can replicate the example from Wikipedia but without remainder' do
+      # https://en.wikipedia.org/wiki/Polynomial_long_division#Example (modified)
+      p1 = MB::M::Polynomial.new(1, -3)
+      p2 = MB::M::Polynomial.new(1, -2, 0, -9) # FIXME: -9 should be -4 to give remainder of 5
+
+      result = p2.fft_divide(p1)
+
+      expect(MB::M.round(result, 6)).to eq([1, 1, 3])
+    end
+
     pending
   end
 
@@ -345,12 +356,40 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(a.long_divide(b)).to eq([[1, -10], [-21, -32]])
     end
 
+    it "can step down Pascal's triangle" do
+      p1 = MB::M::Polynomial.new(1, 1)
+      p2 = MB::M::Polynomial.new(1, 4, 6, 4, 1)
+
+      result = p2.long_divide(p1)
+
+      expect(result).to eq([[1, 3, 3, 1], [0]])
+    end
+
     it 'returns 1 for division by self' do
+      expect(o3.long_divide(o3)).to eq([[1], [0] * 3])
       expect(o100.long_divide(o100)).to eq([[1], [0] * 100])
     end
 
     it 'returns 0 remainder self for division by larger order' do
       expect(o2.long_divide(o3)).to eq([[0], o2.coefficients])
+    end
+
+    it 'can divide zero-order polynomials' do
+      a = MB::M::Polynomial.new(5)
+      b = MB::M::Polynomial.new(3)
+
+      expect(a.long_divide(b)).to eq([[5r/3], [0]])
+    end
+
+    it 'can divide first-order polynomials with a constant scale' do
+      a = MB::M::Polynomial.new(-5, 2)
+      b = a * 5
+
+      expect(b.long_divide(a)).to eq([[5], [0]])
+    end
+
+    it 'can divide a polynomial by a zero-order polynomial' do
+      expect(o3.long_divide(o0)).to eq([[2r/42, -1r/42, 3r/42, -5r/42], [0]])
     end
 
     pending 'zero-order'

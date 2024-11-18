@@ -36,7 +36,9 @@ module MB
 
         first_nonzero = coefficients.find_index { |v| v != 0 }
         @coefficients = coefficients[first_nonzero..].map { |c|
-          c.is_a?(Complex) && c.imag == 0 ? c.real : c
+          c = c.real if c.is_a?(Complex) && c.imag == 0
+          c = c.to_i if c.is_a?(Rational) && c % 1 == 0
+          c
         }.freeze
 
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1
@@ -148,29 +150,30 @@ module MB
       # Returns a new Polynomial with this polynomial's coefficients divided by
       # +other+ if given a Numeric, or long-divided by the +other+ polynomial.
       #
-      # TODO: what happens if there is a remainder?
+      # TODO: what happens if there is a remainder?  should we raise an error?  or change the return value to always include a quotient and remainder?
       def /(other)
         case other
         when Numeric
           other = other.to_r if other.is_a?(Integer) # TODO: use to_f instead?
-          new_coefficients = @coefficients.map { |c| c / other }
+          quotient = @coefficients.map { |c| c / other }
+          remainder = nil
 
         when Polynomial
-          fft_divide(other)
+          quotient, remainder = long_divide(other)
 
         else
           raise ArgumentError, "Must divide a Polynomial by a Polynomial or Numeric, not #{other.class}"
         end
 
-        self.class.new(new_coefficients)
+        return self.class.new(quotient), self.class.new(remainder)
       end
 
-      # Returns a new Polynomial with the result of dividing this polynomial by
-      # the +other+ using deconvolution.
+      # Returns an Array with the coefficients of the result of dividing this
+      # polynomial by the +other+ using FFT-based deconvolution.
       #
       # FIXME: this only works when there is no remainder
+      # TODO: maybe also add a least-squares division algorithm
       def fft_divide(other)
-        # FIXME TODO: Implement a real polynomial division algorithm instead of using fft/ifft
         length = @order + other.order + 1
         (f1, f2), offset = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
 
@@ -180,13 +183,14 @@ module MB
 
         # FIXME: this is not the right offset and we need to truncate to the
         # correct order.  Rounding to 6 figures is also probably not enough
-        # precision.
-        shifted = MB::M.round(MB::M.ror(n3, offset), 6)
-        new_coefficients = shifted.to_a
+        # precision, and maybe this shouldn't round at all.
+        MB::M.round(MB::M.ror(n3, offset), 6).to_a
       end
 
-      # Returns quotient and remainder Polynomials with the result of dividing
-      # this polynomial by the +other+ using synthetic long division.
+      # Returns quotient and remainder Arrays with the coefficients of the
+      # result of dividing this polynomial by the +other+ using synthetic long
+      # division.  Use #/ if you want Polynomials instead of coefficient
+      # Arrays.
       #
       # References:
       # https://en.wikipedia.org/wiki/Synthetic_division
@@ -332,6 +336,7 @@ module MB
       #     # =>
       #     [[5, 3], [4, 2], [-3, 1], [2, 0]]
       def terms
+        # FIXME: should an empty polynomial be 1 (makes sense for multiplication) or 0 (makes sense for addition)?
         return [[1, 0]] if @coefficients.empty?
 
         @coefficients.map.with_index { |c, idx|
