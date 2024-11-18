@@ -298,7 +298,25 @@ module MB
 
       # TODO
       def roots
-        raise NotImplementedError, 'TODO'
+        case @order
+        when 0
+          raise RangeError, 'Cannot find roots of a horizontal line'
+
+        when 1
+          m = @coefficients[0]
+          b = -@coefficients[1]
+          m = m.to_r if m.is_a?(Integer) && b.is_a?(Integer)
+          root = b / m
+          root = root.to_i if root.is_a?(Rational) && root.denominator == 1
+          [root]
+
+        when 2
+          # TODO: is there a way to return integers or rationals for rational roots?
+          MB::M.quadratic_roots(*@coefficients)
+
+        else
+          raise NotImplementedError, 'TODO'
+        end
       end
 
       # Returns a new Polynomial with all coefficients rounded to the given

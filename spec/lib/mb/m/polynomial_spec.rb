@@ -319,7 +319,18 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   end
 
   describe '#roots' do
-    pending
+    it 'raises an error for order zero' do
+      expect { o0_empty.roots }.to raise_error(RangeError, /horizontal/)
+      expect { o0.roots }.to raise_error(RangeError, /horizontal/)
+    end
+
+    it 'returns one root for order one, preserving rational precision' do
+      expect(o1_r.roots).to eq([35r/6])
+    end
+
+    pending 'returns quadratic roots'
+
+    pending 'higher order roots'
   end
 
   describe '#fft_divide' do
