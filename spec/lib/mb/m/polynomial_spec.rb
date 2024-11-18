@@ -486,8 +486,30 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
-  pending '#complex?'
-  pending '#empty?'
+  describe '#complex?' do
+    it 'returns false for an empty polynomial' do
+      expect(o0_empty.complex?).to eq(false)
+    end
+
+    it 'returns true if any coefficient is complex' do
+      expect(c4.complex?).to eq(true)
+    end
+
+    it 'returns true for a zero-order polynomial with a complex value' do
+      expect(o0.complex?).to eq(false)
+      expect((o0 * 1i).complex?).to eq(true)
+    end
+  end
+
+  describe '#empty?' do
+    it 'returns true for an empty polynomial' do
+      expect(o0_empty.empty?).to eq(true)
+    end
+
+    it 'returns false for a zero-order polynomial' do
+      expect(o0.empty?).to eq(false)
+    end
+  end
 
   describe '#to_s' do
     pending 'with all 1'
