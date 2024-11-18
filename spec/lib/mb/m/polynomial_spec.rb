@@ -588,7 +588,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
     it 'formats complex and rational coefficients as Ruby-parseable code' do
       p = MB::M::Polynomial.new(-37r/15, 1.0+3.0i, 5r/3 * 1i, -3-5i, -3+5i, 16r/7-(3r/5 * 1i), 5i, -5i)
-      expect(p.to_s).to eq('-(37r/15) * x ** 7 + (1.0+3.0i) * x ** 6 + (5ri/3) * x ** 5 - (3+5i) * x ** 4 - (3-5i) * x ** 3 + ((16r/7)-(3ri/5)) * x ** 2 + 5i * x - 5i')
+      expect(p.to_s).to eq('(-37r/15) * x ** 7 + (1.0+3.0i) * x ** 6 + (5ri/3) * x ** 5 - (3+5i) * x ** 4 - (3-5i) * x ** 3 + ((16r/7)-(3ri/5)) * x ** 2 + 5i * x - 5i')
       expect(eval("x = 42-37i ; #{p.to_s}")).to eq(p.call(42-37i))
     end
 

@@ -520,12 +520,7 @@ module MB
           if c.denominator == 1
             "#{c.numerator.to_s}#{imag}"
           else
-            prefix = ''
-            if c < 0
-              c = -c
-              prefix = '-'
-            end
-            "#{prefix}(#{c.numerator}r#{imag}/#{c.denominator})"
+            "(#{c.numerator}r#{imag}/#{c.denominator})"
           end
 
         else
