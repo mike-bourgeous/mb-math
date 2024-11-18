@@ -576,14 +576,21 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
     it 'returns only the numeric as string for zero-order polynomials' do
       expect(o0.to_s).to eq('42')
-      expect(MB::M::Polynomial.new(5r/3).to_s).to eq('5/3')
+      expect(MB::M::Polynomial.new(5r/3).to_s).to eq('(5r/3)')
       expect(MB::M::Polynomial.new(2.5).to_s).to eq('2.5')
-      expect(MB::M::Polynomial.new(1+3i).to_s).to eq('1+3i')
-      expect(MB::M::Polynomial.new(0+(3r/5)*1i).to_s).to eq('3/5i')
+      expect(MB::M::Polynomial.new(1+3i).to_s).to eq('(1+3i)')
+      expect(MB::M::Polynomial.new(0+(3r/5)*1i).to_s).to eq('(3ri/5)')
+      expect(MB::M::Polynomial.new(1i).to_s).to eq('1i')
+      expect(MB::M::Polynomial.new(-1i).to_s).to eq('-1i')
+      expect(MB::M::Polynomial.new(3i).to_s).to eq('3i')
+      expect(MB::M::Polynomial.new(-3i).to_s).to eq('-3i')
     end
 
-    pending 'zero-order'
-    pending 'linear'
+    it 'formats complex coefficients correctly' do
+      p = MB::M::Polynomial.new(1.0+3.0i, 5r/3 * 1i, -3-5i, -3+5i, 16r/7-(3r/5 * 1i), 5i, -5i)
+      expect(p.to_s).to eq('(1.0+3.0i) * x ** 6 + (5ri/3) * x ** 5 - (3+5i) * x ** 4 - (3-5i) * x ** 3 + ((16r/7)-(3ri/5)) * x ** 2 + 5i * x - 5i')
+    end
+
     pending 'quadratic'
     pending 'with complex coefficients'
     pending 'with rational coefficients'

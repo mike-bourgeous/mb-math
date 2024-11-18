@@ -381,7 +381,14 @@ module MB
       end
 
       # Returns a String representing this Polynomial in Ruby-compatible
-      # notation.  Returns an empty String for an empty Polynomial.
+      # notation.  Note that "Ruby-compatible" means some variations will look
+      # a bit odd, such as Complex numbers with Rational parts.  E.g.
+      # Complex(0, 5r/3) will be formatted as (5ri/3) so it can be parsed again
+      # by Ruby.  This notation differs from what Complex#to_s or Rational#to_s
+      # will produce, as sometimes those notations cannot be parsed directly as
+      # Ruby syntax.
+      #
+      # Returns an empty String for an empty Polynomial.
       def to_s
         return '' if @coefficients.empty?
 
@@ -398,19 +405,27 @@ module MB
 
           exponent = order - idx
 
-          if c.is_a?(Complex) || c > 0
+          case
+          when c.is_a?(Complex)
+            if c.real > 0 || (c.real == 0 && c.imag >= 0)
+              s << ' + '
+            else
+              s << ' - '
+              c = -c
+            end
+
+          when c > 0
             s << ' + '
+
           else
             s << ' - '
             c = -c
           end
 
-          cstr = coeff_str(c)
-
           if exponent == 0
-            s << "#{c}"
+            s << "#{num_str(c)}"
           else
-            s << "#{cstr}#{var_str(exponent)}"
+            s << "#{coeff_str(c)}#{var_str(exponent)}"
           end
         end
 
@@ -488,13 +503,24 @@ module MB
 
       # Helper for #to_s and #coeff_str to format numbers, e.g. showing complex
       # values without the real part if the real part is zero.
-      def num_str(c)
-        # TODO: consider rational simplification when denominator is 1 as well,
-        # especially within complex values
-        if c.is_a?(Complex) && c.real == 0
-          "#{num_str(c.imag)}i"
+      def num_str(c, imag = '')
+        case c
+        when Complex
+          if c.real == 0
+            num_str(c.imag, 'i')
+          elsif c.imag == 0
+            num_str(c.real)
+          elsif c.imag < 0
+            "(#{num_str(c.real)}-#{num_str(-c.imag, 'i')})"
+          else
+            "(#{num_str(c.real)}+#{num_str(c.imag, 'i')})"
+          end
+
+        when Rational
+          c.denominator == 1 ? "#{c.numerator.to_s}#{imag}" : "(#{c.numerator}r#{imag}/#{c.denominator})"
+
         else
-          c.to_s
+          "#{c}#{imag}"
         end
       end
 
