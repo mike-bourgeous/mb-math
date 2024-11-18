@@ -187,7 +187,39 @@ module MB
 
       # Returns quotient and remainder Polynomials with the result of dividing
       # this polynomial by the +other+ using long division.
+      #
+      # References:
+      # https://en.wikipedia.org/wiki/Synthetic_division
       def long_divide(other)
+        # Synthetic division uses as many rows above the line as the order of
+        # the divisor, plus one.  The first row contains the coefficients of
+        # the dividend, and each following row holds one of the divisor
+        # coefficients (except the highest order coefficient).
+        #
+        # Each row has as many columns as the sum of the two polynomial orders
+        # plus one.  The first N columns are for the divisor, and the remaining
+        # M columns are for the dividend.
+
+        left_count = other.order
+        right_count = @order + 1
+        row_count = other.order + 1
+
+        # TODO: in the final implementation we don't really need any columns
+        # left of the bar because each row only has one populated left-column
+        #
+        # TODO: in the final implementation we may only need a single array for
+        # the output, as we can maybe just add each new result in place
+        rows = Array.new(row_count) { { left: Array.new(left_count), right: Array.new(right_count) } }
+
+        # The first row is just the coefficients of the dividend
+        rows[0][:right].replace(@coefficients)
+
+        other.coefficients[1..-1].each.with_index do |c, idx|
+          rows[-(idx + 1)][:left][-idx] = -c
+        end
+
+        puts MB::U.table(rows.map { |r| r[:left] + r[:right] }) # XXX
+
         raise NotImplementedError, 'TODO'
       end
 
