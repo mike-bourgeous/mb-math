@@ -1,5 +1,7 @@
 RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   let(:o0_empty) { MB::M::Polynomial.new }
+  let(:o0_zero) { MB::M::Polynomial.new(0) }
+  let(:o0_one) { MB::M::Polynomial.new(1) }
   let(:o0) { MB::M::Polynomial.new(42) }
   let(:o1_r) { MB::M::Polynomial.new(Rational(3, 5), Rational(-7, 2)) }
   let(:o2) { MB::M::Polynomial.new(3, 2, 1) }
@@ -49,6 +51,44 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(c0).to be_a(Integer).and eq(3)
     end
   end
+
+  describe '#==' do
+    it 'returns true for identical polynomials' do
+      expect(o0_empty == o0_empty).to eq(true)
+      expect(o0 == o0).to eq(true)
+      expect(o1_r == o1_r).to eq(true)
+      expect(o2 == o2).to eq(true)
+      expect(c4 == c4).to eq(true)
+      expect(o100 == o100).to eq(true)
+    end
+
+    it 'returns true for duplicated polynomials' do
+      expect(o0_empty.dup == o0_empty).to eq(true)
+      expect(o0.dup == o0).to eq(true)
+      expect(o1_r.dup == o1_r).to eq(true)
+      expect(o2.dup == o2).to eq(true)
+      expect(c4.dup == c4).to eq(true)
+      expect(o100.dup == o100).to eq(true)
+
+      expect(o0_empty == o0_empty.dup).to eq(true)
+      expect(o0 == o0.dup).to eq(true)
+      expect(o1_r == o1_r.dup).to eq(true)
+      expect(o2 == o2.dup).to eq(true)
+      expect(c4 == c4.dup).to eq(true)
+      expect(o100 == o100.dup).to eq(true)
+    end
+
+    it 'returns false for different polynomials' do
+      expect(o0_zero == o0_empty).to eq(false)
+      expect(o0_one == o0_empty).to eq(false)
+      expect(o0 == o0_empty).to eq(false)
+      expect(o2 == o1_r).to eq(false)
+      expect(o0 == o0_zero).to eq(false)
+      expect(c4 == o100).to eq(false)
+    end
+  end
+
+  pending '#<=>'
 
   describe '#call' do
     let(:second_order) { MB::M::Polynomial.new(4, 0, -2) }
@@ -287,6 +327,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(remainder.coefficients).to eq([-29r/2])
     end
 
+    it 'returns empty if dividing empty by empty' do
+      expect(o0_empty / o0_empty).to eq([o0_empty, o0_zero])
+    end
+
     pending 'with empty polynomials'
     pending 'complex'
 
@@ -493,10 +537,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
 
     it 'raises a division by zero error when dividing by f(x)=0' do
-      a = MB::M::Polynomial.new(1)
-      b = MB::M::Polynomial.new(0)
-
-      expect { a.long_divide(b) }.to raise_error(ZeroDivisionError)
+      expect { o0_one.long_divide(o0_zero) }.to raise_error(ZeroDivisionError)
     end
 
     it 'can divide polynomials with complex coefficients' do
@@ -596,6 +637,5 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o2.to_s).to eq('3 * x ** 2 + 2 * x + 1')
       expect(o2_2.to_s).to eq('-3 * x ** 2 - 2 * x + 5')
     end
-    pending 'with rational coefficients'
   end
 end
