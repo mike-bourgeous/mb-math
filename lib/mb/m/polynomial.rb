@@ -52,18 +52,6 @@ module MB
         other.order == @order && other.coefficients == @coefficients
       end
 
-      # Compares Polynomials for sorting.  Polynomials compare in ascending
-      # #order, then in ascending lexicography of coefficients.
-      #
-      # TODO: should this method be deleted?
-      def <=>(other)
-        r = @order <=> other.order
-        return r if r != 0
-
-        # TODO: converting to string is slow
-        @coefficients.map { |v| num_str(v) } <=> other.coefficients.map { |v| num_str(v) }
-      end
-
       # Evaluates the polynomial at the given value +x+, which may be any
       # Numeric, including Complex.
       def call(x)

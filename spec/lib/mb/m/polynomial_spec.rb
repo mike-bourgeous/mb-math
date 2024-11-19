@@ -88,8 +88,6 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
-  pending '#<=>'
-
   describe '#call' do
     let(:second_order) { MB::M::Polynomial.new(4, 0, -2) }
 
