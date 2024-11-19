@@ -225,6 +225,8 @@ module MB
         # TODO: Support in-place modification
         return array if n == 0
 
+        n %= array.length
+
         if array.is_a?(Array)
           a = array[0...n]
           b = array[n..-1]

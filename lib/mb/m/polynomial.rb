@@ -189,17 +189,25 @@ module MB
       # FIXME: this only works when there is no remainder
       # TODO: maybe also add a least-squares division algorithm
       def fft_divide(other)
-        length = @order + other.order + 1
-        (f1, f2), offset = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
+        length = MB::M.max(@order, other.order) + 1
+        (f1, f2), (off1, off2), pad = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
 
         # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
         f3 = f1 / f2
         n3 = Numo::Pocketfft.ifft(f3)
 
         # FIXME: this is not the right offset and we need to truncate to the
-        # correct order.  Rounding to 6 figures is also probably not enough
-        # precision, and maybe this shouldn't round at all.
-        MB::M.round(MB::M.ror(n3, offset), 6).to_a
+        # correct order.  Rounding is also probably not enough precision, and
+        # maybe this shouldn't round at all (but we need to detect true zeros
+        # from very-near zeros).
+
+        d = MB::M.round(n3.to_a, 12)
+
+        d2 = MB::M.rol(d, off1 + off2)
+
+        require 'pry-byebug'; binding.pry # XXX
+
+        d2.drop_while(&:zero?)
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the
@@ -447,6 +455,7 @@ module MB
       def optimal_pad_fft(*narrays, min_length: nil)
         freqmin = nil
         freq = nil
+        off = nil
         idx = nil
 
         min_length ||= narrays.max(&:length)
@@ -454,14 +463,14 @@ module MB
         for pad in 0..10
           flist = narrays.map { |n| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1)) }
           flistmin = flist.map { |f, idx| f.abs.min }.min
-          flistshift = flist.sum(&:last)
+          flistshift = flist.map(&:last)
 
-          freq, freqmin, idx = flist, flistmin, pad if freq.nil? || flistmin > freqmin
+          freq, freqmin, off, idx = flist, flistmin, flistshift, pad if freq.nil? || flistmin > freqmin
         end
 
-        puts "Best padding for starting length #{min_length}: #{idx} with min abs: #{freqmin} and max #{freq.map(&:first).map(&:abs).map(&:max).max}" # XXX
+        puts "Best padding for starting length #{min_length}: #{idx} with offsets: #{off}, min abs: #{freqmin} and max #{freq.map(&:first).map(&:abs).map(&:max).max}" # XXX
 
-        return freq.map(&:first), flistshift
+        return freq.map(&:first), off, idx
       end
 
       # Experimental: finds an optimal shift in the time/space domain to
@@ -480,10 +489,10 @@ module MB
 
         for offset in 0..(narray.length / 2)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
-          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
+          freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
 
           f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
-          freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
+          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
         end
 
         puts "Best offset for length #{narray.length}: #{idx} with min #{freq.abs.min} and max #{freq.abs.max}" # XXX
