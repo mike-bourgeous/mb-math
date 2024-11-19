@@ -368,6 +368,22 @@ RSpec.describe(MB::M::ArrayMethods) do
       expect(MB::M.rol(Numo::SFloat[1,2,3], -1)).to eq(Numo::SFloat[3,1,2])
       expect(MB::M.rol(Numo::SFloat[1,2,3], -2)).to eq(Numo::SFloat[2,3,1])
     end
+
+    context 'with a Ruby Array' do
+      it 'returns the same array with a rotation of 0' do
+        expect(MB::M.rol([1,2,3], 0)).to eq([1,2,3])
+      end
+
+      it 'can rotate left' do
+        expect(MB::M.rol([1,2,3], 1)).to eq([2,3,1])
+        expect(MB::M.rol([1,2,3], 2)).to eq([3,1,2])
+      end
+
+      it 'can rotate right' do
+        expect(MB::M.rol([1,2,3], -1)).to eq([3,1,2])
+        expect(MB::M.rol([1,2,3], -2)).to eq([2,3,1])
+      end
+    end
   end
 
   describe '.ror' do
@@ -383,6 +399,11 @@ RSpec.describe(MB::M::ArrayMethods) do
     it 'can rotate right' do
       expect(MB::M.ror(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[3,1,2])
       expect(MB::M.ror(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[2,3,1])
+    end
+
+    it 'can rotate a Ruby Array' do
+      expect(MB::M.ror([1,2,3], 1)).to eq([3,1,2])
+      expect(MB::M.ror([1,2,3], 2)).to eq([2,3,1])
     end
   end
 

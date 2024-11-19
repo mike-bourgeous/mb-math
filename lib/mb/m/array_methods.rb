@@ -224,8 +224,15 @@ module MB
       def rol(array, n)
         # TODO: Support in-place modification
         return array if n == 0
-        a, b = array.split([n])
-        b.concatenate(a)
+
+        if array.is_a?(Array)
+          a = array[0...n]
+          b = array[n..-1]
+          b + a
+        else
+          a, b = array.split([n])
+          b.concatenate(a)
+        end
       end
 
       # Rotates a 1D NArray right by +n+ places (calls .rol(array, -n)).
