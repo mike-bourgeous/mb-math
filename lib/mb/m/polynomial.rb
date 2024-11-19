@@ -39,7 +39,7 @@ module MB
         first_nonzero = coefficients.find_index { |v| v != 0 }
         @coefficients = coefficients[first_nonzero..].map { |c|
           c = c.real if c.is_a?(Complex) && c.imag == 0
-          c = c.to_i if c.is_a?(Rational) && c.denominator == 1
+          c = c.numerator if c.is_a?(Rational) && c.denominator == 1
           c
         }.freeze
 
@@ -280,7 +280,7 @@ module MB
             sum = result[col]
             sum = sum.to_r if sum.is_a?(Integer) && c0.is_a?(Integer)
             sum /= c0
-            sum = sum.to_i if sum.is_a?(Rational) && sum.denominator == 1
+            sum = sum.numerator if sum.is_a?(Rational) && sum.denominator == 1
             result[col] = sum
           end
 
@@ -325,7 +325,7 @@ module MB
           b = -@coefficients[1]
           m = m.to_r if m.is_a?(Integer) && b.is_a?(Integer)
           root = b / m
-          root = root.to_i if root.is_a?(Rational) && root.denominator == 1
+          root = root.numerator if root.is_a?(Rational) && root.denominator == 1
           [root]
 
         when 2
@@ -536,7 +536,7 @@ module MB
 
         when Rational
           if c.denominator == 1
-            "#{c.numerator.to_s}#{imag}"
+            "#{c.numerator}#{imag}"
           else
             "(#{c.numerator}r#{imag}/#{c.denominator})"
           end
