@@ -208,11 +208,12 @@ module MB
         added1 = d.length - @coefficients.length
         added2 = d.length - other.coefficients.length
 
-        d2 = MB::M.ror(d, off1 + off2 - pad) # XXX 1)
+        # XXX d2 = MB::M.ror(d, off1 + off2 - pad) # XXX 1)
 
-        require 'pry-byebug'; binding.pry # XXX
+        #require 'pry-byebug'; binding.pry # XXX
 
-        d2.drop_while(&:zero?)
+        # XXX d2.drop_while(&:zero?)
+        d
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the
