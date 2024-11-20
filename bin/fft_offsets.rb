@@ -22,8 +22,8 @@ require 'bundler/setup'
 
 require 'mb/math'
 
-MAX_ORDER=3
-REPEATS=3
+MAX_ORDER=4
+REPEATS=2
 
 def random_polynomial(order)
   c = []
@@ -57,6 +57,17 @@ def find_offset(target, query)
   nil
 end
 
+def aos_to_soa(array_of_hashes)
+  hash_of_arrays = {}
+  array_of_hashes.each do |h|
+    h.each do |k, v|
+      hash_of_arrays[k] ||= []
+      hash_of_arrays[k] << v
+    end
+  end
+  hash_of_arrays
+end
+
 results = []
 
 for order_a in 0..MAX_ORDER
@@ -66,19 +77,25 @@ for order_a in 0..MAX_ORDER
       b = random_polynomial(order_b)
       c = a * b
 
-      q = c.fft_divide(b)
-      r = c.fft_divide(a)
+      q = c.fft_divide(b, details: true)
+      r = c.fft_divide(a, details: true)
 
       results << {
         order_a: order_a,
         order_b: order_b,
-        coeff_a: a.coefficients,
-        coeff_b: b.coefficients,
-        offset_q: find_offset(a.coefficients, q),
-        offset_r: find_offset(b.coefficients, r),
+        coeff_a: a.to_s,
+        coeff_b: b.to_s,
+        q_offset: find_offset(a.coefficients, q[:coefficients]),
+        q_off1: q[:off1],
+        q_off2: q[:off2],
+        q_pad: q[:pad],
+        r_offset: find_offset(b.coefficients, r[:coefficients]),
+        r_off1: r[:off1],
+        r_off2: r[:off2],
+        r_pad: r[:pad],
       }
     end
   end
 end
 
-puts MB::U.table(results)
+puts MB::U.table(aos_to_soa(results), variable_width: true)

@@ -188,7 +188,7 @@ module MB
       #
       # FIXME: this only works when there is no remainder
       # TODO: maybe also add a least-squares division algorithm
-      def fft_divide(other)
+      def fft_divide(other, details: false)
         length = MB::M.max(@order, other.order) + 1
         (f1, f2), (off1, off2), pad = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
 
@@ -213,7 +213,9 @@ module MB
         #require 'pry-byebug'; binding.pry # XXX
 
         # XXX d2.drop_while(&:zero?)
-        d
+
+        # XXX details
+        details ? {coefficients: d, off1: off1, off2: off2, pad: pad} : d
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the
