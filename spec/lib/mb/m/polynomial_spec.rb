@@ -7,8 +7,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   let(:o2) { MB::M::Polynomial.new(3, 2, 1) }
   let(:o2_2) { MB::M::Polynomial.new(-3, -2, 5) }
   let(:o3) { MB::M::Polynomial.new(2, -1, 3, -5) }
+  let(:c4) { MB::M::Polynomial.new(1ri/5, -3ri/4, 1.25, -7, 12) }
+  let(:o4_gaps) { MB::M::Polynomial.new(-5r/7, 0, 1r/5, 0, 4) }
+  let(:c4_gaps) { MB::M::Polynomial.new(4.0 + 1.5i, 0, 0, 0, -1i) }
   let(:o100) { MB::M::Polynomial.new((1..101).to_a) }
-  let(:c4) { MB::M::Polynomial.new(4.0 + 1.5i, 0, 0, 0, -1i) }
 
   describe '#initialize' do
     it 'can create a polynomial from an Array' do
@@ -58,7 +60,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o0 == o0).to eq(true)
       expect(o1_r == o1_r).to eq(true)
       expect(o2 == o2).to eq(true)
-      expect(c4 == c4).to eq(true)
+      expect(c4_gaps == c4_gaps).to eq(true)
       expect(o100 == o100).to eq(true)
     end
 
@@ -67,14 +69,14 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o0.dup == o0).to eq(true)
       expect(o1_r.dup == o1_r).to eq(true)
       expect(o2.dup == o2).to eq(true)
-      expect(c4.dup == c4).to eq(true)
+      expect(c4_gaps.dup == c4_gaps).to eq(true)
       expect(o100.dup == o100).to eq(true)
 
       expect(o0_empty == o0_empty.dup).to eq(true)
       expect(o0 == o0.dup).to eq(true)
       expect(o1_r == o1_r.dup).to eq(true)
       expect(o2 == o2.dup).to eq(true)
-      expect(c4 == c4.dup).to eq(true)
+      expect(c4_gaps == c4_gaps.dup).to eq(true)
       expect(o100 == o100.dup).to eq(true)
     end
 
@@ -84,7 +86,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o0 == o0_empty).to eq(false)
       expect(o2 == o1_r).to eq(false)
       expect(o0 == o0_zero).to eq(false)
-      expect(c4 == o100).to eq(false)
+      expect(c4_gaps == o100).to eq(false)
     end
   end
 
@@ -118,7 +120,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
     it 'can evaluate a polynomial with complex coefficients' do
       expected = (5+3i) ** 4 * (4.0+1.5i) - 1i
-      expect(c4.call(5+3i)).to eq(expected)
+      expect(c4_gaps.call(5+3i)).to eq(expected)
     end
   end
 
@@ -417,6 +419,72 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(MB::M.round(result, 6)).to eq([1, 1, 3])
     end
 
+    it 'can divide first-order multiplied by second-order' do
+      p = o1_r * o2
+      result = p.fft_divide(o1_r)
+      expect(MB::M.round(result, 6)).to eq(o2.round(6).coefficients)
+      result = p.fft_divide(o2)
+      expect(MB::M.round(result, 6)).to eq(o1_r.round(6).coefficients)
+    end
+
+    it 'can divide first-order multiplied by third-order' do
+      p = o1_r * o3
+      result = p.fft_divide(o1_r)
+      expect(MB::M.round(result, 6)).to eq(o3.round(6).coefficients)
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq(o1_r.round(6).coefficients)
+    end
+
+    it 'can divide second-order multiplied by third-order' do
+      p = o2 * o3
+      result = p.fft_divide(o2)
+      expect(MB::M.round(result, 6)).to eq(o3.round(6).coefficients)
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq(o2.round(6).coefficients)
+    end
+
+    it 'can divide a second-order polynomial multiplied by itself' do
+      p = o2_2 * o2_2
+      result = p.fft_divide(o2_2)
+      expect(MB::M.round(result, 6)).to eq([3, 2, 1])
+    end
+
+    it 'can divide a third-order polynomial multiplied by itself' do
+      p = o3 * o3
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq([2, -1, 3, -5])
+    end
+
+    it 'can divide a longer multiplied polynomial' do
+      p = o100 * o3
+
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq(o100.round(6).coefficients)
+
+      result = p.fft_divide(o100)
+      expect(MB::M.round(result, 6)).to eq(o3.round(6).coefficients)
+    end
+
+    it 'can divide when there are complex coefficients' do
+      p = c4 * o3
+
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq(c4.round(6).coefficients)
+
+      result = p.fft_divide(c4)
+      expect(MB::M.round(result, 6)).to eq(o3.round(6).coefficients)
+    end
+
+    it 'can divide polynomials with some zero coefficients' do
+      p = c4_gaps * o4_gaps
+
+      result = p.fft_divide(o4_gaps)
+      expect(MB::M.round(result, 6)).to eq(c4_gaps.round(6).coefficients)
+
+      result = p.fft_divide(c4_gaps)
+      expect(MB::M.round(result, 6)).to eq(o4_gaps.round(6).coefficients)
+    end
+
     pending
   end
 
@@ -569,7 +637,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
 
     it 'returns true if any coefficient is complex' do
-      expect(c4.complex?).to eq(true)
+      expect(c4_gaps.complex?).to eq(true)
     end
 
     it 'returns true for a zero-order polynomial with a complex value' do

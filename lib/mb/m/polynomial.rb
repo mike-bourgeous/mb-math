@@ -194,6 +194,8 @@ module MB
 
         # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
         f3 = f1 / f2
+        n1 = Numo::Pocketfft.ifft(f1)
+        n2 = Numo::Pocketfft.ifft(f2)
         n3 = Numo::Pocketfft.ifft(f3)
 
         # FIXME: this is not the right offset and we need to truncate to the
@@ -203,7 +205,10 @@ module MB
 
         d = MB::M.round(n3.to_a, 12)
 
-        d2 = MB::M.rol(d, off1 + off2)
+        added1 = d.length - @coefficients.length
+        added2 = d.length - other.coefficients.length
+
+        d2 = MB::M.ror(d, off1 + off2 - pad) # XXX 1)
 
         require 'pry-byebug'; binding.pry # XXX
 
@@ -461,7 +466,7 @@ module MB
         min_length ||= narrays.max(&:length)
 
         for pad in 0..10
-          flist = narrays.map { |n| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1)) }
+          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0)) }
           flistmin = flist.map { |f, idx| f.abs.min }.min
           flistshift = flist.map(&:last)
 
