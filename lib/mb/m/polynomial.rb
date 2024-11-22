@@ -208,14 +208,14 @@ module MB
         added1 = d.length - @coefficients.length
         added2 = d.length - other.coefficients.length
 
-        # XXX d2 = MB::M.ror(d, off1 + off2 - pad) # XXX 1)
+        d2 = MB::M.ror(d, off1 + off2 - 1) # XXX 1)
 
         #require 'pry-byebug'; binding.pry # XXX
 
         # XXX d2.drop_while(&:zero?)
 
         # XXX details
-        details ? {coefficients: d, off1: off1, off2: off2, pad: pad} : d
+        details ? {coefficients: d2, off1: off1, off2: off2, pad: pad} : d2
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the
@@ -495,7 +495,7 @@ module MB
         freq = nil
         idx = nil
 
-        for offset in 0..(narray.length / 2)
+        for offset in 0..0 # XXX (narray.length / 2)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
           freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
 

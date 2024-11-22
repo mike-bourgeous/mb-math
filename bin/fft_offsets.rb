@@ -20,10 +20,14 @@
 
 require 'bundler/setup'
 
+require 'mb/util'
+
 require 'mb/math'
 
 MAX_ORDER=4
 REPEATS=2
+
+srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
 
 def random_polynomial(order)
   c = []
@@ -83,19 +87,23 @@ for order_a in 0..MAX_ORDER
       results << {
         order_a: order_a,
         order_b: order_b,
-        coeff_a: a.to_s,
-        coeff_b: b.to_s,
-        q_offset: find_offset(a.coefficients, q[:coefficients]),
-        q_off1: q[:off1],
-        q_off2: q[:off2],
-        q_pad: q[:pad],
-        r_offset: find_offset(b.coefficients, r[:coefficients]),
-        r_off1: r[:off1],
-        r_off2: r[:off2],
-        r_pad: r[:pad],
+        coeff_a: MB::U.syntax(a.to_s),
+        coeff_b: MB::U.syntax(b.to_s),
+        a_offset: find_offset(a.coefficients, q[:coefficients]),
+        a_off1: q[:off1],
+        a_off2: q[:off2],
+        a_pad: q[:pad],
+        a_extra: q[:coefficients].length - a.coefficients.length,
+        b_offset: find_offset(b.coefficients, r[:coefficients]),
+        b_off1: r[:off1],
+        b_off2: r[:off2],
+        b_pad: r[:pad],
+        b_extra: r[:coefficients].length - b.coefficients.length,
       }
     end
   end
 end
+
+MB::U.headline "Random seed: #{Random::DEFAULT.seed}"
 
 puts MB::U.table(aos_to_soa(results), variable_width: true)
