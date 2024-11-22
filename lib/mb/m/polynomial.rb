@@ -208,7 +208,8 @@ module MB
         added1 = d.length - @coefficients.length
         added2 = d.length - other.coefficients.length
 
-        d2 = MB::M.ror(d, off1 + off2 - 1) # XXX 1)
+        # XXX d2 = MB::M.ror(d, off1 + off2 - 1)
+        d2 = MB::M.rol(d, 1)
 
         #require 'pry-byebug'; binding.pry # XXX
 
@@ -469,7 +470,7 @@ module MB
         min_length ||= narrays.max(&:length)
 
         for pad in 0..10
-          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0)) }
+          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), idx_xxx: idx * 17) }
           flistmin = flist.map { |f, idx| f.abs.min }.min
           flistshift = flist.map(&:last)
 
@@ -491,16 +492,18 @@ module MB
       #
       # TODO: Could try minimizing the difference between two ffts so that
       # small coefficients line up and don't explode as much when divided.
-      def optimal_shift_fft(narray)
+      def optimal_shift_fft(narray, idx_xxx:)
         freq = nil
         idx = nil
 
-        for offset in 0..0 # XXX (narray.length / 2)
+        # XXX for offset in 0..(narray.length / 2)
+        # XXX for offset in 0..0
+        for offset in idx_xxx..idx_xxx
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
           freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
 
-          f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
-          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
+          #f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
+          #freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
         end
 
         puts "Best offset for length #{narray.length}: #{idx} with min #{freq.abs.min} and max #{freq.abs.max}" # XXX

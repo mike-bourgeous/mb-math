@@ -24,15 +24,17 @@ require 'mb/util'
 
 require 'mb/math'
 
-MAX_ORDER=4
-REPEATS=2
+MIN_ORDER=ENV['MIN_ORDER']&.to_i || 0
+MAX_ORDER=ENV['MAX_ORDER']&.to_i || 4
+REPEATS=ENV['REPEATS']&.to_i || 2
 
 srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
 
 def random_polynomial(order)
-  c = []
+  c = [0]
 
-  c << rand(-100..100)
+  # Make sure first coefficient is nonzero
+  c[0] = rand(-100..100) while c[0] == 0 || c.empty?
 
   for i in 0...order
     # 50/50 chance of a zero
@@ -74,8 +76,8 @@ end
 
 results = []
 
-for order_a in 0..MAX_ORDER
-  for order_b in 0..MAX_ORDER
+for order_a in MIN_ORDER..MAX_ORDER
+  for order_b in MIN_ORDER..MAX_ORDER
     REPEATS.times do
       a = random_polynomial(order_a)
       b = random_polynomial(order_b)
@@ -87,13 +89,18 @@ for order_a in 0..MAX_ORDER
       results << {
         order_a: order_a,
         order_b: order_b,
+        oa: a.order,
+        ob: b.order,
+        oc: c.order,
         coeff_a: MB::U.syntax(a.to_s),
         coeff_b: MB::U.syntax(b.to_s),
+        a_len: a.coefficients.length,
         a_offset: find_offset(a.coefficients, q[:coefficients]),
         a_off1: q[:off1],
         a_off2: q[:off2],
         a_pad: q[:pad],
         a_extra: q[:coefficients].length - a.coefficients.length,
+        b_len: b.coefficients.length,
         b_offset: find_offset(b.coefficients, r[:coefficients]),
         b_off1: r[:off1],
         b_off2: r[:off2],
