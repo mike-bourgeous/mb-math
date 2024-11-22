@@ -219,13 +219,15 @@ module MB
       end
 
       # Rotates a 1D NArray left by +n+ places, which must be less than the
-      # length of the NArray.  Returns the array unmodified if +n+ is zero.
-      # Use negative values for +n+ to rotate right.
+      # length of the NArray.  Returns a duplicate of the original array if +n+
+      # is zero or the rotation would have no effect.  Use negative values for
+      # +n+ to rotate right.
       def rol(array, n)
         # TODO: Support in-place modification
-        return array if n == 0
+        return array.dup if array.length <= 1
 
         n %= array.length
+        return array.dup if n == 0
 
         if array.is_a?(Array)
           a = array[0...n]

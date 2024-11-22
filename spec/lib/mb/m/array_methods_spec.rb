@@ -355,18 +355,38 @@ RSpec.describe(MB::M::ArrayMethods) do
   end
 
   describe '.rol' do
-    it 'returns the same array with a rotation of 0' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
-    end
+    context 'with Numo::NArray' do
+      it 'returns the same array with a rotation of 0' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
+      end
 
-    it 'can rotate left' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[2,3,1])
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[3,1,2])
-    end
+      it 'can rotate left' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[2,3,1])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[3,1,2])
+      end
 
-    it 'can rotate right' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], -1)).to eq(Numo::SFloat[3,1,2])
-      expect(MB::M.rol(Numo::SFloat[1,2,3], -2)).to eq(Numo::SFloat[2,3,1])
+      it 'can rotate right' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -1)).to eq(Numo::SFloat[3,1,2])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -2)).to eq(Numo::SFloat[2,3,1])
+      end
+
+      it 'wraps rotation amounts to fit within the array length' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 10)).to eq(Numo::SFloat[2,3,1])
+      end
+
+      it 'does nothing if the rotation amount is a multiple of the array length' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 3)).to eq(Numo::SFloat[1,2,3])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 6)).to eq(Numo::SFloat[1,2,3])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -3)).to eq(Numo::SFloat[1,2,3])
+      end
+
+      it 'does nothing if the array is empty' do
+        expect(MB::M.rol(Numo::SFloat[], 5)).to eq(Numo::SFloat[])
+      end
+
+      it 'does nothing if the array length is 1' do
+        expect(MB::M.rol(Numo::SFloat[5], 1)).to eq(Numo::SFloat[5])
+      end
     end
 
     context 'with a Ruby Array' do
@@ -383,10 +403,30 @@ RSpec.describe(MB::M::ArrayMethods) do
         expect(MB::M.rol([1,2,3], -1)).to eq([3,1,2])
         expect(MB::M.rol([1,2,3], -2)).to eq([2,3,1])
       end
+
+      it 'wraps rotation amounts to fit within the array length' do
+        expect(MB::M.rol([1,2,3], 10)).to eq([2,3,1])
+      end
+
+      it 'does nothing if the rotation amount is a multiple of the array length' do
+        expect(MB::M.rol([1,2,3], 0)).to eq([1,2,3])
+      end
+
+      it 'does nothing if the array is empty' do
+        expect(MB::M.rol([], 5)).to eq([])
+      end
+
+      it 'does nothing if the array length is 1' do
+        expect(MB::M.rol([5], 1)).to eq([5])
+      end
     end
   end
 
   describe '.ror' do
+    # TODO: currently ror calls rol so rol tests cover ror.  But if ror and rol
+    # were ever split for some reason, we could just negate the parameters from
+    # the rol tests to generate ror tests.
+
     it 'returns the same array with a rotation of 0' do
       expect(MB::M.ror(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
     end
@@ -404,6 +444,10 @@ RSpec.describe(MB::M::ArrayMethods) do
     it 'can rotate a Ruby Array' do
       expect(MB::M.ror([1,2,3], 1)).to eq([3,1,2])
       expect(MB::M.ror([1,2,3], 2)).to eq([2,3,1])
+    end
+
+    it 'wraps around rotation amounts' do
+      expect(MB::M.ror([1,2,3], 5)).to eq([2,3,1])
     end
   end
 
