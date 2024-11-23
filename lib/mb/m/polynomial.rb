@@ -487,12 +487,15 @@ module MB
       private
 
       # Experimental: finds an optimal padding in the time/space domain to
-      # minimize NaNs and small values in the frequency domain.
+      # minimize NaNs and small values in the frequency domain, and prefer even
+      # lengths over odd lengths (odd lengths tend to have weird values in the
+      # Nyquist position).
       #
       # TODO: figure out if this is just an even vs. odd length thing
       def optimal_pad_fft(*narrays, min_length: nil, pad_range: 0..3)
-        nancount = nil
-        badcount = nil
+        oldnan = nil
+        oldbad = nil
+        oldodd = nil
         freq = nil
         idx = nil
 
@@ -502,67 +505,20 @@ module MB
 
         for pad in pad_range
           flist = narrays.map.with_index { |n, idx| Numo::Pocketfft.fft(MB::M.zpad(n, min_length + pad, alignment: 1.0)) }
-          flistnan = flist.map { |f| f.isnan.count }.sum
-          flistbad = flist.map { |f| MB::M.round(f, 6).eq(0).count }.sum
+          newnan = flist.map { |f| f.isnan.count }.sum
+          newbad = flist.map { |f| MB::M.round(f, 6).eq(0).count }.sum
+          newodd = flist.map { |f| f.length.odd? ? 1 : 0 }.sum
 
-          if ffts_better?(freq, flist, print: "pad #{pad}")
+          if freq.nil? || newnan < oldnan || (newnan == oldnan && (newbad < oldbad || (newbad == oldbad && newodd < oldodd)))
             freq = flist
-            nancount = flistnan
-            badcount = flistbad
+            oldnan = newnan
+            oldbad = newbad
+            oldodd = newodd
             idx = pad
           end
         end
 
         return freq, pad
-      end
-
-      # Returns true if the +new+ list of FFTs has fewer NaNs, zeros, or
-      # near-zeros than the +old+ list.
-      def ffts_better?(old, new, print: false)
-        if old.nil?
-          puts 'better than nothing' if print
-          return true if old.nil?
-        else
-          old = [old] unless old.is_a?(Array)
-          new = [new] unless new.is_a?(Array)
-
-          # TODO: Avoid recalculating these values on every iteration
-          oldmin = old.map { |f| f.abs.min }.min
-          oldnan = old.map { |f| f.isnan.count_1 }.sum
-          oldzero = old.map { |f| f.eq(0).count_1 }.sum
-          oldbad = old.map { |f| MB::M.round(f, 6).eq(0).count_1 }.sum
-          oldodd = old.map { |f| f.length.odd? ? 1 : 0 }.sum
-
-          newmin = new.map { |f| f.abs.min }.min
-          newnan = new.map { |f| f.isnan.count_1 }.sum
-          newzero = new.map { |f| f.eq(0).count_1 }.sum
-          newbad = new.map { |f| MB::M.round(f, 6).eq(0).count_1 }.sum
-          newodd = new.map { |f| f.length.odd? ? 1 : 0 }.sum
-
-          # XXX newnan < oldnan || (newnan == oldnan && (newzero < oldzero || (newzero == oldzero && (newbad < oldbad || (newbad == oldbad && false && (newmin > oldmin))))))
-
-          if newnan < oldnan
-            puts "#{print} better because nan" if print
-            return true
-          elsif newnan == oldnan
-            if newbad < oldbad
-              puts "#{print} better because bad" if print
-              return true
-            elsif newbad == oldbad
-              if newodd < oldodd
-                puts "#{print} better because odd" if print
-                return true
-              elsif newodd == oldodd
-                if newmin > oldmin
-                  puts "#{print} better because min" if print
-                  return true
-                end
-              end
-            end
-          end
-        end
-
-        false
       end
 
       # Helper for #to_s to generate text and multiplication symbol for
