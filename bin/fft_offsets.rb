@@ -24,11 +24,18 @@ require 'mb/util'
 
 require 'mb/math'
 
+ORDER_A=ENV['ORDER_A']&.to_i
+ORDER_B=ENV['ORDER_B']&.to_i
 MIN_ORDER=ENV['MIN_ORDER']&.to_i || 0
 MAX_ORDER=ENV['MAX_ORDER']&.to_i || 4
+
+OFFSET_X=ENV['OFFSET_X']&.to_i
+OFFSET_C=ENV['OFFSET_C']&.to_i
+MIN_OFFSET=ENV['MIN_OFFSET']&.to_i
+MAX_OFFSET=ENV['MAX_OFFSET']&.to_i || MIN_OFFSET
+
 REPEATS=ENV['REPEATS']&.to_i || 2
 
-srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
 
 def random_polynomial(order)
   c = [0]
@@ -74,43 +81,63 @@ def aos_to_soa(array_of_hashes)
   hash_of_arrays
 end
 
+
+srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
+
 results = []
 
-for order_a in MIN_ORDER..MAX_ORDER
-  for order_b in MIN_ORDER..MAX_ORDER
+order_range = MIN_ORDER..MAX_ORDER
+order_a_range = (ORDER_A && ORDER_A..ORDER_A) || order_range
+order_b_range = (ORDER_B && ORDER_B..ORDER_B) || order_range
+
+offset_range = (MIN_OFFSET && MAX_OFFSET && (MIN_OFFSET..MAX_OFFSET)) || (0..0)
+offset_x_range = (OFFSET_X && (OFFSET_X..OFFSET_X)) || offset_range
+offset_c_range = (OFFSET_C && (OFFSET_C..OFFSET_C)) || offset_range
+
+for order_a in order_a_range
+  for order_b in order_b_range
     REPEATS.times do
       a = random_polynomial(order_a)
       b = random_polynomial(order_b)
       c = a * b
 
-      q = c.fft_divide(b, details: true)
-      r = c.fft_divide(a, details: true)
+      for offset_x in offset_x_range
+        for offset_c in offset_c_range
+          q = c.fft_divide(b, details: true, offsets: [offset_c, offset_x])
+          r = c.fft_divide(a, details: true, offsets: [offset_c, offset_x])
 
-      results << {
-        order_a: order_a,
-        order_b: order_b,
-        oa: a.order,
-        ob: b.order,
-        oc: c.order,
-        coeff_a: MB::U.syntax(a.to_s),
-        coeff_b: MB::U.syntax(b.to_s),
-        a_len: a.coefficients.length,
-        a_offset: find_offset(a.coefficients, q[:coefficients]),
-        a_off1: q[:off1],
-        a_off2: q[:off2],
-        a_pad: q[:pad],
-        a_extra: q[:coefficients].length - a.coefficients.length,
-        b_len: b.coefficients.length,
-        b_offset: find_offset(b.coefficients, r[:coefficients]),
-        b_off1: r[:off1],
-        b_off2: r[:off2],
-        b_pad: r[:pad],
-        b_extra: r[:coefficients].length - b.coefficients.length,
-      }
+          results << {
+            order_a: order_a,
+            order_b: order_b,
+            orda: a.order,
+            ordb: b.order,
+            ordc: c.order,
+            coeff_a: MB::U.syntax(a.to_s),
+            coeff_b: MB::U.syntax(b.to_s),
+            off_x: offset_x,
+            off_c: offset_c,
+            a_offset: find_offset(a.coefficients, q[:coefficients]),
+            b_offset: find_offset(b.coefficients, r[:coefficients]),
+            a_off1: q[:off1],
+            a_off2: q[:off2],
+            a_pad: q[:pad],
+            a_extra: q[:coefficients].length - a.coefficients.length,
+            b_off1: r[:off1],
+            b_off2: r[:off2],
+            b_pad: r[:pad],
+            b_extra: r[:coefficients].length - b.coefficients.length,
+            a_len: a.coefficients.length,
+            b_len: b.coefficients.length,
+          }
+        end
+      end
     end
   end
 end
 
 MB::U.headline "Random seed: #{Random::DEFAULT.seed}"
+puts
 
 puts MB::U.table(aos_to_soa(results), variable_width: true)
+
+require 'pry-byebug' ; binding.pry

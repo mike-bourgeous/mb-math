@@ -188,9 +188,13 @@ module MB
       #
       # FIXME: this only works when there is no remainder
       # TODO: maybe also add a least-squares division algorithm
-      def fft_divide(other, details: false)
+      def fft_divide(other, details: false, offsets: nil)
         length = MB::M.max(@order, other.order) + 1
-        (f1, f2), (off1, off2), pad = optimal_pad_fft(Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients), min_length: length)
+        (f1, f2), (off1, off2), pad = optimal_pad_fft(
+          Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
+          min_length: length,
+          offsets: offsets || [],
+        )
 
         # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
         f3 = f1 / f2
@@ -461,7 +465,10 @@ module MB
       # minimize zeros or small values in the frequency domain.
       #
       # TODO: figure out if this is just an even vs. odd length thing
-      def optimal_pad_fft(*narrays, min_length: nil)
+      #
+      # +:offsets+ are for hard-coding the offsets in #optimal_shift_fft,
+      # applied to +narrays+ in order, for testing with bin/fft_offsets.rb.
+      def optimal_pad_fft(*narrays, min_length: nil, offsets: [])
         freqmin = nil
         freq = nil
         off = nil
@@ -470,7 +477,7 @@ module MB
         min_length ||= narrays.max(&:length)
 
         for pad in 0..10
-          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), idx_xxx: idx * 17) }
+          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), idx_xxx: idx * 17, offset: offsets[idx]) }
           flistmin = flist.map { |f, idx| f.abs.min }.min
           flistshift = flist.map(&:last)
 
@@ -492,13 +499,13 @@ module MB
       #
       # TODO: Could try minimizing the difference between two ffts so that
       # small coefficients line up and don't explode as much when divided.
-      def optimal_shift_fft(narray, idx_xxx:)
+      def optimal_shift_fft(narray, idx_xxx:, offset:)
         freq = nil
         idx = nil
 
         # XXX for offset in 0..(narray.length / 2)
         # XXX for offset in 0..0
-        for offset in idx_xxx..idx_xxx
+        for offset in (offset || idx_xxx)..(offset || idx_xxx)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
           freq, idx = f, offset if freq.nil? || f.abs.min > freq.abs.min
 
