@@ -220,6 +220,8 @@ module MB
         # XXX d2 = MB::M.ror(d, off_self + off_other - 1)
         d2 = MB::M.rol(d, 1 + off_other - off_self)
 
+        d2 = MB::M.ltrim(d2)
+
         #require 'pry-byebug'; binding.pry # XXX
 
         # XXX d2.drop_while(&:zero?)
