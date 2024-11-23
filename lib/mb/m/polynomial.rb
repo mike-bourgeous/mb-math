@@ -193,16 +193,17 @@ module MB
       #
       # FIXME: this only works when there is no remainder
       # TODO: maybe also add a least-squares division algorithm
-      def fft_divide(other, details: false, offsets: nil, pad_range: 0..10)
+      def fft_divide(other)
         length = MB::M.max(@order, other.order) + 1
 
-        # TODO: can we just pad to odd length here?
+        c_self = Numo::DComplex.cast(@coefficients)
+        c_other = Numo::DComplex.cast(other.coefficients)
+
         # Try different padding amounts to minimize or eliminate zero coefficients
-        (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
-          Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
-          min_length: length,
-          offsets: offsets || [],
-          pad_range: pad_range
+        (f1, f2), pad = optimal_pad_fft(
+          c_self,
+          c_other,
+          min_length: length
         )
 
         f3 = f1 / f2
@@ -211,35 +212,29 @@ module MB
         # infinity because if other is a factor of self, then any FFT zero in
         # self must also be present in other.
         if f3[0].abs.nan? || (f1[0].abs.round(6) == 0 && f2[0].abs.round(6) == 0)
-          puts 'DC NAN -- padding and guessing'
           # Guess the DC coefficient by adding more padding and looking at the
           # padded area.
           # The DC coefficient will be zero on a product if any of the factors
           # had a zero DC coefficient.
 
-          (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
-            Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
+          (f1, f2), pad = optimal_pad_fft(
+            c_self,
+            c_other,
             min_length: length,
-            offsets: offsets || [],
             pad_range: (pad + 1)..(pad + 5)
           )
 
           f3 = f1 / f2
           f3[0] = 0
           n3 = Numo::Pocketfft.ifft(f3)
-          d = MB::M.rol(n3, 1 + off_other - off_self)
+          d = MB::M.rol(n3, 1)
 
           # Remove DC offset; first value should be zero since we know we've zero-padded with rightward alignment
           d -= d[0]
-
-          #require 'pry-byebug'; binding.pry # XXX
         else
           n3 = Numo::Pocketfft.ifft(f3)
-          d = MB::M.rol(n3, 1 + off_other - off_self)
+          d = MB::M.rol(n3, 1)
         end
-
-        n1 = Numo::Pocketfft.ifft(f1)
-        n2 = Numo::Pocketfft.ifft(f2)
 
         # FIXME: maybe this shouldn't round at all (but we still need to detect
         # true zeros from very-near zeros to truncate leading zeros, unless we
@@ -249,18 +244,8 @@ module MB
         # overall precision decreases
         d = MB::M.round(d, 12).to_a
 
-        added1 = d.length - @coefficients.length
-        added2 = d.length - other.coefficients.length
-
-        # XXX d2 = MB::M.ror(d, off_self + off_other - 1)
         d2 = MB::M.ltrim(d)
-
-        #require 'pry-byebug'; binding.pry # XXX
-
-        # XXX d2.drop_while(&:zero?)
-
-        # XXX details
-        details ? {coefficients: d2, off_self: off_self, off_other: off_other, pad: pad} : d2
+        d2
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the
@@ -502,19 +487,13 @@ module MB
       private
 
       # Experimental: finds an optimal padding in the time/space domain to
-      # minimize zeros or small values in the frequency domain.
+      # minimize NaNs and small values in the frequency domain.
       #
       # TODO: figure out if this is just an even vs. odd length thing
-      #
-      # +:offsets+ are for hard-coding the offsets in #optimal_shift_fft,
-      # applied to +narrays+ in order, for testing with bin/fft_offsets.rb.
-      def optimal_pad_fft(*narrays, min_length: nil, offsets: [], pad_range: 0..10)
-        freqmin = nil
+      def optimal_pad_fft(*narrays, min_length: nil, pad_range: 0..3)
         nancount = nil
-        zerocount = nil
         badcount = nil
         freq = nil
-        off = nil
         idx = nil
 
         min_length ||= narrays.max(&:length)
@@ -522,63 +501,19 @@ module MB
         raise "Pad range #{pad_range} is empty" if pad_range.end < pad_range.begin
 
         for pad in pad_range
-          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), pad_xxx: pad, idx_xxx: idx, offset: offsets[idx]) }
-          flistmin = flist.map { |f, _idx| f.abs.min }.min
-          flistnan = flist.map { |f, _idx| f.isnan.count_1 }.sum
-          flistzero = flist.map { |f, _idx| f.eq(0).count_1 }.sum
-          flistbad = flist.map { |f, _idx| MB::M.round(f, 6).eq(0).count_1 }.sum
-          flistshift = flist.map(&:last)
+          flist = narrays.map.with_index { |n, idx| Numo::Pocketfft.fft(MB::M.zpad(n, min_length + pad, alignment: 1.0)) }
+          flistnan = flist.map { |f| f.isnan.count }.sum
+          flistbad = flist.map { |f| MB::M.round(f, 6).eq(0).count }.sum
 
-          # XXX
-          puts 'first round' if freq.nil?
-          puts "listmin #{flistmin}/#{freqmin}"# if freq && flistmin > freqmin
-          puts "listnan #{flistnan}/#{nancount}"# if freq && flistnan < nancount
-          puts "listbad #{flistbad}/#{badcount}"# if freq && flistbad < badcount
-
-          if ffts_better?(freq&.map(&:first), flist.map(&:first), print: "pad #{pad} off #{flistshift}")
-            puts "Pad #{pad} len #{flist.first.first.length} is better than #{idx&.inspect || 'nothing'}"
+          if ffts_better?(freq, flist, print: "pad #{pad}")
             freq = flist
-            freqmin = flistmin
             nancount = flistnan
-            zerocount = flistzero
             badcount = flistbad
-            off = flistshift
             idx = pad
           end
         end
 
-        puts "Best padding for starting length #{min_length}: #{idx} with offsets: #{off}, min abs: #{freqmin} and max #{freq.map(&:first).map(&:abs).map(&:max).max} nan: #{nancount} bad: #{badcount}" # XXX
-
-        return freq.map(&:first), off, idx
-      end
-
-      # Experimental: finds an optimal shift in the time/space domain to
-      # minimize zeros or small values in the frequency domain.
-      #
-      # TODO: I'm not expecting this to work, because I expect a sample offset
-      # to be purely a phase difference.
-      #
-      # TODO: Could try different padding lengths instead of different shifts
-      #
-      # TODO: Could try minimizing the difference between two ffts so that
-      # small coefficients line up and don't explode as much when divided.
-      def optimal_shift_fft(narray, pad_xxx:, idx_xxx:, offset:)
-        freq = nil
-        idx = nil
-
-        for offset in (offset || 0)..(offset || narray.length / 2)
-        # XXX for offset in 0..0
-        #for offset in (offset || idx_xxx)..(offset || idx_xxx)
-          f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
-          freq, idx = f, offset if ffts_better?(freq, f)
-
-          f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
-          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
-        end
-
-        puts "Best offset for pad #{pad_xxx} idx #{idx_xxx} len #{narray.length}: #{idx} with min #{freq.abs.min} max #{freq.abs.max} nan #{freq.isnan.count} zero #{freq.eq(0).count} bad #{MB::M.round(freq, 12).eq(0).count}" # XXX
-
-        return freq, idx
+        return freq, pad
       end
 
       # Returns true if the +new+ list of FFTs has fewer NaNs, zeros, or
