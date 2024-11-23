@@ -20,12 +20,16 @@
 
 require 'bundler/setup'
 
+require 'json'
 require 'mb/util'
 
 require 'mb/math'
 
-ORDER_A=ENV['ORDER_A']&.to_i
-ORDER_B=ENV['ORDER_B']&.to_i
+COEFF_A=ENV['COEFF_A']&.yield_self { |v| JSON.parse(v) }
+COEFF_B=ENV['COEFF_B']&.yield_self { |v| JSON.parse(v) }
+
+ORDER_A=COEFF_A ? (COEFF_A.length - 1) : ENV['ORDER_A']&.to_i
+ORDER_B=COEFF_B ? (COEFF_B.length - 1) : ENV['ORDER_B']&.to_i
 MIN_ORDER=ENV['MIN_ORDER']&.to_i || 0
 MAX_ORDER=ENV['MAX_ORDER']&.to_i || 4
 
@@ -33,6 +37,11 @@ OFFSET_X=ENV['OFFSET_X']&.to_i
 OFFSET_C=ENV['OFFSET_C']&.to_i
 MIN_OFFSET=ENV['MIN_OFFSET']&.to_i
 MAX_OFFSET=ENV['MAX_OFFSET']&.to_i || MIN_OFFSET
+
+MIN_PAD=ENV['MIN_PAD']&.to_i || 0
+MAX_PAD=ENV['MAX_PAD']&.to_i || 10
+
+PRINT_JSON=ENV['PRINT_JSON'] == '1'
 
 REPEATS=ENV['REPEATS']&.to_i || 2
 
@@ -88,8 +97,8 @@ srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
 results = []
 
 order_range = MIN_ORDER..MAX_ORDER
-order_a_range = (ORDER_A && ORDER_A..ORDER_A) || order_range
-order_b_range = (ORDER_B && ORDER_B..ORDER_B) || order_range
+order_a_range = (ORDER_A && (ORDER_A..ORDER_A)) || order_range
+order_b_range = (ORDER_B && (ORDER_B..ORDER_B)) || order_range
 
 offset_range = (MIN_OFFSET && MAX_OFFSET && (MIN_OFFSET..MAX_OFFSET)) || (0..0)
 offset_x_range = (OFFSET_X && (OFFSET_X..OFFSET_X)) || offset_range
@@ -98,14 +107,14 @@ offset_c_range = (OFFSET_C && (OFFSET_C..OFFSET_C)) || offset_range
 for order_a in order_a_range
   for order_b in order_b_range
     REPEATS.times do
-      a = random_polynomial(order_a)
-      b = random_polynomial(order_b)
+      a = COEFF_A ? MB::M::Polynomial.new(COEFF_A) : random_polynomial(order_a)
+      b = COEFF_B ? MB::M::Polynomial.new(COEFF_B) : random_polynomial(order_b)
       c = a * b
 
       for offset_c in offset_c_range
         for offset_x in offset_x_range
-          q = c.fft_divide(b, details: true, offsets: [offset_c, offset_x])
-          r = c.fft_divide(a, details: true, offsets: [offset_c, offset_x])
+          q = c.fft_divide(b, details: true, offsets: [offset_c, offset_x], pad_range: MIN_PAD..MAX_PAD)
+          r = c.fft_divide(a, details: true, offsets: [offset_c, offset_x], pad_range: MIN_PAD..MAX_PAD)
 
           results << {
             order_a: order_a,
@@ -113,8 +122,8 @@ for order_a in order_a_range
             orda: a.order,
             ordb: b.order,
             ordc: c.order,
-            coeff_a: MB::U.syntax(a.to_s),
-            coeff_b: MB::U.syntax(b.to_s),
+            coeff_a: PRINT_JSON ? MB::U.syntax(a.coefficients) : MB::U.syntax(a.to_s),
+            coeff_b: PRINT_JSON ? MB::U.syntax(b.coefficients) : MB::U.syntax(b.to_s),
             off_c: offset_c,
             off_x: offset_x,
             a_calc: "* #{MB::U.highlight(find_offset(a.coefficients, q[:coefficients]))} *",
@@ -138,6 +147,31 @@ end
 
 MB::U.headline "Random seed: #{Random::DEFAULT.seed}"
 puts
+
+MB::U.headline 'Settings', color: 32
+puts MB::U.table(
+  aos_to_soa([{
+    coeff_a: COEFF_A,
+    coeff_b: COEFF_B,
+
+    order_a: ORDER_A,
+    order_b: ORDER_B,
+    min_order: MIN_ORDER,
+    max_order: MAX_ORDER,
+
+    offset_x: OFFSET_X,
+    offset_c: OFFSET_C,
+    min_offset: MIN_OFFSET,
+    max_offset: MAX_OFFSET,
+
+    min_pad: MIN_PAD,
+    max_pad: MAX_PAD,
+
+    print_json: PRINT_JSON,
+    repeats: REPEATS,
+  }]),
+  variable_width: true
+)
 
 puts MB::U.table(aos_to_soa(results), variable_width: true)
 

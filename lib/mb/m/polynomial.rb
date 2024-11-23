@@ -188,12 +188,13 @@ module MB
       #
       # FIXME: this only works when there is no remainder
       # TODO: maybe also add a least-squares division algorithm
-      def fft_divide(other, details: false, offsets: nil)
+      def fft_divide(other, details: false, offsets: nil, pad_range: 0..10)
         length = MB::M.max(@order, other.order) + 1
         (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
           Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
           min_length: length,
           offsets: offsets || [],
+          pad_range: pad_range
         )
 
         # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
@@ -468,7 +469,7 @@ module MB
       #
       # +:offsets+ are for hard-coding the offsets in #optimal_shift_fft,
       # applied to +narrays+ in order, for testing with bin/fft_offsets.rb.
-      def optimal_pad_fft(*narrays, min_length: nil, offsets: [])
+      def optimal_pad_fft(*narrays, min_length: nil, offsets: [], pad_range: 0..10)
         freqmin = nil
         freq = nil
         off = nil
@@ -476,7 +477,7 @@ module MB
 
         min_length ||= narrays.max(&:length)
 
-        for pad in 0..10
+        for pad in pad_range
           flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), idx_xxx: idx * 17, offset: offsets[idx]) }
           flistmin = flist.map { |f, idx| f.abs.min }.min
           flistshift = flist.map(&:last)
