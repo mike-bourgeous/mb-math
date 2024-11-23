@@ -407,6 +407,11 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o1_r.roots).to eq([35r/6])
     end
 
+    it 'returns rational roots for a quadratic when possible' do
+      p = MB::M::Polynomial.new(3, -2) * MB::M::Polynomial.new(5r/3, -7r/23)
+      expect(p.roots).to all(be_a(Rational)).and eq([2r/3, 21r/115])
+    end
+
     pending 'returns quadratic roots'
 
     pending 'higher order roots'
