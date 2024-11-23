@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 # Experiment to understand array offsets after FFT-based deconvolution.
+# (C)2024 Mike Bourgeous
+#
 # I've implemented a polynomial long division algorithm so don't really need
 # the FFT version anymore, but I still want to understand why I haven't been
 # able to predict the offset of the result.
@@ -409,7 +411,9 @@ puts MB::U.table(results_table, variable_width: true, print: false)
 
 failures = results.select { |r| r[:a_calc].include?('nil') || r[:b_calc].include?('nil') }
 if failures.any?
-  STDERR.puts "\n\n#{MB::U.headline("\e[1m#{failures.count}\e[22m FAILED", color: 31, print: false)}\n\n"
+  STDERR.puts "\n\n#{MB::U.headline("\e[1m#{failures.count}\e[22m FAILED".center(50), color: 31, print: false)}\n\n"
   STDERR.puts MB::U.table(aos_to_soa(failures), variable_width: true, print: false)
   exit 1
+else
+  puts "\n\n\e[1;32m#{'PASSED'.center([80, MB::U.width].min)}\e[0m\n\n"
 end
