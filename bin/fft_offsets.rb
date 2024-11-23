@@ -188,6 +188,12 @@ puts MB::U.table(
   variable_width: true
 )
 
-puts MB::U.table(aos_to_soa(results), variable_width: true)
+results_table = aos_to_soa(results)
+puts MB::U.table(results_table, variable_width: true, print: false)
 
-require 'pry-byebug' ; binding.pry
+failures = results.select { |r| r[:a_calc].include?('nil') || r[:b_calc].include?('nil') }
+if failures.any?
+  STDERR.puts "\n\n#{MB::U.headline("\e[1m#{failures.count}\e[22m FAILED", color: 31, print: false)}\n\n"
+  STDERR.puts MB::U.table(aos_to_soa(failures), variable_width: true, print: false)
+  exit 1
+end

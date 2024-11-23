@@ -229,7 +229,7 @@ module MB
           n3 = Numo::Pocketfft.ifft(f3)
           d = MB::M.rol(n3, 1 + off_other - off_self)
 
-          # Remove DC offset; first value should be zero
+          # Remove DC offset; first value should be zero since we know we've zero-padded with rightward alignment
           d -= d[0]
 
           #require 'pry-byebug'; binding.pry # XXX
@@ -244,6 +244,9 @@ module MB
         # FIXME: maybe this shouldn't round at all (but we still need to detect
         # true zeros from very-near zeros to truncate leading zeros, unless we
         # can use the polynomial orders and assume there is no remainder).
+        # TODO: maybe we should change the rounding amount based on the number
+        # of coefficients, so that we continue to remove leading zeros as
+        # overall precision decreases
         d = MB::M.round(d, 12).to_a
 
         added1 = d.length - @coefficients.length
@@ -527,13 +530,13 @@ module MB
           flistshift = flist.map(&:last)
 
           # XXX
-          puts 'freq is nil' if freq.nil?
+          puts 'first round' if freq.nil?
           puts "listmin #{flistmin}/#{freqmin}"# if freq && flistmin > freqmin
           puts "listnan #{flistnan}/#{nancount}"# if freq && flistnan < nancount
           puts "listbad #{flistbad}/#{badcount}"# if freq && flistbad < badcount
 
           if ffts_better?(freq&.map(&:first), flist.map(&:first), print: "pad #{pad} off #{flistshift}")
-            puts "Pad #{pad} len #{flist.first.first.length} is better than #{idx.inspect}"
+            puts "Pad #{pad} len #{flist.first.first.length} is better than #{idx&.inspect || 'nothing'}"
             freq = flist
             freqmin = flistmin
             nancount = flistnan
@@ -563,7 +566,7 @@ module MB
         freq = nil
         idx = nil
 
-        for offset in 0..(narray.length / 2)
+        for offset in (offset || 0)..(offset || narray.length / 2)
         # XXX for offset in 0..0
         #for offset in (offset || idx_xxx)..(offset || idx_xxx)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
@@ -582,7 +585,7 @@ module MB
       # near-zeros than the +old+ list.
       def ffts_better?(old, new, print: false)
         if old.nil?
-          puts 'better because nil' if print
+          puts 'better than nothing' if print
           return true if old.nil?
         else
           old = [old] unless old.is_a?(Array)
