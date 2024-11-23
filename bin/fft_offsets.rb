@@ -17,6 +17,19 @@
 # them together, then divide one of the multiplicands back out of the product,
 # expecting the other multiplicand as result.  It will then find the correct
 # offset and print a table of offsets to help me look for a pattern.
+#
+# The FFT division code is working correctly if the a_calc and b_calc columns
+# are always zero, never nil or some other value.
+#
+# Examples taken from my command history:
+#     SEED=0 ORDER_A=3 ORDER_B=6 MIN_OFFSET=-10 MAX_OFFSET=10 bin/fft_offsets.rb
+#     SEED=0 ORDER_A=3 ORDER_B=6 REPEATS=6 MIN_OFFSET=-3 MAX_OFFSET=3 bin/fft_offsets.rb
+#     SEED=0 ORDER_A=6 ORDER_B=6 REPEATS=6 MIN_OFFSET=-18 MAX_OFFSET=18 OFFSET_C=0 bin/fft_offsets.rb
+#     SEED=0 ORDER_A=6 ORDER_B=6 REPEATS=6 MIN_OFFSET=-18 MAX_OFFSET=18 OFFSET_C=3 bin/fft_offsets.rb
+#     SEED=0 REPEATS=30 bin/fft_offsets.rb
+#     COEFF_A='[-33, -97, -65]' COEFF_B='[89, 0, -89, 0]' PRINT_JSON=1 SEED=0 MIN_PAD=1 MAX_PAD=10 bin/fft_offsets.rb
+#     COEFF_A='[-33, -97, -65]' PRINT_JSON=1 SEED=0 bin/fft_offsets.rb
+#     COEFF_B='[5, 0, -5, 0]' COEFF_A='[89, 0, 89, 0]' REPEATS=1 PRINT_JSON=1 MIN_OFFSET=0 MAX_OFFSET=0 MIN_PAD=10 MAX_PAD=25 bin/fft_offsets.rb
 
 require 'bundler/setup'
 
