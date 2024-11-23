@@ -7,6 +7,8 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   let(:o2) { MB::M::Polynomial.new(3, 2, 1) }
   let(:o2_2) { MB::M::Polynomial.new(-3, -2, 5) }
   let(:o3) { MB::M::Polynomial.new(2, -1, 3, -5) }
+  let(:o3_fzero) { MB::M::Polynomial.new(5, 0, -5, 0) }
+  let(:o3_fzero2) { MB::M::Polynomial.new(89, 0, 89, 0) }
   let(:c4) { MB::M::Polynomial.new(1ri/5, -3ri/4, 1.25, -7, 12) }
   let(:o4_gaps) { MB::M::Polynomial.new(-5r/7, 0, 1r/5, 0, 4) }
   let(:c4_gaps) { MB::M::Polynomial.new(4.0 + 1.5i, 0, 0, 0, -1i) }
@@ -457,7 +459,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     it 'can divide a second-order polynomial multiplied by itself' do
       p = o2_2 * o2_2
       result = p.fft_divide(o2_2)
-      expect(MB::M.round(result, 6)).to eq([3, 2, 1])
+      expect(MB::M.round(result, 6)).to eq([-3, -2, 5])
     end
 
     it 'can divide a third-order polynomial multiplied by itself' do
@@ -496,7 +498,36 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(MB::M.round(result, 6)).to eq(o4_gaps.round(6).coefficients)
     end
 
-    pending
+    it 'can divide by a polynomial with zeros in the frequency domain' do
+      # Coefficients that sum to zero will have a zero DC FFT coefficient.
+      # Coefficients of even length with a repeating pattern will have other zeros.
+      p = o3_fzero * o3
+
+      result = p.fft_divide(o3)
+      expect(MB::M.round(result, 6)).to eq(o3_fzero.round(6).coefficients)
+
+      result = p.fft_divide(o3_fzero)
+      expect(MB::M.round(result, 6)).to eq(o3.round(6).coefficients)
+    end
+
+    it 'can divide two polynomials with zeros in the frequency domain' do
+      # Coefficients that sum to zero will have a zero DC FFT coefficient.
+      # Coefficients of even length with a repeating pattern will have other zeros.
+      p = o3_fzero * o3_fzero2
+
+      result = p.fft_divide(o3_fzero2)
+      expect(MB::M.round(result, 6)).to eq(o3_fzero.round(6).coefficients)
+
+      result = p.fft_divide(o3_fzero)
+      expect(MB::M.round(result, 6)).to eq(o3_fzero2.round(6).coefficients)
+    end
+
+    it 'can divide a zero-in-the-FFT polynomial when multiplied by itself' do
+      p = o3_fzero * o3_fzero
+
+      result = p.fft_divide(o3_fzero)
+      expect(MB::M.round(result, 6)).to eq(o3_fzero.round(6).coefficients)
+    end
   end
 
   describe '#long_divide' do

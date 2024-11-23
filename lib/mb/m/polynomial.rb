@@ -195,6 +195,9 @@ module MB
       # TODO: maybe also add a least-squares division algorithm
       def fft_divide(other, details: false, offsets: nil, pad_range: 0..10)
         length = MB::M.max(@order, other.order) + 1
+
+        # TODO: can we just pad to odd length here?
+        # Try different padding amounts to minimize or eliminate zero coefficients
         (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
           Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
           min_length: length,
@@ -202,26 +205,51 @@ module MB
           pad_range: pad_range
         )
 
-        # TODO: even if this works, we still need to reshift and de-pad the output, and possibly rescale it
         f3 = f1 / f2
+
+        # Check for 0 divided by 0 in the DC coefficient.  Not checking for
+        # infinity because if other is a factor of self, then any FFT zero in
+        # self must also be present in other.
+        if f3[0].abs.nan?
+          # Guess the DC coefficient by adding more padding and looking at the
+          # padded area.
+          # The DC coefficient will be zero on a product if any of the factors
+          # had a zero DC coefficient.
+
+          (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
+            Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
+            min_length: length,
+            offsets: offsets || [],
+            pad_range: (pad_range.begin + 1)..(pad_range.end + 5)
+          )
+
+          f3 = f1 / f2
+          f3[0] = 0
+          n3 = Numo::Pocketfft.ifft(f3)
+          d = MB::M.rol(n3, 1 + off_other - off_self)
+
+          # Remove DC offset; first value should be zero
+          d -= d[0]
+
+          #require 'pry-byebug'; binding.pry # XXX
+        else
+          n3 = Numo::Pocketfft.ifft(f3)
+          d = MB::M.rol(n3, 1 + off_other - off_self)
+        end
+
         n1 = Numo::Pocketfft.ifft(f1)
         n2 = Numo::Pocketfft.ifft(f2)
-        n3 = Numo::Pocketfft.ifft(f3)
 
-        # FIXME: this is not the right offset and we need to truncate to the
-        # correct order.  Rounding is also probably not enough precision, and
-        # maybe this shouldn't round at all (but we need to detect true zeros
-        # from very-near zeros).
-
-        d = MB::M.round(n3.to_a, 12)
+        # FIXME: maybe this shouldn't round at all (but we still need to detect
+        # true zeros from very-near zeros to truncate leading zeros, unless we
+        # can use the polynomial orders and assume there is no remainder).
+        d = MB::M.round(d, 12).to_a
 
         added1 = d.length - @coefficients.length
         added2 = d.length - other.coefficients.length
 
         # XXX d2 = MB::M.ror(d, off_self + off_other - 1)
-        d2 = MB::M.rol(d, 1 + off_other - off_self)
-
-        d2 = MB::M.ltrim(d2)
+        d2 = MB::M.ltrim(d)
 
         #require 'pry-byebug'; binding.pry # XXX
 
