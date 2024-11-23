@@ -210,7 +210,8 @@ module MB
         # Check for 0 divided by 0 in the DC coefficient.  Not checking for
         # infinity because if other is a factor of self, then any FFT zero in
         # self must also be present in other.
-        if f3[0].abs.nan?
+        if f3[0].abs.nan? || (f1[0].abs.round(6) == 0 && f2[0].abs.round(6) == 0)
+          puts 'DC NAN -- padding and guessing'
           # Guess the DC coefficient by adding more padding and looking at the
           # padded area.
           # The DC coefficient will be zero on a product if any of the factors
@@ -220,7 +221,7 @@ module MB
             Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
             min_length: length,
             offsets: offsets || [],
-            pad_range: (pad_range.begin + 1)..(pad_range.end + 5)
+            pad_range: (pad + 1)..(pad + 5)
           )
 
           f3 = f1 / f2
@@ -515,6 +516,8 @@ module MB
 
         min_length ||= narrays.max(&:length)
 
+        raise "Pad range #{pad_range} is empty" if pad_range.end < pad_range.begin
+
         for pad in pad_range
           flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), pad_xxx: pad, idx_xxx: idx, offset: offsets[idx]) }
           flistmin = flist.map { |f, _idx| f.abs.min }.min
@@ -530,7 +533,7 @@ module MB
           puts "listbad #{flistbad}/#{badcount}"# if freq && flistbad < badcount
 
           if ffts_better?(freq&.map(&:first), flist.map(&:first), print: "pad #{pad} off #{flistshift}")
-            puts "Pad #{pad} is better than #{idx.inspect}"
+            puts "Pad #{pad} len #{flist.first.first.length} is better than #{idx.inspect}"
             freq = flist
             freqmin = flistmin
             nancount = flistnan
@@ -604,21 +607,17 @@ module MB
             puts "#{print} better because nan" if print
             return true
           elsif newnan == oldnan
-            if newzero < oldzero
-              puts "#{print} better because zero" if print
+            if newbad < oldbad
+              puts "#{print} better because bad" if print
               return true
-            elsif newzero == oldzero
-              if newbad < oldbad
-                puts "#{print} better because bad" if print
+            elsif newbad == oldbad
+              if newodd < oldodd
+                puts "#{print} better because odd" if print
                 return true
-              elsif newbad == oldbad
-                if newodd < oldodd
-                  puts "#{print} better because odd" if print
-                elsif newodd == oldodd
-                  if newmin > oldmin
-                    puts "#{print} better because min" if print
-                    return true
-                  end
+              elsif newodd == oldodd
+                if newmin > oldmin
+                  puts "#{print} better because min" if print
+                  return true
                 end
               end
             end
