@@ -43,6 +43,12 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p.coefficients).to eq([1, 2])
     end
 
+    it 'removes leading zeros when all coefficients are zero' do
+      p = MB::M::Polynomial.new(0, 0, 0)
+      expect(p.order).to eq(0)
+      expect(p.coefficients).to eq([0])
+    end
+
     it 'can create a polynomial with order 100' do
       expect(o100.order).to eq(100)
     end

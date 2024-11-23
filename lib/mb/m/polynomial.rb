@@ -40,12 +40,13 @@ module MB
         end
         raise ArgumentError, "All coefficients must be Numeric; got #{coefficients.map(&:class).uniq}" unless coefficients.all?(Numeric)
 
-        first_nonzero = coefficients.find_index { |v| v != 0 }
-        @coefficients = coefficients[first_nonzero..].map { |c|
+        @coefficients = coefficients.drop_while(&:zero?).map { |c|
           c = c.real if c.is_a?(Complex) && c.imag == 0
           c = c.numerator if c.is_a?(Rational) && c.denominator == 1
           c
         }.freeze
+
+        @coefficients = [0].freeze if @coefficients.empty? && !coefficients.empty?
 
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1
       end
