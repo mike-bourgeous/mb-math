@@ -27,3 +27,22 @@ jobs:
         run: bundle install
       - name: Run tests
         run: bundle exec rspec
+  fft_deconvolution_test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['2.7', '3.0', '3.3']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - name: Install apt deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install ffmpeg gnuplot-nox
+      - name: Install gem deps
+        run: bundle install
+      - name: Run tests
+        run: bundle exec bin/poly/offset_tests.sh
