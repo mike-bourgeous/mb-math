@@ -190,7 +190,7 @@ module MB
       # TODO: maybe also add a least-squares division algorithm
       def fft_divide(other, details: false, offsets: nil)
         length = MB::M.max(@order, other.order) + 1
-        (f1, f2), (off1, off2), pad = optimal_pad_fft(
+        (f1, f2), (off_self, off_other), pad = optimal_pad_fft(
           Numo::DComplex.cast(@coefficients), Numo::DComplex.cast(other.coefficients),
           min_length: length,
           offsets: offsets || [],
@@ -212,15 +212,15 @@ module MB
         added1 = d.length - @coefficients.length
         added2 = d.length - other.coefficients.length
 
-        # XXX d2 = MB::M.ror(d, off1 + off2 - 1)
-        d2 = MB::M.rol(d, 1)
+        # XXX d2 = MB::M.ror(d, off_self + off_other - 1)
+        d2 = MB::M.rol(d, 1 + off_other - off_self)
 
         #require 'pry-byebug'; binding.pry # XXX
 
         # XXX d2.drop_while(&:zero?)
 
         # XXX details
-        details ? {coefficients: d2, off1: off1, off2: off2, pad: pad} : d2
+        details ? {coefficients: d2, off_self: off_self, off_other: off_other, pad: pad} : d2
       end
 
       # Returns quotient and remainder Arrays with the coefficients of the

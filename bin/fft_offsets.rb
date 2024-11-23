@@ -62,6 +62,7 @@ def find_offset(target, query)
   query = MB::M.round(query, 6)
 
   for offset in 0...query.length
+    return -offset if MB::M.ror(query, offset) == target
     return offset if MB::M.rol(query, offset) == target
   end
 
@@ -101,8 +102,8 @@ for order_a in order_a_range
       b = random_polynomial(order_b)
       c = a * b
 
-      for offset_x in offset_x_range
-        for offset_c in offset_c_range
+      for offset_c in offset_c_range
+        for offset_x in offset_x_range
           q = c.fft_divide(b, details: true, offsets: [offset_c, offset_x])
           r = c.fft_divide(a, details: true, offsets: [offset_c, offset_x])
 
@@ -114,16 +115,16 @@ for order_a in order_a_range
             ordc: c.order,
             coeff_a: MB::U.syntax(a.to_s),
             coeff_b: MB::U.syntax(b.to_s),
-            off_x: offset_x,
             off_c: offset_c,
-            a_offset: find_offset(a.coefficients, q[:coefficients]),
-            b_offset: find_offset(b.coefficients, r[:coefficients]),
-            a_off1: q[:off1],
-            a_off2: q[:off2],
+            off_x: offset_x,
+            a_calc: "* #{MB::U.highlight(find_offset(a.coefficients, q[:coefficients]))} *",
+            a_off_x: q[:off_self],
+            a_off_c: q[:off_other],
             a_pad: q[:pad],
             a_extra: q[:coefficients].length - a.coefficients.length,
-            b_off1: r[:off1],
-            b_off2: r[:off2],
+            b_calc: "* #{MB::U.highlight(find_offset(b.coefficients, r[:coefficients]))} *",
+            b_off_x: r[:off_self],
+            b_off_c: r[:off_other],
             b_pad: r[:pad],
             b_extra: r[:coefficients].length - b.coefficients.length,
             a_len: a.coefficients.length,
