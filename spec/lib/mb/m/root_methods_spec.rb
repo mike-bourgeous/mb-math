@@ -16,7 +16,7 @@ RSpec.describe(MB::M::RootMethods) do
       roots = MB::M.quadratic_roots(1.0, -4.0-1.0i, 3.0+3.0i)
 
       expect(roots).to eq([3, 1+1i])
-      expect(roots.map(&:class)).to eq([Float, Complex])
+      expect(roots.map(&:class)).to eq([Integer, Complex])
     end
 
     it 'returns the root of a linear equation if a is zero and b is nonzero' do
@@ -27,6 +27,71 @@ RSpec.describe(MB::M::RootMethods) do
     it 'raises RangeError if a and b are zero, regardless of c' do
       expect { MB::M.quadratic_roots(0, 0, 0) }.to raise_error(RangeError)
       expect { MB::M.quadratic_roots(0, 0, 1) }.to raise_error(RangeError)
+    end
+
+    it 'returns exact Integers for Integer roots' do
+      expect(MB::M.quadratic_roots(1, 0, -9)).to all(be_a(Integer)).and eq([3, -3])
+    end
+
+    it 'returns Rationals for Rational roots' do
+      expect(MB::M.quadratic_roots(1, 1r/21, -10r/21)).to all(be_a(Rational)).and eq([2r/3, -5r/7])
+    end
+
+    it 'returns a Rational for an Integer linear equation' do
+      expect(MB::M.quadratic_roots(0, 7, -11)).to all(be_a(Rational)).and eq([11r/7])
+    end
+
+    it 'returns a Rational for a Rational linear equation' do
+      expect(MB::M.quadratic_roots(0, -7r/3, 11r/2)).to all(be_a(Rational)).and eq([33r/14])
+    end
+
+    it 'returns an Integer for a degenerate Rational linear equation' do
+      expect(MB::M.quadratic_roots(0, -3r/7, 6r/7)).to all(be_a(Integer)).and eq([2])
+    end
+  end
+
+  describe '#kind_sqrt' do
+    it 'returns a Rational for the square root of a Rational when possible' do
+      expect(MB::M.kind_sqrt(25r/9)).to be_a(Rational).and eq(5r/3)
+    end
+
+    it 'returns a Float for the square root of a Rational when not a rational square' do
+      expect(MB::M.kind_sqrt(3r/2)).to be_a(Float).and eq(Math.sqrt(1.5))
+    end
+
+    it 'returns an Integer for the square root of an Integer when possible' do
+      expect(MB::M.kind_sqrt(25)).to be_a(Integer).and eq(5)
+      expect(MB::M.kind_sqrt(16)).to be_a(Integer).and eq(4)
+    end
+
+    it 'returns an Integer for the square root of a square, degenerate Rational' do
+      expect(MB::M.kind_sqrt(8r/2)).to be_a(Integer).and eq(2)
+    end
+
+    it 'returns a Complex with Integers for the square root of a negative Integer' do
+      expect(MB::M.kind_sqrt(-9)).to be_a(Complex).and eq(3i)
+      expect(MB::M.kind_sqrt(-16).imag).to be_a(Integer).and eq(4)
+    end
+
+    it 'returns a Complex with Rationals for the square root of a negative Rational' do
+      expect(MB::M.kind_sqrt(-25r/9)).to be_a(Complex).and eq(5ri/3)
+      expect(MB::M.kind_sqrt(-36r/49).imag).to be_a(Rational).and eq(6r/7)
+    end
+
+    it 'returns a Complex for the square root of a Complex' do
+      expect(MB::M.kind_sqrt(3+5i)).to be_a(Complex).and eq(CMath.sqrt(3+5i))
+    end
+
+    it 'returns a Float for the square root of a positive non-square Float' do
+      expect(MB::M.kind_sqrt(2)).to be_a(Float).and eq(Math.sqrt(2))
+    end
+
+    it 'returns an Integer for the square root of a positive square Float' do
+      expect(MB::M.kind_sqrt(4)).to be_a(Integer).and eq(2)
+    end
+
+    it 'returns a BigDecimal for the square root of a BigDecimal' do
+      expect(MB::M.kind_sqrt(BigDecimal(10 ** 72))).to be_a(BigDecimal).and eq(BigDecimal(10 ** 36))
     end
   end
 

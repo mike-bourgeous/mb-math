@@ -1,3 +1,5 @@
+require 'bigdecimal'
+
 module MB
   module M
     # Methods for finding the roots of polynomials.
@@ -63,22 +65,50 @@ module MB
       def quadratic_roots(a, b, c)
         raise RangeError, 'A or B must be nonzero' if a == 0 && b == 0 # Horizontal line
 
-        return [1.0 * -c / b] if a == 0 # Linear equation (1.0 ensures float math)
+        return [convert_down(-c.quo(b))] if a == 0 # Linear equation
 
-        dsq = b * b - 4.0 * a * c
+        disc = kind_sqrt(b * b - 4 * a * c)
 
-        # Checking if the number is complex is faster than always calling CMath.sqrt
-        disc = (dsq.is_a?(Complex) || dsq < 0) ? CMath.sqrt(dsq) : Math.sqrt(dsq)
+        denom = 2 * a
 
-        denom = 2.0 * a
+        r1 = (-b + disc).quo(denom)
+        r2 = (-b - disc).quo(denom)
 
-        r1 = ((-b + disc) / denom)
-        r2 = ((-b - disc) / denom)
+        [convert_down(r1), convert_down(r2)]
+      end
 
-        r1 = r1.real if r1.is_a?(Complex) && r1.imag == 0
-        r2 = r2.real if r2.is_a?(Complex) && r2.imag == 0
+      # Like Math.sqrt but preserves Rationals.  Inspired by the mathn gem's
+      # implementation of sqrt.  Used by #quadratic_roots.
+      def kind_sqrt(v)
+        v = convert_down(v)
 
-        [r1, r2]
+        case
+        when v.is_a?(Complex)
+          # TODO: try to preserve rationals and integers for complex roots
+          r = CMath.sqrt(v)
+
+        when v < 0
+          r = Complex(0, kind_sqrt(-v))
+
+        when v.is_a?(Rational)
+          r = kind_sqrt(v.numerator.to_f).quo(kind_sqrt(v.denominator.to_f))
+
+        when v.is_a?(Integer)
+          r = Integer.sqrt(v)
+          r = r * r == v ? r : Math.sqrt(v)
+
+        when v.is_a?(Float)
+          r = Math.sqrt(v)
+
+        when v.is_a?(BigDecimal)
+          # TODO: use BigDecimal / BigMath more
+          r = v.sqrt(MB::M.max(v.precision, 64))
+
+        else
+          r = v ** 0.5
+        end
+
+        convert_down(r)
       end
 
       # This method tries to find one approximate root of a differentiable
@@ -139,6 +169,8 @@ module MB
         &block
       )
         prefix ||= '  ' * depth
+
+        # TODO: maybe use the Newton's method implementation from BigDecimal/BigMath
 
         raise ArgumentError, "Pass only a callable function object, or a block; not both" if func && block_given?
 
