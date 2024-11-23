@@ -324,6 +324,7 @@ end
 
 
 srand(ENV['SEED'].to_i) if ENV['SEED'] && ENV['SEED'] =~ /\A[0-9]+\z/
+SEED = Random.respond_to?(:seed) ? Random.seed : Random::DEFAULT.seed
 
 results = []
 
@@ -378,9 +379,6 @@ for order_a in order_a_range
   end
 end
 
-MB::U.headline "Random seed: #{Random::DEFAULT.seed}"
-puts
-
 MB::U.headline 'Settings', color: 32
 puts MB::U.table(
   aos_to_soa([{
@@ -402,6 +400,8 @@ puts MB::U.table(
 
     print_json: PRINT_JSON,
     repeats: REPEATS,
+
+    seed: SEED,
   }]),
   variable_width: true
 )
@@ -412,6 +412,7 @@ puts MB::U.table(results_table, variable_width: true, print: false)
 failures = results.select { |r| r[:a_calc].include?('nil') || r[:b_calc].include?('nil') }
 if failures.any?
   STDERR.puts "\n\n#{MB::U.headline("\e[1m#{failures.count}\e[22m FAILED".center(50), color: 31, print: false)}\n\n"
+  STDERR.puts "\n\n#{MB::U.headline("Random seed: #{SEED}", print: false)}\n\n"
   STDERR.puts MB::U.table(aos_to_soa(failures), variable_width: true, print: false)
   exit 1
 else
