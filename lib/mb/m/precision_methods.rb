@@ -25,6 +25,21 @@ module MB
         8 => 'Y',
       }
 
+      # Converts Complex to real when the imaginary part is zero, Rational to
+      # Integer when the denominator is one, and Float to Integer when the
+      # fractional part is zero.
+      def convert_down(value)
+        if value.is_a?(Array) || value.is_a?(Numo::NArray)
+          return value.map { |v| convert_down(v) }
+        end
+
+        value = value.real if value.is_a?(Complex) && value.imag == 0
+        value = value.numerator if value.is_a?(Rational) && value.denominator == 1
+        value = value.to_i if value.is_a?(Float) && value % 1 == 0
+
+        value
+      end
+
       # Rounds +value+ (Float, Complex, Numo::NArray, Array of Float) to
       # roughly +figs+ significant digits.  If +value+ is near the bottom end
       # of the floating point range (around 10**-307), 0 may be returned

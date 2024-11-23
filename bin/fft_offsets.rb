@@ -124,6 +124,8 @@ for order_a in order_a_range
             ordc: c.order,
             coeff_a: PRINT_JSON ? MB::U.syntax(a.coefficients) : MB::U.syntax(a.to_s),
             coeff_b: PRINT_JSON ? MB::U.syntax(b.coefficients) : MB::U.syntax(b.to_s),
+            q: MB::U.syntax(MB::M.convert_down(q[:coefficients])),
+            r: MB::U.syntax(MB::M.convert_down(r[:coefficients])),
             off_c: offset_c,
             off_x: offset_x,
             a_calc: "* #{MB::U.highlight(find_offset(a.coefficients, q[:coefficients]))} *",
