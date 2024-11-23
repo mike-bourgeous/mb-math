@@ -33,7 +33,11 @@ module MB
         # TODO: it might be possible to make this work on vectors by allowing vectors for coefficients
         # TODO: it might be possible to handle multivariable polynomials by using an N-dimensional array
 
-        coefficients = coefficients[0].dup if coefficients.length == 1 && coefficients[0].is_a?(Array)
+        if coefficients.length == 1
+          c0 = coefficients[0]
+          coefficients = c0.to_a if c0.is_a?(Numo::NArray)
+          coefficients = c0.dup if c0.is_a?(Array)
+        end
         raise ArgumentError, "All coefficients must be Numeric; got #{coefficients.map(&:class).uniq}" unless coefficients.all?(Numeric)
 
         first_nonzero = coefficients.find_index { |v| v != 0 }

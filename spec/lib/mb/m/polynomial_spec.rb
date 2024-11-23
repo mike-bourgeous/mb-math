@@ -18,6 +18,11 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p.coefficients).to eq([1, 2, 3])
     end
 
+    it 'can create a polynomial from a Numo::NArray' do
+      p = MB::M::Polynomial.new(Numo::SFloat[1, 2, 3])
+      expect(p.coefficients).to eq([1, 2, 3])
+    end
+
     it 'can create a polynomial from a variable length list' do
       p = MB::M::Polynomial.new(1, 2, 3)
       expect(p.coefficients).to eq([1, 2, 3])
