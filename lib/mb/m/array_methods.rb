@@ -218,6 +218,61 @@ module MB
         pad(narray, min_length, value: 1, alignment: alignment, &bl)
       end
 
+      # Returns a new Array or Numo::NArray with leading copies of +value+
+      # removed from the given +array+.  Returns an empty array if the array is
+      # entirely equal to +value+.
+      #
+      # For Ruby Arrays, this just calls Array#drop_while.  The method is
+      # provided mainly for use with Numo::NArray.
+      #
+      # Example:
+      #     MB::M.ltrim([0, 1, 2, 3])
+      #     # => [1, 2, 3]
+      #
+      #     MB::M.ltrim(Numo::SFloat[1, 1, 2, 3, 4], 1)
+      #     # => [2, 3, 4]
+      #
+      # If a block is given, then each leading value will be yielded to the
+      # block, and the leading elements for which the block returns true will
+      # be removed (iteration will stop when the block returns false).  The
+      # +value+ parameter is ignored when a block is given.
+      #
+      # Example:
+      #     MB::M.ltrim([1, 3, 5, 2, 4, 6], &:odd?)
+      #     # => [2, 4, 6]
+      #
+      # Comparison uses the == and != operators, so 0.0 and -0.0 are considered
+      # equal.
+      def ltrim(array, value = 0)
+        case array
+        when Numo::NArray
+          # TODO: there's got to be a faster way to do this, like a
+          # clz/count-leading-zeros function or something
+          # TODO: add an approximation option and use nearly_eq?
+
+          if block_given?
+            idx = array.each_with_index { |v, idx| break idx if !yield(v) }
+          else
+            idx = array.each_with_index { |v, idx| break idx if v != value }
+            idx = nil unless idx.is_a?(Integer) # if we didn't break then we got the array instead
+          end
+
+          return array.class[] if idx.nil?
+
+          array[idx..]
+
+        when Array
+          if block_given?
+            array.drop_while { |v| yield v }
+          else
+            array.drop_while { |v| v == value }
+          end
+
+        else
+          raise ArgumentError, "Expecting Numo::NArray or Array, got #{array.class}"
+        end
+      end
+
       # Rotates a 1D NArray left by +n+ places, which must be less than the
       # length of the NArray.  Returns a duplicate of the original array if +n+
       # is zero or the rotation would have no effect.  Use negative values for

@@ -354,6 +354,71 @@ RSpec.describe(MB::M::ArrayMethods) do
     end
   end
 
+  describe '#ltrim' do
+    context 'with Numo::NArray' do
+      let(:zero) { Numo::SFloat[0, 0, 0, 1, 2, 3] }
+      let(:one) { Numo::SFloat[1, 1, 1, 2, 3, 4] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.ltrim(Numo::SFloat[])).to eq(Numo::SFloat[])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.ltrim(zero, 1)).to eq(zero)
+        expect(MB::M.ltrim(zero, 0)).to eq(Numo::SFloat[1, 2, 3])
+
+        expect(MB::M.ltrim(one, 0)).to eq(one)
+        expect(MB::M.ltrim(one, 1)).to eq(Numo::SFloat[2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.ltrim(Numo::Int32[1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([2, 4, 6])
+        expect(MB::M.ltrim(Numo::SFloat[Float::NAN, Float::INFINITY, -Float::INFINITY, 2, 4, 6]) { |v| !v.finite? }).to eq(Numo::SFloat[2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.ltrim(Numo::SFloat.zeros(6))).to eq(Numo::SFloat[])
+        expect(MB::M.ltrim(Numo::SFloat.ones(6), 1)).to eq(Numo::SFloat[])
+      end
+
+      it 'returns the same type' do
+        expect(MB::M.ltrim(Numo::SFloat[0,1,2])).to be_a(Numo::SFloat)
+        expect(MB::M.ltrim(Numo::Int32[0,1,2])).to be_a(Numo::Int32)
+      end
+    end
+
+    context 'with Array' do
+      let(:zero) { [0, 0, 0, 1, 2, 3] }
+      let(:one) { [1, 1, 1, 2, 3, 4] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.ltrim([])).to eq([])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.ltrim(zero, 1)).to eq(zero)
+        expect(MB::M.ltrim(zero, 0)).to eq([1, 2, 3])
+
+        expect(MB::M.ltrim(one, 0)).to eq(one)
+        expect(MB::M.ltrim(one, 1)).to eq([2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.ltrim([1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([2, 4, 6])
+        expect(MB::M.ltrim([Float::NAN, Float::INFINITY, -Float::INFINITY, 2, 4, 6]) { |v| !v.finite? }).to eq([2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.ltrim([0] * 6)).to eq([])
+        expect(MB::M.ltrim([1] * 6, 1)).to eq([])
+      end
+    end
+
+    it 'raises an error for a non-array type' do
+      expect { MB::M.ltrim('hello', 'h') }.to raise_error(ArgumentError, /array/i)
+    end
+  end
+
   describe '.rol' do
     context 'with Numo::NArray' do
       it 'returns the same array with a rotation of 0' do
