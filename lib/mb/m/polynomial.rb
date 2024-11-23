@@ -516,7 +516,7 @@ module MB
         min_length ||= narrays.max(&:length)
 
         for pad in pad_range
-          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), idx_xxx: idx * 17, offset: offsets[idx]) }
+          flist = narrays.map.with_index { |n, idx| optimal_shift_fft(MB::M.zpad(n, min_length + pad, alignment: 1.0), pad_xxx: pad, idx_xxx: idx, offset: offsets[idx]) }
           flistmin = flist.map { |f, _idx| f.abs.min }.min
           flistnan = flist.map { |f, _idx| f.isnan.count_1 }.sum
           flistzero = flist.map { |f, _idx| f.eq(0).count_1 }.sum
@@ -529,7 +529,7 @@ module MB
           puts "listnan #{flistnan}/#{nancount}"# if freq && flistnan < nancount
           puts "listbad #{flistbad}/#{badcount}"# if freq && flistbad < badcount
 
-          if ffts_better?(freq&.map(&:first), flist.map(&:first))
+          if ffts_better?(freq&.map(&:first), flist.map(&:first), print: "pad #{pad} off #{flistshift}")
             puts "Pad #{pad} is better than #{idx.inspect}"
             freq = flist
             freqmin = flistmin
@@ -556,45 +556,76 @@ module MB
       #
       # TODO: Could try minimizing the difference between two ffts so that
       # small coefficients line up and don't explode as much when divided.
-      def optimal_shift_fft(narray, idx_xxx:, offset:)
+      def optimal_shift_fft(narray, pad_xxx:, idx_xxx:, offset:)
         freq = nil
         idx = nil
 
-        # XXX for offset in 0..(narray.length / 2)
+        for offset in 0..(narray.length / 2)
         # XXX for offset in 0..0
-        for offset in (offset || idx_xxx)..(offset || idx_xxx)
+        #for offset in (offset || idx_xxx)..(offset || idx_xxx)
           f = Numo::Pocketfft.fft(MB::M.rol(narray, offset))
           freq, idx = f, offset if ffts_better?(freq, f)
 
-          #f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
-          #freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
+          f = Numo::Pocketfft.fft(MB::M.ror(narray, offset))
+          freq, idx = f, -offset if freq.nil? || f.abs.min > freq.abs.min
         end
 
-        puts "Best offset for length #{narray.length}: #{idx} with min #{freq.abs.min} max #{freq.abs.max} nan #{freq.isnan.count} zero #{freq.eq(0).count} bad #{MB::M.round(freq, 12).eq(0).count}" # XXX
+        puts "Best offset for pad #{pad_xxx} idx #{idx_xxx} len #{narray.length}: #{idx} with min #{freq.abs.min} max #{freq.abs.max} nan #{freq.isnan.count} zero #{freq.eq(0).count} bad #{MB::M.round(freq, 12).eq(0).count}" # XXX
 
         return freq, idx
       end
 
       # Returns true if the +new+ list of FFTs has fewer NaNs, zeros, or
       # near-zeros than the +old+ list.
-      def ffts_better?(old, new)
-        return true if old.nil?
+      def ffts_better?(old, new, print: false)
+        if old.nil?
+          puts 'better because nil' if print
+          return true if old.nil?
+        else
+          old = [old] unless old.is_a?(Array)
+          new = [new] unless new.is_a?(Array)
 
-        old = [old] unless old.is_a?(Array)
-        new = [new] unless new.is_a?(Array)
+          # TODO: Avoid recalculating these values on every iteration
+          oldmin = old.map { |f| f.abs.min }.min
+          oldnan = old.map { |f| f.isnan.count_1 }.sum
+          oldzero = old.map { |f| f.eq(0).count_1 }.sum
+          oldbad = old.map { |f| MB::M.round(f, 6).eq(0).count_1 }.sum
+          oldodd = old.map { |f| f.length.odd? ? 1 : 0 }.sum
 
-        # TODO: Avoid recalculating these values on every iteration
-        oldmin = old.map { |f| f.abs.min }.min
-        oldnan = old.map { |f| f.isnan.count_1 }.sum
-        oldzero = old.map { |f| f.eq(0).count_1 }.sum
-        oldbad = old.map { |f| MB::M.round(f, 12).eq(0).count_1 }.sum
+          newmin = new.map { |f| f.abs.min }.min
+          newnan = new.map { |f| f.isnan.count_1 }.sum
+          newzero = new.map { |f| f.eq(0).count_1 }.sum
+          newbad = new.map { |f| MB::M.round(f, 6).eq(0).count_1 }.sum
+          newodd = new.map { |f| f.length.odd? ? 1 : 0 }.sum
 
-        newmin = new.map { |f| f.abs.min }.min
-        newnan = new.map { |f| f.isnan.count_1 }.sum
-        newzero = new.map { |f| f.eq(0).count_1 }.sum
-        newbad = new.map { |f| MB::M.round(f, 12).eq(0).count_1 }.sum
+          # XXX newnan < oldnan || (newnan == oldnan && (newzero < oldzero || (newzero == oldzero && (newbad < oldbad || (newbad == oldbad && false && (newmin > oldmin))))))
 
-        newnan < oldnan || (newnan == oldnan && (newzero < oldzero || (newzero == oldzero && (newbad < oldbad || (newbad == oldbad && (newmin > oldmin))))))
+          if newnan < oldnan
+            puts "#{print} better because nan" if print
+            return true
+          elsif newnan == oldnan
+            if newzero < oldzero
+              puts "#{print} better because zero" if print
+              return true
+            elsif newzero == oldzero
+              if newbad < oldbad
+                puts "#{print} better because bad" if print
+                return true
+              elsif newbad == oldbad
+                if newodd < oldodd
+                  puts "#{print} better because odd" if print
+                elsif newodd == oldodd
+                  if newmin > oldmin
+                    puts "#{print} better because min" if print
+                    return true
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        false
       end
 
       # Helper for #to_s to generate text and multiplication symbol for

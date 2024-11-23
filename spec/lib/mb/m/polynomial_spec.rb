@@ -528,6 +528,26 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       result = p.fft_divide(o3_fzero)
       expect(MB::M.round(result, 6)).to eq(o3_fzero.round(6).coefficients)
     end
+
+    it 'can divide polynomials that previously failed with unfavorable padding' do
+      # From a random run of bin/fft_offsets.rb
+      a = MB::M::Polynomial.new(27, 0, 4, 49, 0, 0, 0)
+      b = MB::M::Polynomial.new(
+        87, 97, 54, 0, 28, 0, -65, 0, 0, 0, 0, 0, 17, -95, 24, 0, 3, 0, 0, 0,
+        -30, 0, -19, 0, 0, 0, 0, 0, -78, -27, 40, -95, 0, 0, 0, -55, -58, -87,
+        0, 0, 0, 0, -18, 0, 6, -4, -23, 0, -70, 51, 69, 0, 30, 0, 79, 15, -14,
+        0, 0, 95, 0, -60, 100, 0, -96, 0, -7, 0, 0, 61, 0, -83, 19, -42, 0, 0,
+        0, 0, 0, 0, 0, 0, 97, -98, 47, 0, 0, 0, 0, 78, 0, 0, 78, 0, -38, 0, 0,
+        20, 0, -33
+      )
+      c = a * b
+
+      result = c.fft_divide(a)
+      expect(MB::M.round(result, 6)).to eq(b.round(6).coefficients)
+
+      result = c.fft_divide(b)
+      expect(MB::M.round(result, 6)).to eq(a.round(6).coefficients)
+    end
   end
 
   describe '#long_divide' do
