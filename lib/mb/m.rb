@@ -15,6 +15,7 @@ require_relative 'm/special_functions'
 require_relative 'm/trig_methods'
 require_relative 'm/regression_methods'
 require_relative 'm/root_methods'
+require_relative 'm/random_methods'
 
 module MB
   # Functions for clamping, scaling, interpolating, etc.  Extracted from
@@ -35,6 +36,7 @@ module MB
     extend TrigMethods
     extend RegressionMethods
     extend RootMethods
+    extend RandomMethods
 
     module NumericMathDSL
       # Returns the number itself (radians are the default).
