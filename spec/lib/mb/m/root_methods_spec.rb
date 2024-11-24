@@ -83,7 +83,7 @@ RSpec.describe(MB::M::RootMethods) do
     end
 
     it 'returns a Float for the square root of a positive non-square Float' do
-      expect(MB::M.kind_sqrt(2)).to be_a(Float).and eq(Math.sqrt(2))
+      expect(MB::M.kind_sqrt(2.5)).to be_a(Float).and eq(Math.sqrt(2.5))
     end
 
     it 'returns an Integer for the square root of a positive square Float' do
@@ -92,6 +92,21 @@ RSpec.describe(MB::M::RootMethods) do
 
     it 'returns a BigDecimal for the square root of a BigDecimal' do
       expect(MB::M.kind_sqrt(BigDecimal(10 ** 72))).to be_a(BigDecimal).and eq(BigDecimal(10 ** 36))
+    end
+
+    it 'falls back to exponentiation for other/unknown Numerics' do
+      ntype = Class.new(Numeric) do
+        def <(o)
+          false
+        end
+        def **(o)
+          42
+        end
+      end
+
+      v = ntype.new
+
+      expect(MB::M.kind_sqrt(v)).to eq(42)
     end
   end
 
