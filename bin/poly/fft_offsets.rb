@@ -277,20 +277,6 @@ def ffts_better?(old, new, print: false)
 end
 
 
-def random_polynomial(order)
-  c = [0]
-
-  # Make sure first coefficient is nonzero
-  c[0] = rand(-100..100) while c[0] == 0 || c.empty?
-
-  for i in 0...order
-    # 50/50 chance of a zero
-    c << (rand() > 0.5 ? 0 : rand(-100..100))
-  end
-
-  MB::M::Polynomial.new(c)
-end
-
 # Returns the leftward offset of the +query+ array compared to the +target+
 # array.  That is, the value of offset is returned when MB::M.rol(query,
 # offset) == target (within some rounding error).
@@ -339,8 +325,8 @@ offset_c_range = (OFFSET_C && (OFFSET_C..OFFSET_C)) || offset_range
 for order_a in order_a_range
   for order_b in order_b_range
     REPEATS.times do
-      a = COEFF_A ? MB::M::Polynomial.new(COEFF_A) : random_polynomial(order_a)
-      b = COEFF_B ? MB::M::Polynomial.new(COEFF_B) : random_polynomial(order_b)
+      a = COEFF_A ? MB::M::Polynomial.new(COEFF_A) : MB::M::Polynomial.random(order_a)
+      b = COEFF_B ? MB::M::Polynomial.new(COEFF_B) : MB::M::Polynomial.random(order_b)
       c = a * b
 
       for offset_c in offset_c_range

@@ -14,6 +14,24 @@ module MB
       # independent variable.
       attr_reader :order
 
+      # Creates a random polynomial of the given +order+.  This is useful for
+      # testing or for creating illustrative polynomials for demonstrations.
+      #
+      # +:complex+ - If true, generates Complex coefficients.  If :polar, those
+      # coefficients will be sampled from the unit circle.
+      def self.random(order, complex: false, zero_chance: 0.5, range: -100..100)
+        c = [0]
+
+        # Make sure first coefficient is nonzero
+        c[0] = MB::M.random_value(range, complex: complex) while c[0] == 0 || c.empty?
+
+        for i in 0...order
+          c << (rand() < zero_chance ? 0 : MB::M.random_value(range, complex: complex))
+        end
+
+        MB::M::Polynomial.new(c)
+      end
+
       # Initializes a polynomial with the given +coefficients+, which may be a
       # variable argument list or a single Array.  Coefficients may be any
       # Numeric, including Complex, but some operations may result in
