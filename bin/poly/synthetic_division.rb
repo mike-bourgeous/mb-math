@@ -91,7 +91,7 @@ class SyntheticDivisionDemo
       print_table "Multiply to fill diagonal #{col}"
     end
 
-    print_table 'Done'
+    print_table 'Done', pause: false
 
     if @left_count == 0
       quotient = @result
@@ -107,19 +107,42 @@ class SyntheticDivisionDemo
     return quotient, remainder
   end
 
-  def print_table(headline)
-    puts "\n\n"
-    MB::U.headline(headline)
+  # Prints the current state of the synthetic division table, highlighting any
+  # values that have changed since the last display.
+  def print_table(title, pause: true)
+    new_values = @rows.map { |r|
+      r[:left].map { |v| "\e[1;35m#{v}\e[0m" } +
+        r[:right].map { |v| "\e[1;36m#{v}\e[0m" }
+    }
+    new_values += [@scale + @result.map { |v| "\e[1;32m#{v}\e[0m" }]
+
+    @old_values ||= new_values
+
+    highlighted_values = new_values.map.with_index { |row, rowidx|
+      row.map.with_index { |v, colidx|
+        if @old_values[rowidx][colidx] == v
+          v
+        else
+          "\e[1;48;5;23m#{v}\e[0m"
+        end
+      }
+    }
+
+    @old_values = new_values
+
+    puts "\n\n\e[J"
     MB::U.table(
-      @rows.map { |r|
-        r[:left].map { |v| "\e[1;35m#{v}\e[0m" } +
-          r[:right].map { |v| "\e[1;36m#{v}\e[0m" }
-      } +
-      [@scale + @result],
-      header: false,
+      highlighted_values,
+      header: title,
       separate_rows: true
     )
-    sleep 1
+
+    if pause
+      puts "\n\n\n\e[1;33mPress Enter\e[0m\e[J"
+      gets
+      # 11 lines of header to skip past
+      STDOUT.write("\e[11H")
+    end
   end
 end
 
@@ -164,6 +187,9 @@ denominator = denom_coeffs.empty? ? b : MB::M::Polynomial.new(denom_coeffs)
 num_str = numerator.to_s
 denom_str = denominator.to_s
 
+puts "\e[H\e[J"
+puts "\e[33mSynthetic Division Demo from mb-math: \e[1mhttps://github.com/mike-bourgeous/mb-math\e[0m"
+puts "\nSee Wikipedia: \e[1mhttps://en.wikipedia.org/wiki/Synthetic_division#For_non-monic_divisors\e[0m"
 MB::U.headline('Calculating', color: 36)
 print_over(numerator, denominator)
 
