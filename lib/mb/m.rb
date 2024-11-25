@@ -8,6 +8,7 @@ require 'mb-util'
 require_relative 'm/version'
 require_relative 'm/interpolation_methods'
 require_relative 'm/precision_methods'
+require_relative 'm/coercion_methods'
 require_relative 'm/range_methods'
 require_relative 'm/array_methods'
 require_relative 'm/exponential_methods'
@@ -29,6 +30,7 @@ module MB
 
     extend InterpolationMethods
     extend PrecisionMethods
+    extend CoercionMethods
     extend RangeMethods
     extend ArrayMethods
     extend ExponentialMethods

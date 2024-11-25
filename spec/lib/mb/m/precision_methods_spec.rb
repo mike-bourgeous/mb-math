@@ -1,8 +1,4 @@
 RSpec.describe(MB::M::PrecisionMethods) do
-  describe '#convert_down' do
-    pending
-  end
-
   describe '#sigfigs' do
     it 'raises an error if digits is less than one' do
       expect { MB::M.sigfigs(1, 0) }.to raise_error(/digits/)
