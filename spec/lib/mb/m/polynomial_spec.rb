@@ -441,6 +441,59 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       end
     end
 
+    it 'can find the roots of the Hilbert filter in HDSP' do
+      # Handbook for Digital Signal Processing 1993, page 924
+      poles = MB::M.round([
+        -0.8699928078,
+        0.491194141 + 0.183666529i, 0.491194141 - 0.183666529i,
+        0.252724179 + 0.463085544i, 0.252724179 - 0.463085544i,
+        -0.109950894 + 0.548611467i, -0.109950894 - 0.548611467i,
+        -0.447326028 + 0.356810323i, -0.447326028 - 0.356810323i,
+      ], 6).sort_by { |v| [v.real, v.imag] }
+
+      p = poles.map { |z| MB::M::Polynomial.new(1, -z) }.reduce(&:*)
+      result = MB::M.round(p.roots, 6).sort_by { |v| [v.real, v.imag] }
+
+      expect(result).to eq(poles)
+    end
+
+    it 'can find the roots of the type-2 Chebyshev lowpass in HDSP' do
+      # Handbook for Digital Signal Processing 1993, page 314
+      zeros = [
+        0.55151i, -0.55151i,
+        1.33147i, -1.33147i,
+      ].sort_by { |v| [v.real, v.imag] }
+      poles = [
+        -0.32247 + 1.22775i, -0.32247 - 1.22775i,
+        -1.45070 + 0.94759i, -1.45070 - 0.94759i,
+      ].sort_by { |v| [v.real, v.imag] }
+
+      num = MB::M::Polynomial.new(1.8545, 0, 3.8518, 0, 1.0)
+      #num = MB::M::Polynomial.new(1.0, 0, 3.8518, 0, 1.8545)
+      denom = MB::M::Polynomial.new(18.545, 21.369, 12.697, 4.206, 1.0)
+
+      num_roots = num.roots.sort_by { |v| [v.real, v.imag] }
+      denom_roots = denom.roots.sort_by { |v| [v.real, v.imag] }
+
+      # Empirically determined scaling factor
+      scale = 3.077693451470827
+      denom_roots = denom_roots.map { |v| v * scale }
+
+      expect(MB::M.round(num_roots, 4)).to eq(MB::M.round(zeros, 4))
+      expect(MB::M.round(denom_roots, 4)).to eq(MB::M.round(poles, 4))
+    end
+
+    it 'can find the roots of the elliptic lowpass in HDSP' do
+      # Handbook for Digital Signal Processing 1993, page 316
+      num = MB::M::Polynomial.new(0.09542, -0.0152, -0.0152, 0.9542)
+      denom = MB::M::Polynomial.new(1.0, -2.0165, 1.6850, -0.5098)
+
+      expect(num.roots.uniq.count).to eq(3)
+      expect(denom.roots.uniq.count).to eq(3)
+
+      # TODO
+    end
+
     it 'preserves rational roots in some lucky cases' do
       # The "luck" comes from the order in which the roots are found, based on
       # the initial guess to Newton's method.  If Newton's method finds the
