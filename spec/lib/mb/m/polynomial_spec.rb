@@ -14,6 +14,117 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   let(:c4_gaps) { MB::M::Polynomial.new(4.0 + 1.5i, 0, 0, 0, -1i) }
   let(:o100) { MB::M::Polynomial.new((1..101).to_a) }
 
+  describe '.random' do
+    it 'can create a random polynomial' do
+      p = MB::M::Polynomial.random(37)
+      expect(p.order).to eq(37)
+      expect(p.coefficients.length).to eq(38)
+      expect(p.coefficients[0]).not_to eq(0)
+      expect(p.coefficients).to all(be_a(Integer).and be_between(-100, 100))
+    end
+
+    it 'can create rational random coefficients' do
+      p = MB::M::Polynomial.random(42, range: -100r..100r, zero_chance: 0.1)
+      expect(p.order).to eq(42)
+      # Some random rationals might be integers so expect at least some to be rational
+      expect(p.coefficients).to all(be_a(Rational).or be_a(Integer))
+      expect(p.coefficients.count { |v| v.is_a?(Rational) }).to be > 10
+      expect(p.coefficients).to all(be_between(-100, 100))
+    end
+
+    it 'can create complex random coefficients' do
+      p = MB::M::Polynomial.random(13, complex: true)
+      expect(p.coefficients).to all(be_a(Complex).or be_a(Integer))
+    end
+
+    it 'allows changing the zero probability' do
+      all_zero = MB::M::Polynomial.random(500, zero_chance: 1)
+      expect(all_zero.order).to eq(500)
+      expect(all_zero.coefficients[0]).not_to eq(0)
+      expect(all_zero.coefficients.count(0)).to eq(500)
+
+      none_zero = MB::M::Polynomial.random(500, zero_chance: 0)
+      expect(none_zero.order).to eq(500)
+      expect(none_zero.coefficients[0]).not_to eq(0)
+      expect(none_zero.coefficients.count(0)).to eq(0)
+
+      none_zero = MB::M::Polynomial.random(500, zero_chance: 0.5)
+      expect(none_zero.order).to eq(500)
+      expect(none_zero.coefficients[0]).not_to eq(0)
+      expect(none_zero.coefficients.count(0)).to be_between(100, 400)
+    end
+
+    it 'can create rational complex coefficients' do
+      p = MB::M::Polynomial.random(75, complex: true, range: 5r..13r, zero_chance: 0)
+      expect(p.order).to eq(75)
+      expect(p.coefficients).to all(be_a(Complex))
+      expect(p.coefficients.map(&:real)).to all(be_a(Rational).or be_a(Integer)).and all(be_between(5, 13))
+      expect(p.coefficients.map(&:imag)).to all(be_a(Rational).or be_a(Integer)).and all(be_between(5, 13))
+    end
+
+    it 'can create float coefficients' do
+      p = MB::M::Polynomial.random(75, range: -1.0..2.0)
+      expect(p.order).to eq(75)
+      expect(p.coefficients.count { |v| v.is_a?(Float) }).to be > 30
+      expect(p.coefficients).to all(be_a(Float).or be_a(Integer)).and all(be_between(-1.0, 2.0))
+    end
+
+    it 'can create complex float coefficients' do
+      p = MB::M::Polynomial.random(75, complex: true, range: -0.75..-0.125, zero_chance: 0)
+      expect(p.order).to eq(75)
+      expect(p.coefficients).to all(be_a(Complex))
+      expect(p.coefficients.map(&:real)).to all(be_a(Float).or be_a(Integer)).and all(be_between(-0.75, -0.125))
+      expect(p.coefficients.map(&:imag)).to all(be_a(Float).or be_a(Integer)).and all(be_between(-0.75, -0.125))
+    end
+  end
+
+  describe '.random_roots' do
+    it 'can create random integer roots' do
+      10.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
+        expect(p.order).to eq(7)
+        expect(p.coefficients).to all(be_a(Integer))
+        expect(roots.count).to eq(7)
+        expect(p.roots.count).to eq(7)
+        expect(roots.uniq.count).to be >= 3
+        expect(roots).to all(be_a(Integer).and be_between(-10, 10))
+        expect(scale).to be_a(Integer).and be_between(-10, 10)
+        expect(MB::M.convert_down(MB::M.round(p.roots, 5)).sort).to eq(roots.sort)
+      end
+    end
+
+    it 'can create random rational roots' do
+      p, roots, scale = MB::M::Polynomial.random_roots(5, range: -100r..100r)
+      expect(p.coefficients).to all(be_a(Integer).or be_a(Rational))
+      expect(roots.uniq.count).to be >= 3
+      expect(roots).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-100, 100))
+      expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-100, 100))
+      expect(MB::M.round(p.roots.sort, 5)).to eq(MB::M.round(roots.sort, 5))
+    end
+
+    it 'can create random float roots' do
+      p, roots, scale = MB::M::Polynomial.random_roots(6, range: -100.0..100.0)
+      expect(p.coefficients).to all(be_a(Float))
+      expect(roots.uniq.count).to be >= 3
+      expect(roots).to all(be_a(Float).and be_between(-100, 100))
+      expect(scale).to be_a(Float).and be_between(-100, 100)
+      expect(MB::M.round(p.roots.sort, 5)).to eq(MB::M.round(roots.sort, 5))
+    end
+
+    it 'can create random complex roots' do
+      p, roots, scale = MB::M::Polynomial.random_roots(21, range: -100..100)
+      expect(p.coefficients.map(&:real)).to all(be_a(Integer))
+      expect(p.coefficients.map(&:imag)).to all(be_a(Integer))
+      expect(roots.uniq.count).to be >= 7
+      expect(roots).to all(be_a(Integer).and be_between(-100, 100))
+      expect(scale).to be_a(Integer).and be_between(-100, 100)
+
+      sorted_roots = MB::M.round(roots, 5).sort_by { |v| [v.real, v.imag] }
+      result_roots = MB::M.round(p.roots, 5).sort_by { |v| [v.real, v.imag] }
+      expect(sorted_roots).to eq(result_roots)
+    end
+  end
+
   describe '#initialize' do
     it 'can create a polynomial from an Array' do
       p = MB::M::Polynomial.new([1, 2, 3])

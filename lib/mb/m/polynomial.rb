@@ -30,22 +30,64 @@ module MB
       # independent variable.
       attr_reader :order
 
-      # Creates a random polynomial of the given +order+.  This is useful for
-      # testing or for creating illustrative polynomials for demonstrations.
+      # Creates a random polynomial of the given +order+ from randomized
+      # coefficients.  This is useful for testing or for creating illustrative
+      # polynomials for demonstrations.
       #
       # +:complex+ - If true, generates Complex coefficients.  If :polar, those
       # coefficients will be sampled from the unit circle.
+      # +:zero_chance+ - The probability from 0..1 that each coefficient will
+      # be set to zero.  If this is 1, then all but the first coefficient will
+      # be zero.  If this is 0, then no coefficients will be zero.
+      # +:range+ - Passed to RandomMethods#random_value; controls the numeric
+      # type generated for roots (Integer, Rational, or Float) as well as the
+      # actual range.  The range must not be 0..0.
       def self.random(order, complex: false, zero_chance: 0.5, range: -100..100)
+        raise 'Coefficient range must allow nonzero' if range.begin == 0 && range.end == 0
+
         c = [0]
 
         # Make sure first coefficient is nonzero
         c[0] = MB::M.random_value(range, complex: complex) while c[0] == 0 || c.empty?
 
         for i in 0...order
-          c << (rand() < zero_chance ? 0 : MB::M.random_value(range, complex: complex))
+          if zero_chance >= 1 || (zero_chance > 0 && rand() < zero_chance)
+            c << 0
+          else
+            v = 0
+            v = MB::M.random_value(range, complex: complex) while v == 0
+            c << v
+          end
         end
 
         MB::M::Polynomial.new(c)
+      end
+
+      # Creates a random polynomial of the given +order+ from random roots and
+      # a random scale factor, rather than randomized coefficients.  Returns
+      # the new Polynomial, the list of roots, and the scale factor.  This is
+      # useful for testing root-finding algorithms.
+      #
+      # Note that coefficients can grow *very* quickly if using a large range
+      # or orders past 10, eventually exceeding Ruby's big integer limit.
+      #
+      # +:complex+ - If true, generates Complex coefficients.  If :polar, those
+      # coefficients will be sampled from the unit circle.
+      # +:range+ - Passed to RandomMethods#random_value; controls the numeric
+      # type generated for roots (Integer, Rational, or Float) as well as the
+      # actual range.
+      def self.random_roots(order, complex: false, range: -10..10)
+        roots = nil
+        loop do
+          roots = Array.new(order) { MB::M.random_value(range, complex: complex) }
+          break if roots.uniq.count >= order / 2
+        end
+
+        scale = MB::M.random_value(range, complex: complex)
+
+        p = roots.map { |r| MB::M::Polynomial.new(1, -r) }.reduce(&:*) * scale
+
+        return p, roots, scale
       end
 
       # Initializes a polynomial with the given +coefficients+, which may be a
@@ -357,7 +399,9 @@ module MB
         return quotient, remainder
       end
 
-      # TODO
+      # Returns an Array with roots of the polynomial, whether real or complex.
+      # In some cases this will preserve exact Rational or Integer roots, but
+      # often can only find Float approximations.
       def roots
         case @order
         when 0
