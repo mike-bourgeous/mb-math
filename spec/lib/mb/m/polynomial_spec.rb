@@ -770,5 +770,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(o2.to_s).to eq('3 * x ** 2 + 2 * x + 1')
       expect(o2_2.to_s).to eq('-3 * x ** 2 - 2 * x + 5')
     end
+
+    it 'can use Unicode characters to format a polynomial' do
+      p = MB::M::Polynomial.new(-5r/7, 3.5, -2, 1, -0, 0, 1-1ri/2, -1.1234567)
+      expect(p.to_s(unicode: true)).to eq("-⁵/₇·x⁷ + 3.5x⁶ - 2x⁵ + x⁴ + (1-¹/₂i)·x - 1.12346")
+    end
   end
 end

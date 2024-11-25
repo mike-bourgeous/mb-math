@@ -6,6 +6,20 @@ module MB
     # Represents a polynomial of arbitrary positive integer order of a single
     # independent variable for purposes of root finding, differentiation, etc.
     class Polynomial
+      # Used by #to_s for printing exponents as superscripts
+      SUPERSCRIPT_DIGITS = [
+        "\u2070",
+        "\u00b9",
+        "\u00b2",
+        "\u00b3",
+        "\u2074",
+        "\u2075",
+        "\u2076",
+        "\u2077",
+        "\u2078",
+        "\u2079"
+      ].join
+
       # The coefficients of this polynomial, if any, in descending order of
       # term power.
       attr_reader :coefficients
@@ -459,14 +473,14 @@ module MB
       # Ruby syntax.
       #
       # Returns an empty String for an empty Polynomial.
-      def to_s
+      def to_s(unicode: false)
         return '' if @coefficients.empty?
 
-        return num_str(@coefficients[0]) if @order == 0
+        return num_str(@coefficients[0], unicode: unicode) if @order == 0
 
         s = String.new
 
-        s << "#{coeff_str(@coefficients[0])}#{var_str(@order)}"
+        s << "#{coeff_str(@coefficients[0], unicode: unicode)}#{var_str(@order, unicode: unicode)}"
 
         coefficients.each.with_index do |c, idx|
           # Skip terms with a coefficient of zero and skip the first term since
@@ -493,9 +507,9 @@ module MB
           end
 
           if exponent == 0
-            s << "#{num_str(c)}"
+            s << "#{num_str(c, unicode: unicode)}"
           else
-            s << "#{coeff_str(c)}#{var_str(exponent)}"
+            s << "#{coeff_str(c, unicode: unicode)}#{var_str(exponent, unicode: unicode)}"
           end
         end
 
@@ -542,7 +556,7 @@ module MB
       # Helper for #to_s to generate text and multiplication symbol for
       # coefficients, with special handling for when the coefficient is equal
       # to 1 or -1 or is an imaginary value.
-      def coeff_str(c)
+      def coeff_str(c, unicode:)
         case c
         when 1
           ''
@@ -551,30 +565,42 @@ module MB
           '-'
 
         else
-          "#{num_str(c)} * "
+          unisep = c.is_a?(Complex) || c.is_a?(Rational) ? "\u00b7" : ''
+          "#{num_str(c, unicode: unicode)}#{unicode ? unisep : ' * '}"
         end
       end
 
       # Helper for #to_s and #coeff_str to format numbers, e.g. showing complex
       # values without the real part if the real part is zero.
-      def num_str(c, imag = '')
+      def num_str(c, imag = '', unicode:)
         case c
         when Complex
           if c.real == 0
-            num_str(c.imag, 'i')
+            num_str(c.imag, 'i', unicode: unicode)
           elsif c.imag == 0
-            num_str(c.real)
+            num_str(c.real, unicode: unicode)
           elsif c.imag < 0
-            "(#{num_str(c.real)}-#{num_str(-c.imag, 'i')})"
+            "(#{num_str(c.real, unicode: unicode)}-#{num_str(-c.imag, 'i', unicode: unicode)})"
           else
-            "(#{num_str(c.real)}+#{num_str(c.imag, 'i')})"
+            "(#{num_str(c.real, unicode: unicode)}+#{num_str(c.imag, 'i', unicode: unicode)})"
           end
 
         when Rational
           if c.denominator == 1
             "#{c.numerator}#{imag}"
           else
-            "(#{c.numerator}r#{imag}/#{c.denominator})"
+            if unicode
+              "#{superscript(c.numerator)}/#{subscript(c.denominator)}#{imag}"
+            else
+              "(#{c.numerator}r#{imag}/#{c.denominator})"
+            end
+          end
+
+        when Float
+          if unicode
+            "#{c.round(5)}#{imag}"
+          else
+            "#{c}#{imag}"
           end
 
         else
@@ -583,7 +609,7 @@ module MB
       end
 
       # Helper for #to_s to generate text for variable and exponent.
-      def var_str(exponent)
+      def var_str(exponent, unicode:)
         case exponent
         when 0
           raise 'Handle zero-order term elsewhere'
@@ -592,8 +618,22 @@ module MB
           'x'
 
         else
-          "x ** #{exponent}"
+          if unicode
+            "x#{superscript(exponent)}"
+          else
+            "x ** #{exponent}"
+          end
         end
+      end
+
+      # Returns +value+ (expected to be an Integer) as a String with Unicode superscript digits.
+      def superscript(value)
+        value.to_s.tr('0-9', SUPERSCRIPT_DIGITS)
+      end
+
+      # Returns +value+ (should be an Integer) as a String with Unicode subscript digits.
+      def subscript(value)
+        value.to_s.tr('0-9', "\u2080-\u2089")
       end
     end
   end

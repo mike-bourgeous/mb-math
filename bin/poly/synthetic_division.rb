@@ -32,6 +32,8 @@ class SyntheticDivisionDemo
     @rows = Array.new(@row_count) { { left: Array.new(@left_count), right: Array.new(@right_count) } }
     @scale = Array.new(@left_count)
     @result = Array.new(@right_count)
+
+    @skip_pause = false
   end
 
   # Illustrates polynomial synthetic division on the console using the
@@ -134,12 +136,18 @@ class SyntheticDivisionDemo
     MB::U.table(
       highlighted_values,
       header: title,
-      separate_rows: true
+      separate_rows: true,
+      variable_width: 8
     )
 
     if pause
-      puts "\n\n\n\e[1;33mPress Enter\e[0m\e[J"
-      gets
+      if @skip_pause
+        sleep 0.5
+      else
+        puts "\n\n\n\e[1;33mPress Enter\e[22m (or type 'go' to speed through)\e[0m\e[J"
+        @skip_pause = gets&.strip == 'go'
+      end
+
       # 11 lines of header to skip past
       STDOUT.write("\e[11H")
     end
@@ -148,7 +156,7 @@ end
 
 def read_coeff_args
   coeffs = []
-  while ARGV[0] && ARGV[0] =~ /\A([0-9+\-*i()]+|.+\/.+)\z/
+  while ARGV[0] && ARGV[0] =~ /\A([0-9+\-*i().e]+|.+\/.+)\z/
     coeffs << MB::M.convert_down(Complex(ARGV.shift))
   end
   coeffs
@@ -156,13 +164,21 @@ end
 
 # Prints two Polynomials vertically separated as numerator and denominator.
 def print_over(num, denom)
-  num_str = num.to_s
-  denom_str = denom.to_s
+  num_str = num.to_s(unicode: true)
+  denom_str = denom.to_s(unicode: true)
   len = MB::M.max(num_str.length, denom_str.length) + 4
 
-  puts "\e[1;36m#{num_str.rjust(len)}\e[0m"
-  puts "#{'-' * len}"
-  puts "\e[1;35m#{denom_str.rjust(len)}\e[0m"
+  puts "#{hldigits(num_str.rjust(len), '1;36')}\e[0m"
+  puts "#{"\u2500" * len}"
+  puts "#{hldigits(denom_str.rjust(len), '1;35')}\e[0m"
+end
+
+def hldigits(str, color)
+  str
+    .gsub(%r{[0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+([./][0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+)?}, "\e[#{color}m\\&\e[0m")
+    .gsub(/ [+-] /, "\e[0m\\&\e[0m") # TODO: color for operators?
+    .gsub('x', "\e[1m\\&\e[0m")
+    .gsub('i', "\e[33m\\&\e[0m")
 end
 
 num_coeffs = read_coeff_args
@@ -184,8 +200,8 @@ end
 numerator = num_coeffs.empty? ? a * b + c : MB::M::Polynomial.new(num_coeffs)
 denominator = denom_coeffs.empty? ? b : MB::M::Polynomial.new(denom_coeffs)
 
-num_str = numerator.to_s
-denom_str = denominator.to_s
+num_str = numerator.to_s(unicode: true)
+denom_str = denominator.to_s(unicode: true)
 
 puts "\e[H\e[J"
 puts "\e[33mSynthetic Division Demo from mb-math: \e[1mhttps://github.com/mike-bourgeous/mb-math\e[0m"
@@ -195,17 +211,17 @@ print_over(numerator, denominator)
 
 quotient, remainder = SyntheticDivisionDemo.new(numerator.coefficients, denominator.coefficients).long_divide
 
-quo_poly = MB::M::Polynomial.new(quotient).to_s
-rem_poly = MB::M::Polynomial.new(remainder).to_s.rjust(quo_poly.length)
+quo_poly = MB::M::Polynomial.new(quotient).to_s(unicode: true)
+rem_poly = MB::M::Polynomial.new(remainder).to_s(unicode: true).rjust(quo_poly.length)
 
 MB::U.headline 'Answer'
 
 MB::U.table(
   {
-    "\e[1;36mNumerator\e[0m" => MB::U.syntax(numerator),
-    "\e[1;35mDenominator\e[0m" => MB::U.syntax(denominator),
-    "\e[1;32mQuotient\e[0m" => MB::U.syntax(quo_poly),
-    "\e[1;33mRemainder\e[0m" => MB::U.syntax(rem_poly),
+    "\e[1;36mNumerator\e[0m" => hldigits(num_str, '1;36'),
+    "\e[1;35mDenominator\e[0m" => hldigits(denom_str, '1;35'),
+    "\e[1;32mQuotient\e[0m" => hldigits(quo_poly, '1;32'),
+    "\e[1;33mRemainder\e[0m" => hldigits(rem_poly, '1;33'),
   }.to_a,
   variable_width: true,
   header: false
