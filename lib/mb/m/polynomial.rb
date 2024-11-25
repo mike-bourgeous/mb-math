@@ -301,33 +301,29 @@ module MB
         # Each row has as many columns as the sum of the two polynomial orders
         # plus one.  The first N columns are for the divisor, and the remaining
         # M columns are for the dividend.
+        #
+        # However, this version collapses all of the rows into a single result
+        # row, performing the addition and scaling in-place.
+        #
+        # The original algorithm is preserved in bin/poly/synthetic_division.rb
 
         left_count = other.order
         right_count = @order + 1
-        row_count = other.order + 1
-
-        result = Array.new(right_count)
-
-        # TODO: in the final implementation we may only need a single array for
-        # the output, as we can maybe just add each new result in place
-        rows = Array.new(row_count) { Array.new(right_count) }
 
         # The first row is just the coefficients of the dividend
-        rows[0].replace(@coefficients)
+        result = @coefficients.dup
 
-        c0 = other.coefficients[0] || 1
+        c0 = other.coefficients[0]
 
         for col in 0...right_count
-          # Sum the completed column
-          result[col] = rows.map { |r| r[col] || 0 }.sum
-
           # Stop writing diagonals and scaling sum if the diagonal will fall
           # off the right (this means we're working on the remainder)
           if col + left_count >= right_count
             next
           end
 
-          # Scale sum by leading coefficient of divisor (non-monic)
+          # Scale sum by leading coefficient of divisor (non-monic) once column
+          # is complete
           if c0 != 1
             sum = result[col]
             sum = sum.to_r if sum.is_a?(Integer) && c0.is_a?(Integer)
@@ -336,9 +332,9 @@ module MB
             result[col] = sum
           end
 
-          # Fill diagonal
+          # Fill "diagonal"
           left_count.times do |idx|
-            rows[-(idx + 1)][col + idx + 1] = result[col] * -other.coefficients[idx + 1]
+            result[col + idx + 1] += result[col] * -other.coefficients[idx + 1]
           end
         end
 
