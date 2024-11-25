@@ -82,6 +82,8 @@ module MB
         @coefficients = [0].freeze if @coefficients.empty? && !coefficients.empty?
 
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1
+
+        @float = @coefficients.any?(Float)
       end
 
       # Compares this Polynomial to the +other+ polynomial, returning true if
@@ -370,11 +372,35 @@ module MB
           [root]
 
         when 2
-          # TODO: is there a way to return integers or rationals for rational roots?
-          MB::M.quadratic_roots(*@coefficients)
+          MB::M.quadratic_roots(*@coefficients).tap { |r| puts "quad: #{r}" } # XXX
 
         else
-          raise NotImplementedError, 'TODO'
+          roots = []
+          rest = self.dup
+
+          while rest.order > 0
+            # TODO: Maybe check if the function actually evaluates to zero at the given root
+            r1 = MB::M.find_one_root(5+1i, rest)
+            r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
+            rp = MB::M::Polynomial.new(1, -r1)
+
+            result, remainder = rest / rp
+
+            puts "O#{rest.order}: \e[1;36m#{rest.to_s(unicode: true)}\e[0m / \e[1;35m#{rp.to_s(unicode: true)}\e[0m = \e[1;32m#{result.to_s(unicode: true)}\e[0m + \e[1;33m#{remainder.to_s(unicode: true)}\e[0m" # XXX
+
+            # Is this even possible?
+            raise MB::M::RootMethods::ConvergenceError, 'Dividing a root did not reduce the order' if rest.order == result.order
+
+            raise MB::M::RootMethods::ConvergenceError, 'There was a remainder after trying to remove a root' if remainder.order != 0
+
+            roots << r1
+            rest = result
+          end
+
+          # Switch to quadratic or linear root finding above for the last one or two roots
+          roots.concat(rest.roots) if rest.order > 0
+
+          roots
         end
       end
 

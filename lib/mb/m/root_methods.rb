@@ -85,6 +85,7 @@ module MB
         case
         when v.is_a?(Complex)
           # TODO: try to preserve rationals and integers for complex roots
+          # E.g. sqrt(2303r/36 - 8ri/3) should give 8-1ri/6
           r = CMath.sqrt(v)
 
         when v < 0

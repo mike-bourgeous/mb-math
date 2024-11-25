@@ -416,6 +416,18 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(p.roots).to all(be_a(Rational)).and eq([2r/3, 21r/115])
     end
 
+    it 'can extract roots we assembled ourselves' do
+      a = MB::M::Polynomial.new(1, -5)
+      b = MB::M::Polynomial.new(1, 4)
+      c = MB::M::Polynomial.new(1, -4+3i)
+      d = MB::M::Polynomial.new(1, 3-1ri/6)
+      p = a * b * c * d
+
+      result = MB::M.round(p.roots, 10)
+
+      expect(result.sort_by(&:real)).to eq(MB::M.round([-4, -3+1ri/6, 4-3i, 5], 10))
+    end
+
     pending 'returns quadratic roots'
 
     pending 'higher order roots'
