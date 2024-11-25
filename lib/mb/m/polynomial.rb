@@ -308,36 +308,22 @@ module MB
 
         result = Array.new(right_count)
 
-        # TODO: in the final implementation we don't really need any columns
-        # left of the bar because each row only has one populated left-column
-        #
         # TODO: in the final implementation we may only need a single array for
         # the output, as we can maybe just add each new result in place
-        rows = Array.new(row_count) { { left: Array.new(left_count), right: Array.new(right_count) } }
+        rows = Array.new(row_count) { Array.new(right_count) }
 
         # The first row is just the coefficients of the dividend
-        rows[0][:right].replace(@coefficients)
-
-        other.coefficients[1..-1]&.each&.with_index do |c, idx|
-          rows[-(idx + 1)][:left][-idx] = -c
-        end
-
-        # XXX MB::U.headline('After construction')
-        # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+        rows[0].replace(@coefficients)
 
         c0 = other.coefficients[0] || 1
 
         for col in 0...right_count
           # Sum the completed column
-          result[col] = rows.map { |r| r[:right][col] || 0 }.sum
-
-          # XXX MB::U.headline("After sum #{col}")
-          # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
+          result[col] = rows.map { |r| r[col] || 0 }.sum
 
           # Stop writing diagonals and scaling sum if the diagonal will fall
           # off the right (this means we're working on the remainder)
           if col + left_count >= right_count
-            # XXX puts "skip diag #{col}"
             next
           end
 
@@ -345,22 +331,16 @@ module MB
           if c0 != 1
             sum = result[col]
             sum = sum.to_r if sum.is_a?(Integer) && c0.is_a?(Integer)
-            sum /= c0
+            sum = sum.quo(c0)
             sum = sum.numerator if sum.is_a?(Rational) && sum.denominator == 1
             result[col] = sum
           end
 
           # Fill diagonal
           left_count.times do |idx|
-            rows[-(idx + 1)][:right][col + idx + 1] = result[col] * -other.coefficients[idx + 1]
+            rows[-(idx + 1)][col + idx + 1] = result[col] * -other.coefficients[idx + 1]
           end
-
-          # XXX MB::U.headline("After diagonal #{col}")
-          # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
         end
-
-        # XXX MB::U.headline("After loops")
-        # XXX puts MB::U.table(rows.map { |r| r[:left] + r[:right] } + [Array.new(left_count) + result]) # XXX
 
         # TODO: maybe there's a better way to do the sizing arithmetic rather
         # than having these if cases
@@ -374,8 +354,6 @@ module MB
           remainder = result[-left_count..-1]
           quotient = result[0...-left_count]
         end
-
-        # XXX require 'pry-byebug'; binding.pry # XXX
 
         return quotient, remainder
       end
