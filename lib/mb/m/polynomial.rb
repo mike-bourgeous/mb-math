@@ -75,9 +75,10 @@ module MB
         raise ArgumentError, "All coefficients must be Numeric; got #{coefficients.map(&:class).uniq}" unless coefficients.all?(Numeric)
 
         @coefficients = coefficients.drop_while(&:zero?).map { |c|
-          c.is_a?(Float) ? c : MB::M.convert_down(c)
+          MB::M.convert_down(c, drop_float: false)
         }.freeze
 
+        # drop_while removes all of the zeros, but we want to keep one if we only got zeros
         @coefficients = [0].freeze if @coefficients.empty? && !coefficients.empty?
 
         @order = @coefficients.empty? ? 0 : @coefficients.length - 1

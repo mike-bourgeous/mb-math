@@ -5,16 +5,21 @@ module MB
     module CoercionMethods
       # Converts Complex to real when the imaginary part is zero, Rational to
       # Integer when the denominator is one, and Float to Integer when the
-      # fractional part is zero.
-      def convert_down(value)
+      # fractional part is zero.  Also converts individual Complex components
+      # in the same fashion.
+      #
+      # If +:drop_float+ is true, then Floats that are exact integers will be
+      # converted to Integer.
+      def convert_down(value, drop_float: true)
         # TODO: PrecisionMethods isn't exactly the right place for this function
         if value.is_a?(Array) || value.is_a?(Numo::NArray)
           return value.map { |v| convert_down(v) }
         end
 
         value = value.real if value.is_a?(Complex) && value.imag == 0
+        value = Complex(convert_down(value.real, drop_float: drop_float), convert_down(value.imag, drop_float: drop_float)) if value.is_a?(Complex)
         value = value.numerator if value.is_a?(Rational) && value.denominator == 1
-        value = value.to_i if value.is_a?(Float) && value % 1 == 0
+        value = value.to_i if drop_float && value.is_a?(Float) && value % 1 == 0
 
         value
       end
