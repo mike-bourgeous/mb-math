@@ -423,12 +423,59 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       d = MB::M::Polynomial.new(1, 3-1ri/6)
       p = a * b * c * d
 
-      result = MB::M.round(p.roots, 10)
+      result = MB::M.round(p.roots, 10).sort_by(&:real)
 
-      expect(result.sort_by(&:real)).to eq(MB::M.round([-4, -3+1ri/6, 4-3i, 5], 10))
+      expect(result).to eq(MB::M.round([-4, -3+1ri/6, 4-3i, 5], 10))
     end
 
-    pending 'returns quadratic roots'
+    it 'returns complex quadratic roots' do
+      100.times do
+        a = MB::M::Polynomial.random(1)
+        b = MB::M::Polynomial.random(1)
+        p = a * b
+
+        expected = MB::M.round(a.roots + b.roots, 10).sort_by(&:real)
+        results = p.roots.sort_by(&:real)
+
+        expect(MB::M.round(results, 10)).to eq(expected)
+      end
+    end
+
+    it 'preserves rational roots in some lucky cases' do
+      # The "luck" comes from the order in which the roots are found, based on
+      # the initial guess to Newton's method.  If Newton's method finds the
+      # integer roots, and then we can use the rational-friendly quadratic
+      # equation for the fractional root, we get rational results.
+      a = MB::M::Polynomial.new(1, -5)
+      b = MB::M::Polynomial.new(1, 4)
+      c = MB::M::Polynomial.new(1, -4+3i)
+      d = MB::M::Polynomial.new(1, 3-1ri/6)
+      p = a * b * c * d
+
+      result = p.roots.sort_by(&:real)
+
+      expect(result).to eq([-4, -3+1ri/6, 4-3i, 5])
+      expect(result.map(&:real)).to all(be_a(Rational).or be_a(Integer))
+      expect(result.map(&:imag)).to all(be_a(Rational).or be_a(Integer))
+    end
+
+    pending 'preserves rational roots in a tougher case' do
+      # float_to_rational would need to use a continued fraction or similar
+      # approach before this will pass, as it'd probably be very difficult to
+      # make the find_one_root method operate on rationals (but that would be
+      # cool)
+      a = MB::M::Polynomial.new(1, -53r/7)
+      b = MB::M::Polynomial.new(1, 71r/23)
+      c = MB::M::Polynomial.new(1, -2r/11+21ri/8)
+      d = MB::M::Polynomial.new(1, 17r/13-1ri/6)
+      p = a * b * c * d
+
+      result = p.roots.sort_by(&:real)
+
+      expect(result).to eq([-71r/23, -17r/13+1ri/6, 2r/11-21ri/8, 53r/7])
+      expect(result.map(&:real)).to all(be_a(Rational).or be_a(Integer))
+      expect(result.map(&:imag)).to all(be_a(Rational).or be_a(Integer))
+    end
 
     pending 'higher order roots'
   end

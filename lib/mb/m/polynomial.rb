@@ -378,8 +378,9 @@ module MB
           roots = []
           rest = self.dup
 
-          while rest.order > 0
+          while rest.order > 2
             # TODO: Maybe check if the function actually evaluates to zero at the given root
+            # TODO: Maybe some day design a version of find_one_root that uses rationals
             r1 = MB::M.find_one_root(5+1i, rest)
             r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
             rp = MB::M::Polynomial.new(1, -r1)
