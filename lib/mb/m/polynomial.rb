@@ -6,7 +6,10 @@ module MB
     # Represents a polynomial of arbitrary positive integer order of a single
     # independent variable for purposes of root finding, differentiation, etc.
     class Polynomial
-      # Used by #to_s for printing exponents as superscripts
+      # Used by #to_s for printing exponents as superscripts.
+      #
+      # Unicode did not duplicate the superscript 1, 2, or 3 from Latin-1
+      # Extended, so we can't just use a range from u2070 to u2079.
       SUPERSCRIPT_DIGITS = [
         "\u2070",
         "\u00b9",
@@ -476,11 +479,11 @@ module MB
       def to_s(unicode: false)
         return '' if @coefficients.empty?
 
-        return num_str(@coefficients[0], unicode: unicode) if @order == 0
+        return self.class.num_str(@coefficients[0], unicode: unicode) if @order == 0
 
         s = String.new
 
-        s << "#{coeff_str(@coefficients[0], unicode: unicode)}#{var_str(@order, unicode: unicode)}"
+        s << "#{self.class.coeff_str(@coefficients[0], unicode: unicode)}#{self.class.var_str(@order, unicode: unicode)}"
 
         coefficients.each.with_index do |c, idx|
           # Skip terms with a coefficient of zero and skip the first term since
@@ -507,9 +510,9 @@ module MB
           end
 
           if exponent == 0
-            s << "#{num_str(c, unicode: unicode)}"
+            s << "#{self.class.num_str(c, unicode: unicode)}"
           else
-            s << "#{coeff_str(c, unicode: unicode)}#{var_str(exponent, unicode: unicode)}"
+            s << "#{self.class.coeff_str(c, unicode: unicode)}#{self.class.var_str(exponent, unicode: unicode)}"
           end
         end
 
@@ -556,7 +559,7 @@ module MB
       # Helper for #to_s to generate text and multiplication symbol for
       # coefficients, with special handling for when the coefficient is equal
       # to 1 or -1 or is an imaginary value.
-      def coeff_str(c, unicode:)
+      def self.coeff_str(c, unicode:)
         case c
         when 1
           ''
@@ -572,7 +575,7 @@ module MB
 
       # Helper for #to_s and #coeff_str to format numbers, e.g. showing complex
       # values without the real part if the real part is zero.
-      def num_str(c, imag = '', unicode:)
+      def self.num_str(c, imag = '', unicode:)
         case c
         when Complex
           if c.real == 0
@@ -609,7 +612,7 @@ module MB
       end
 
       # Helper for #to_s to generate text for variable and exponent.
-      def var_str(exponent, unicode:)
+      def self.var_str(exponent, unicode:)
         case exponent
         when 0
           raise 'Handle zero-order term elsewhere'
@@ -627,12 +630,12 @@ module MB
       end
 
       # Returns +value+ (expected to be an Integer) as a String with Unicode superscript digits.
-      def superscript(value)
+      def self.superscript(value)
         value.to_s.tr('0-9', SUPERSCRIPT_DIGITS)
       end
 
       # Returns +value+ (should be an Integer) as a String with Unicode subscript digits.
-      def subscript(value)
+      def self.subscript(value)
         value.to_s.tr('0-9', "\u2080-\u2089")
       end
     end
