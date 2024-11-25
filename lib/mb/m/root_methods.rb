@@ -84,9 +84,19 @@ module MB
 
         case
         when v.is_a?(Complex)
-          # TODO: try to preserve rationals and integers for complex roots
-          # E.g. sqrt(2303r/36 - 8ri/3) should give 8-1ri/6
-          r = CMath.sqrt(v)
+          # https://math.stackexchange.com/questions/4760927/calculating-the-exact-square-root-of-a-complex-number-with-rational-components#comment10107923_4760927
+          re = v.real
+          im = v.imag
+          abs = kind_sqrt(re * re + im * im)
+
+          sgn = im < 0 ? -1 : 1
+          x = kind_sqrt((re + abs) / 2)
+          y = kind_sqrt((-re + abs) / 2)
+
+          # TODO: if I wanted to get _really_ crazy, I could introduce a
+          # Radical numeric type to preserve exact answers even further, and
+          # maybe even an Algebraic numeric type
+          r = Complex(x, sgn * y)
 
         when v < 0
           r = Complex(0, kind_sqrt(-v))

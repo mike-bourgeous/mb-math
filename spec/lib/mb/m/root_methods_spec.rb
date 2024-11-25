@@ -1,4 +1,4 @@
-RSpec.describe(MB::M::RootMethods) do
+RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
   describe '#quadratic_roots' do
     it 'can find roots of an equation with two real roots' do
       expect(MB::M.quadratic_roots(1, 0, -4).sort).to eq([-2, 2])
@@ -107,6 +107,40 @@ RSpec.describe(MB::M::RootMethods) do
       v = ntype.new
 
       expect(MB::M.kind_sqrt(v)).to eq(42)
+    end
+
+    it 'can provide an exact answer for a simple perfect rational Complex square' do
+      a = 37r/213+4ri/13
+      b = a * a
+      result = MB::M.kind_sqrt(b)
+      expect(result.real).to be_a(Rational).or be_a(Integer)
+      expect(result.imag).to be_a(Rational).or be_a(Integer)
+    end
+
+    pending 'provides an exact answer for a reasonable perfect rational Complex square' do
+      # FIXME this becomes Float
+      a = (795r/181+692948r/8277*1i)
+      b = a * a
+      # XXX require 'pry-byebug'; binding.pry # XXX
+      result = MB::M.kind_sqrt(b)
+
+      expect(result).to eq(a)
+      expect(result.real).to be_a(Rational).or be_a(Integer)
+      expect(result.imag).to be_a(Rational).or be_a(Integer)
+    end
+
+    pending 'can provide exact answers for perfect rational square Complex values' do
+      # FIXME: sometimes this returns an exact match for the input value but an intermediate result is irrational
+      100.times do
+        c = MB::M.random_value(0r..100r, complex: true)
+        result = MB::M.kind_sqrt(c * c)
+
+        puts "\e[1;32m#{MB::M::Polynomial.num_str(c, unicode: true)} ?= \e[1;33m#{MB::M::Polynomial.num_str(result, unicode: true)}" # XXX
+
+        expect(result).to eq(c)
+        expect(result.real).to be_a(Rational).or be_a(Integer)
+        expect(result.imag).to be_a(Rational).or be_a(Integer)
+      end
     end
   end
 
