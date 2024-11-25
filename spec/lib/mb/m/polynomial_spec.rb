@@ -65,6 +65,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       c0 = MB::M::Polynomial.new(6r/2).coefficients[0]
       expect(c0).to be_a(Integer).and eq(3)
     end
+
+    it 'does not convert Float to Integer even if it could' do
+      expect(MB::M::Polynomial.new(1.0, 2.0, 3.0).coefficients).to all(be_a(Float)).and eq([1.0, 2.0, 3.0])
+    end
   end
 
   describe '#==' do
@@ -594,8 +598,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(result.flatten).to all(be_a(Integer).or be_a(Rational))
     end
 
-    it 'can divide a modified non-monic example with floating point coefficients' do
-      # Sage:
+    it 'can divide a modified non-monic example with floating point coefficients, preserving floats' do
       # f(x) = 6*x^3 - 5*x^2 - 7
       # g(x) = -3*x^2 + 2*x - 1
       # f.maxima_methods().divide(g)
@@ -606,6 +609,24 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       result = a.long_divide(b)
       expect(result).to eq([[-2.0, 1.0 / 3.0], [-8.0 / 3.0, -20.0 / 3.0]])
       expect(result.flatten).to all(be_a(Float))
+    end
+
+    it 'can divide a higher order floating point example' do
+      # Sage:
+      # f(x) = -841.5 * x ^ 9 + 624 * x ^ 8 - 2131.5 * x ^ 7 + 677.5 * x ^ 6 - 446 * x ^ 5 - 131 * x ^ 4 + 79.5 * x ^ 3 + 33 * x ^ 2 + 11.25 * x + 14
+      # g(x) = 25.5 * x ** 2 - 13.5 * x + 11.5
+      # f.maxima_methods().divide(g)
+      # [-33.0*x^7 + 7.0*x^6 - 65.0*x^5 - 11.0*x^4 + 6.0*x^3 + 3.0*x^2 + 2.0*x + 1.0, 1.75*x + 2.5]
+      a = MB::M::Polynomial.new(-841.5, 624, -2131.5, 677.5, -446, -131, 79.5, 33, 11.25, 14)
+      b = MB::M::Polynomial.new(25.5, -13.5, 11.5)
+
+      result = a.long_divide(b)
+      expect(result).to eq([
+        [-33.0, 7.0, -65.0, -11.0, 6.0, 3.0, 2.0, 1.0],
+        [1.75, 2.5]
+      ])
+      expect(result.flatten.any?(Float)).to eq(true)
+      expect(result.flatten.any?(Rational)).to eq(false)
     end
 
     it 'returns the correct result for the Wikipedia long division example' do

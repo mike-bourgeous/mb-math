@@ -29,6 +29,7 @@ module MB
       # Integer when the denominator is one, and Float to Integer when the
       # fractional part is zero.
       def convert_down(value)
+        # TODO: PrecisionMethods isn't exactly the right place for this function
         if value.is_a?(Array) || value.is_a?(Numo::NArray)
           return value.map { |v| convert_down(v) }
         end
