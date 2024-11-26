@@ -301,7 +301,7 @@ module MB
           # Rounding method
           MB::U.headline("\e[1;38;5;117mTrying rounding method\e[0m", prefix: prefix) if $DEBUG
           new_x, new_y = rounding_root(x, f: f, prefix: "#{prefix}  ")
-          if false && new_y && (new_y.abs <= y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)) # XXX false
+          if new_y && (new_y.abs <= y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?))
             puts "#{prefix}  \e[38;5;117mrounding \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
             step = new_x - x
             x, y = new_x, new_y
