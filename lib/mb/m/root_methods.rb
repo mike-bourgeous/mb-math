@@ -102,7 +102,7 @@ module MB
           r = Complex(0, kind_sqrt(-v))
 
         when v.is_a?(Rational)
-          r = kind_sqrt(v.numerator.to_f).quo(kind_sqrt(v.denominator.to_f))
+          r = kind_sqrt(v.numerator).quo(kind_sqrt(v.denominator))
 
         when v.is_a?(Integer)
           r = Integer.sqrt(v)

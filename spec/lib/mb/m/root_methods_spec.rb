@@ -123,10 +123,9 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
       expect(result.imag).to be_a(Rational).or be_a(Integer)
     end
 
-    pending 'provides an exact answer for a reasonable perfect rational Complex square' do
+    it 'provides an exact answer for a reasonable perfect rational Complex square' do
       # Another example:
       # a = (7303r/13063+8846ri/413)
-      # FIXME this becomes Float
       a = (795r/181+692948r/8277*1i)
       b = a * a
       result = MB::M.kind_sqrt(b)
@@ -216,7 +215,7 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
         #     # giving an incorrect answer for this larger value.
 
         # XXX c = MB::M.random_value(0r..100r, complex: true)
-        c = Complex(Rational(rand(0..10000), rand(1..150)), Rational(rand(0..10000), rand(1..150)))
+        c = Complex(Rational(rand(0..10000), rand(1..10000)), Rational(rand(0..10000), rand(1..10000)))
         result = MB::M.kind_sqrt(c * c)
 
         puts "\e[1;32m#{MB::M::Polynomial.num_str(c, unicode: true)} ?= \e[1;33m#{MB::M::Polynomial.num_str(result, unicode: true)}" # XXX
