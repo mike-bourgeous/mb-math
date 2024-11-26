@@ -80,10 +80,11 @@ module MB
       # +:denom_range+ - Passed to randomMethods#random_value for random
       # Rationals.
       def self.random_roots(order, complex: false, range: -10..10, denom_range: 1..1000)
+        # Try to get more unique roots
         roots = nil
-        loop do
+        10.times do
           roots = Array.new(order) { MB::M.random_value(range, complex: complex) }
-          break if roots.uniq.count >= order / 2 # FIXME: could get stuck if range is too small
+          break if roots.uniq.count >= order * 3 / 2
         end
 
         scale = 0
@@ -429,7 +430,7 @@ module MB
             begin
               # TODO: Maybe check if the function actually evaluates to zero at the given root
               # TODO: Maybe some day design a version of find_one_root that uses rationals
-              r1 = MB::M.find_one_root(5+1i, rest, tolerance: 1e-10, loops: 5, iterations: 40)
+              r1 = MB::M.find_one_root(5+1i, rest, tolerance: 1e-8, loops: 5, iterations: 40)
               r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
               r1 = MB::M.sigfigs(r1, 8) if r1.is_a?(Float)
               rp = MB::M::Polynomial.new(1, -r1)
@@ -706,21 +707,28 @@ module MB
 
       # Prints two Polynomials vertically separated as numerator and
       # denominator, with the +:prefix+ printed left of the horizontal bar.
-      def self.print_over(num, denom, prefix: nil)
+      #
+      # Returns the printed width of the centerline.
+      def self.print_over(num, denom, prefix: nil, column: 0, suffix: nil)
         prefix = prefix.to_s
+        suffix = suffix.to_s
         num_str = num.is_a?(Polynomial) ? num.to_s(unicode: true) : num.to_s
         denom_str = denom.is_a?(Polynomial) ? denom.to_s(unicode: true) : denom.to_s
         len = MB::M.max(num_str.length, denom_str.length) + prefix.length + 5
 
-        puts "#{hlpoly(num_str.rjust(len), '1;36')}"
-        puts "\e[36m#{prefix}\e[0m  #{"\u2500" * (len - prefix.length)}"
-        puts "#{hlpoly(denom_str.rjust(len), '1;35')}"
+        puts "\e[#{column}C#{hlpoly(num_str.rjust(len), '1;36')}"
+        puts "\e[#{column}C\e[36m#{prefix}\e[0m  #{"\u2500" * (len - prefix.length)}#{suffix}"
+        puts "\e[#{column}C#{hlpoly(denom_str.rjust(len), '1;35')}"
+
+        len + 2 + suffix.length
       end
 
       # Converts a prime factorization from Prime.prime_division into a String
       # for display, formatted similarly to #to_s.
       # TODO: this probably belongs elsewhere
       def self.prime_str(value)
+        return "((#{prime_str(value.real)})+(#{prime_str(value.imag)})i)" if value.is_a?(Complex)
+
         value = Prime.prime_division(value) unless value.is_a?(Array)
 
         value.map { |prime, exponent|
@@ -732,11 +740,34 @@ module MB
       # TODO: this probably belongs elsewhere
       def self.print_prime(value, prefix: nil)
         case value
-        when Rational
+        when Rational, Complex
           print_over(prime_str(value.numerator), prime_str(value.denominator), prefix: prefix)
 
         else
-          puts hlpoly(prime_str(value), '1;36')
+          puts "\e[1;36m#{prefix}\e[0m #{hlpoly(prime_str(value), '1;36')}"
+        end
+      end
+
+      def self.print_value(value, prefix: nil)
+        case value
+        when Rational
+          if value.denominator == 1
+            puts "\e[36m#{prefix}\e[0m #{hlpoly(num_str(value.numerator, unicode: true), '1;36')}"
+          else
+            print_over(num_str(value.numerator, unicode: true), num_str(value.denominator, unicode: true), prefix: prefix)
+          end
+
+        when Complex
+          if value.real.is_a?(Rational) || value.imag.is_a?(Rational)
+            width = print_over(num_str(value.real.numerator, unicode: true), num_str(value.denominator, unicode: true), prefix: prefix)
+            STDOUT.write("\e[3A")
+            print_over(num_str(value.imag.numerator, unicode: true), num_str(value.imag.denominator, unicode: true), prefix: '+', column: width + 3, suffix: "\e[1;33m\u00b7i\e[0m")
+          else
+            puts "\e[36m#{prefix}\e[0m #{hlpoly(num_str(value, unicode: true), '1;36')}"
+          end
+
+        else
+          puts "\e[36m#{prefix}\e[0m #{hlpoly(num_str(value, unicode: true), '1;36')}"
         end
       end
     end

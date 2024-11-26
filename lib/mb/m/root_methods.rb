@@ -599,7 +599,7 @@ module MB
         y = y_orig
 
         7.times do |i|
-          new_x = MB::M.round(x, i + 5)
+          new_x = MB::M.round(x, i + 3)
           new_y = f.call(new_x)
 
           puts "#{prefix}\e[38;5;117mrounding\e[0m trying #{new_x} getting #{new_y} at step #{i}" if $DEBUG

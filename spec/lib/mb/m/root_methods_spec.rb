@@ -109,6 +109,12 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
       expect(MB::M.kind_sqrt(v)).to eq(42)
     end
 
+    it 'returns the correct value for a very large numerator/denominator' do
+      # Example from bin/poly/square_root_issue.rb
+      a = (178546357533116207952390480015625r/847172625416039298167350321)
+      expect(MB::M.kind_sqrt(a)).to eq((13362123990336125r/29106230010361)).and be_a(Rational)
+    end
+
     it 'can provide an exact answer for a simple perfect rational Complex square' do
       a = 37r/213+4ri/13
       b = a * a
@@ -118,10 +124,11 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
     end
 
     pending 'provides an exact answer for a reasonable perfect rational Complex square' do
+      # Another example:
+      # a = (7303r/13063+8846ri/413)
       # FIXME this becomes Float
       a = (795r/181+692948r/8277*1i)
       b = a * a
-      # XXX require 'pry-byebug'; binding.pry # XXX
       result = MB::M.kind_sqrt(b)
 
       expect(result).to eq(a)
@@ -129,12 +136,87 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
       expect(result.imag).to be_a(Rational).or be_a(Integer)
     end
 
-    pending 'can provide exact answers for perfect rational square Complex values' do
-      # FIXME: sometimes this returns an exact match for the input value but an intermediate result is irrational
+    it 'can provide exact answers for perfect rational square Complex values' do
+      # FIXME: sometimes this returns an exact match for the input value but an intermediate result appears to be irrational
       100.times do
         # FIXME: increasing the denominator increases the likelihood of a fallback to float
+        # By definition we are creating perfect squares, and yet sometimes the
+        # intermediate steps produce irrational values.
+        #
+        # For example:
+        #     require 'prime'
+        #
+        #     a = (7303r/13063+8846ri/413)
+        #
+        #     b = a * a
+        #     # b = ((-13343929801401483r/29106230010361)+(129204676ri/5395019))
+        #
+        #     abs_sq = b.real * b.real + b.imag * b.imag
+        #     # abs_sq = (178546357533116207952390480015625r/847172625416039298167350321)
+        #
+        #     abs = MB::M.kind_sqrt(abs_sq)
+        #     # abs = (13362123990336126r/29106230010361)
+        #
+        #     x_sq = (b.real + abs).quo(2)
+        #     # x_sq = (18194188934643r/58212460020722)
+        #
+        #     y_sq = (-b.real + abs).quo(2) * (b.imag >= 0 ? 1 : -1)
+        #     # y_sq = (26706053791737609r/58212460020722)
+        #
+        #     x = MB::M.kind_sqrt(x_sq)
+        #     # x = 0.5590599402893822
+        #
+        #     y = MB::M.kind_sqrt(y_sq)
+        #     # y = 21.418886198547213
+        #
+        #     r = MB::M.kind_sqrt(b)
+        #     # r = (0.5590599402893822+21.418886198547213i)
+        #
+        #     # The result differs by the last few decimals from the true answer
+        #     f = Complex(a.real.to_f, a.imag.to_f)
+        #     # f = (0.5590599402893669+21.418886198547217i)
+        #
+        #     # All powers should be even for x_sq and y_sq to be a perfect square but
+        #     # we see several odds in the numerator.
+        #     MB::M::Polynomial.print_prime(x_sq)
+        #     #    3 + 19 + 41 + 6971 + 1116809
+        #     # ─────────────────────────────────
+        #     #           2 + 7² + 59² + 13063²
+        #
+        #     MB::M::Polynomial.print_prime(y_sq)
+        #     #     3 + 8902017930579203
+        #     # ──────────────────────────
+        #     #    2 + 7² + 59² + 13063²
+        #
+        #     # Working backward, here's what we should see:
+        #     ex_x_sq = a.real * a.real
+        #     ex_y_sq = a.imag * a.imag
+        #     MB::M::Polynomial.print_prime(ex_x_sq, prefix: 'expected x_sq')
+        #     MB::M::Polynomial.print_prime(ex_y_sq, prefix: 'expected y_sq')
+        #     #                   67² + 109²
+        #     # expected x_sq  ───────────────
+        #     #                       13063²
+        #     #                   2² + 4423²
+        #     # expected y_sq  ───────────────
+        #     #                     7² + 59²
+        #
+        #     # And for abs (differs by 1 in the numerator from above):
+        #     ex_abs_x = ex_x_sq * 2 - b.real
+        #     ex_abs_y = ex_y_sq * 2 + b.real
+        #     # ex_abs_x = (13362123990336125r/29106230010361)
+        #     # ex_abs_y = (13362123990336125r/29106230010361)
+        #
+        #     # Working back to abs squared, we match the abs_sq value above:
+        #     ex_abs_sq = ex_abs_x * ex_abs_x
+        #     # ex_abs_sq = (178546357533116207952390480015625r/847172625416039298167350321)
+        #     ex_abs_sq == abs_sq
+        #     # => true
+        #
+        #     # So the fault lies in the square root operation!  It must be
+        #     # giving an incorrect answer for this larger value.
+
         # XXX c = MB::M.random_value(0r..100r, complex: true)
-        c = Complex(Rational(rand(0..10000), rand(1..10000)), Rational(rand(0..10000), rand(1..10000)))
+        c = Complex(Rational(rand(0..10000), rand(1..150)), Rational(rand(0..10000), rand(1..150)))
         result = MB::M.kind_sqrt(c * c)
 
         puts "\e[1;32m#{MB::M::Polynomial.num_str(c, unicode: true)} ?= \e[1;33m#{MB::M::Polynomial.num_str(result, unicode: true)}" # XXX
