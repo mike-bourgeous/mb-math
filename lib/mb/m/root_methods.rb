@@ -25,7 +25,7 @@ module MB
           # TODO: figure out an iterative way to do this
           base = n == 1 ? self : prime(n: n - 1, h: h)
 
-          # TODO: look into the complex-step approximation
+          # TODO: look into the complex-step derivative approximation
           # See https://mdolab.engin.umich.edu/wiki/guide-complex-step-derivative-approximation
 
           ->(x) {
@@ -90,8 +90,8 @@ module MB
           abs = kind_sqrt(re * re + im * im)
 
           sgn = im < 0 ? -1 : 1
-          x = kind_sqrt((re + abs) / 2)
-          y = kind_sqrt((-re + abs) / 2)
+          x = kind_sqrt((re + abs).quo(2))
+          y = kind_sqrt((-re + abs).quo(2))
 
           # TODO: if I wanted to get _really_ crazy, I could introduce a
           # Radical numeric type to preserve exact answers even further, and
@@ -225,8 +225,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          # XXX puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX return x if y == 0
 
           # Try random shifts in case we are stuck.  The random seed is chosen
           # from the current X to make it deterministic.
@@ -242,12 +242,12 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          # XXX puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX return x if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
-          if yprime.abs < tolerance ** 2 && y != 0 && (step.nil? || step.abs > tolerance) && depth < 2
+          if yprime.abs < tolerance ** 2 && y != 0 && (step.nil? || step.abs > tolerance ** 2) && depth < 2
             MB::U.headline("#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix) if $DEBUG
 
             new_x, new_y = multi_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, depth: depth, prefix: "#{prefix}  ")
@@ -261,12 +261,12 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          # XXX puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX return x if y == 0
 
           # Secant method
           # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
-          if y.abs > tolerance || step.nil? || step.abs > tolerance
+          if y.abs > tolerance ** 2 || step.nil? || step.abs > tolerance ** 2
             MB::U.headline("\e[1;35mTrying secant method\e[0m", prefix: prefix) if $DEBUG
 
             new_x, new_y = secant_root(x, guess, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, prefix: "#{prefix}  ")
@@ -280,8 +280,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          # XXX puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX return x if y == 0
 
           # Creeping method
           MB::U.headline("\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix) if $DEBUG
@@ -295,29 +295,82 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          # XXX return x if y == 0
+
+          # Rounding method
+          MB::U.headline("\e[1;38;5;117mTrying rounding method\e[0m", prefix: prefix) if $DEBUG
+          new_x, new_y = rounding_root(x, f: f, prefix: "#{prefix}  ")
+          if new_y && (new_y.abs <= y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?))
+            puts "#{prefix}  \e[38;5;117mrounding \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
+            step = new_x - x
+            x, y = new_x, new_y
+          else
+            puts "#{prefix}  \e[38;5;117mrounding \e[33mY did not improve (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y})\e[0m" if $DEBUG
+          end
+
+          # Exit early if we have an exact root
+          puts "#{prefix}\e[32mExiting after rounding with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
           return x if y == 0
 
           x_gain = x - prev_x
           y_gain = y.abs - prev_y.abs
-          if x_gain.abs < tolerance || y_gain.abs < tolerance
+          if x_gain.abs < tolerance ** 2 || y_gain.abs < tolerance ** 2
             puts "#{prefix}\e[33mImprovement is very slow on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain})\e[0m" if $DEBUG
           elsif y_gain > 0
             puts "#{prefix}\e[33mY got worse on loop #{l} (x_gain=#{x_gain} y_gain=#{y_gain} x,y=#{x},#{y} prevx,prevy=#{prev_x},#{prev_y}\e[0m" if $DEBUG
           end
 
           # Stop if we made no progress
-          break if x_gain == 0
+          if x_gain == 0
+            puts "No progress made on loop #{last_loop} at depth #{depth}"
+
+            if depth < 0 # XXX
+              puts "trying rounding imag at depth #{depth}"
+              new_x = find_one_root(Complex(x.real, y.real.round(6)), f, depth: depth + 1)
+              new_y = f.call(new_x)
+
+              if new_y.abs >= y.abs
+                puts "trying rounding real at depth #{depth}"
+                new_x = find_one_root(Complex(x.real.round(6), y.real), f, depth: depth + 1)
+                new_y = f.call(new_x)
+              end
+
+              if new_y.abs >= y.abs
+                puts "trying rounding at depth #{depth}"
+                new_x = find_one_root(MB::M.round(x, 6), f, depth: depth + 1)
+                new_y = f.call(new_x)
+              end
+
+              if new_y.abs < y.abs
+                puts "somehow that worked at depth #{depth}"
+
+                # XXX require 'pry-byebug'; binding.pry if depth == 0 # XXX
+
+                x = new_x
+                y = new_y
+
+                next # XXX
+              end
+            end
+
+            break
+          end
 
           # Stop if we've reached "good enough"
-          break if y.abs < tolerance && step && step.abs < tolerance && x_gain.abs < tolerance
+          if y.abs < tolerance ** 2 && step && step.abs < tolerance ** 2 && x_gain.abs < tolerance ** 2
+            puts "Good enough: y #{y.abs} < #{tolerance ** 2}; step #{step.abs} < #{tolerance ** 2}; xg #{x_gain.abs} < #{tolerance ** 2}"
+            break
+          end
 
           prev_x = x
           prev_y = y
         end
 
         # FIXME: x_gain might be large if loops is 1
-        raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain}" if y.abs > tolerance || x_gain.abs > tolerance
+        if depth == 0 && (y.abs > tolerance || x_gain.abs > tolerance)
+          raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain} f=#{f}"
+        end
 
         x
       end
@@ -401,7 +454,7 @@ module MB
 
         iterations.times do |j|
           # TODO: base range on min..max bounds and local slope as well
-          new_x = complex_rand(r, x, 0.9..1.1, tolerance)
+          new_x = rand_shift(r, x, 0.9..1.1, tolerance)
           new_y = f.call(new_x)
           puts "#{prefix}  \e[35mguessing j=#{j} new_x=#{new_x}, new_y=#{new_y}\e[0m" if $DEBUG
           if new_y.abs < y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)
@@ -425,13 +478,29 @@ module MB
         iterations.times do |i|
           improved = false
 
+          # TODO: figure out why getting closer to a root sometimes makes Y worse.  Example:
+          # roots = [-10, -1, 4, -6, 4, -1, 3] # polynomial spec integer random roots
+          # f = MB::M::Polynomial.new(-9, -63, 585, 1935, -12780, -2844, 37152, 25920)
+          # f.roots
+          # ...
+          # f2 = MB::M::Polynomial.new(
+          #   -9,
+          #   (-99-4.872711348481414e-07i),
+          #   (189.0-7.30906702272212e-06i),
+          #   (2691.0000000000005-1.9003574259077513e-05i),
+          #   (-2015.9999999999964+6.967977228328423e-05i),
+          #   (-10907.999999999989+0.00016957035492715347i),
+          #   (-6479.999999999964+8.770880427266716e-05i)
+          # )
+          # find_one_root with x = (4.000000000000004-5.41412372053487e-08i)
+
           # TODO: this could go faster if the creep increments are only
           # computed when needed, if we first try the same direction as the
           # last improvement, and if we go to the next iteration after one or
           # two improvements instead of checking the entire list.
           complex_creep(x).each.with_index do |new_x, idx|
             new_y = f.call(new_x)
-            if new_y.abs < y.abs
+            if new_y.abs < y.abs || (new_y.real.abs < y.real.abs && new_y.imag.abs < y.imag.abs)
               puts "#{prefix}  \e[38;5;150mcreeping improvement found: i=#{i} idx=#{idx}(#{idx % 5},#{idx / 5}) new_x,new_y=#{new_x},#{new_y} from x,y=#{x},#{y}\e[0m" if $DEBUG
               improved = true
               x = new_x
@@ -455,6 +524,22 @@ module MB
 
           yg = f.call(v)
           ygp = f_prime.call(v)
+
+          if ygp == 0
+            puts "#{prefix}    \e[34mmultiroot\e[0m derivative is zero; trying second derivative" if $DEBUG
+
+            yg2 = f_prime.call(v)
+            ygp2 = f_prime.prime.call(v)
+
+            if ygp2 == 0
+              puts "#{prefix}    \e[34mmultiroot\e[0m second derivative is zero; just returning original function" if $DEBUG
+              ygp = 1
+            else
+              yg = yg2
+              ygp = ygp2
+            end
+          end
+
           g = yg / ygp
 
           puts "#{prefix}    \e[34mmultiroot\e[0m g=#{g} yg=#{yg} ygp=#{ygp}" if $DEBUG
@@ -501,6 +586,30 @@ module MB
         return x, y
       end
 
+      # Tries rounding to varying levels of precision to see if that improves
+      # the zero.  This is kind of a cheat to be able to find integer roots.
+      #
+      # TODO: could also try continued fractions to find rational roots
+      def rounding_root(x_orig, f:, prefix:)
+        y_orig = f.call(x_orig)
+
+        x = x_orig
+        y = y_orig
+
+        12.times do |i|
+          new_x = MB::M.round(x, i)
+          new_y = f.call(new_x)
+
+          puts "#{prefix}\e[38;5;117mrounding\e[0m trying #{new_x} getting #{new_y} at step #{i}" if $DEBUG
+
+          x, y = new_x, new_y if new_x != x && new_y.abs <= y.abs
+
+          break if y == 0
+        end
+
+        return x, y unless x == x_orig
+      end
+
       # If +value+ is Complex, returns a randomly shifted value with a
       # different shift in the real and imaginary directions.  If +value+ is
       # real, returns a randomly shifted value within the range.
@@ -509,10 +618,10 @@ module MB
       # zero than the given +tolerance+ or is NaN or infinity, then instead of
       # a ratio, the range will be shifted to center around zero and sampled
       # directly.
-      def complex_rand(random, value, range, tolerance)
+      def rand_shift(random, value, range, tolerance)
         if value.is_a?(Complex)
-          real = complex_rand(random, value.real, range, tolerance)
-          imag = complex_rand(random, value.imag, range, tolerance)
+          real = rand_shift(random, value.real, range, tolerance)
+          imag = rand_shift(random, value.imag, range, tolerance)
           real + 1i * imag
         elsif !value.abs.to_f.finite? || value.abs < tolerance.abs
           puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? if $DEBUG # XXX
@@ -534,12 +643,30 @@ module MB
           value = value.to_f
           [
             value + (10 * Float::EPSILON) * value,
+            float_ulps(value, 2),
             value.next_float,
             value,
             value.prev_float,
+            float_ulps(value, -2),
             value - (10 * Float::EPSILON) * value,
           ]
         end
+      end
+
+      # Moves +value+ up or down by +count+ units in the least precision using
+      # Float#next_float and Float#prev_float.
+      def float_ulps(value, count)
+        if count > 0
+          count.times do
+            value = value.next_float
+          end
+        elsif count < 0
+          count.times do
+            value = value.prev_float
+          end
+        end
+
+        value
       end
     end
   end

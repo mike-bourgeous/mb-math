@@ -76,14 +76,17 @@ module MB
       # +:range+ - Passed to RandomMethods#random_value; controls the numeric
       # type generated for roots (Integer, Rational, or Float) as well as the
       # actual range.
-      def self.random_roots(order, complex: false, range: -10..10)
+      # +:denom_range+ - Passed to randomMethods#random_value for random
+      # Rationals.
+      def self.random_roots(order, complex: false, range: -10..10, denom_range: 1..1000)
         roots = nil
         loop do
           roots = Array.new(order) { MB::M.random_value(range, complex: complex) }
-          break if roots.uniq.count >= order / 2
+          break if roots.uniq.count >= order / 2 # FIXME: could get stuck if range is too small
         end
 
-        scale = MB::M.random_value(range, complex: complex)
+        scale = 0
+        scale = MB::M.random_value(range, complex: complex, denom_range: denom_range) while scale == 0
 
         p = roots.map { |r| MB::M::Polynomial.new(1, -r) }.reduce(&:*) * scale
 
@@ -411,8 +414,7 @@ module MB
           m = @coefficients[0]
           b = -@coefficients[1]
           m = m.to_r if m.is_a?(Integer) && b.is_a?(Integer)
-          root = b / m
-          root = root.numerator if root.is_a?(Rational) && root.denominator == 1
+          root = MB::M.convert_down(b.quo(m))
           [root]
 
         when 2
@@ -423,23 +425,28 @@ module MB
           rest = self.dup
 
           while rest.order > 2
-            # TODO: Maybe check if the function actually evaluates to zero at the given root
-            # TODO: Maybe some day design a version of find_one_root that uses rationals
-            r1 = MB::M.find_one_root(5+1i, rest)
-            r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
-            rp = MB::M::Polynomial.new(1, -r1)
+            begin
+              # TODO: Maybe check if the function actually evaluates to zero at the given root
+              # TODO: Maybe some day design a version of find_one_root that uses rationals
+              r1 = MB::M.find_one_root(5+1i, rest, tolerance: 1e-11, loops: 5, iterations: 40)
+              r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
+              r1 = MB::M.sigfigs(r1, 8) if r1.is_a?(Float)
+              rp = MB::M::Polynomial.new(1, -r1)
 
-            result, remainder = rest / rp
+              result, remainder = rest / rp
 
-            puts "O#{rest.order}: \e[1;36m#{rest.to_s(unicode: true)}\e[0m / \e[1;35m#{rp.to_s(unicode: true)}\e[0m = \e[1;32m#{result.to_s(unicode: true)}\e[0m + \e[1;33m#{remainder.to_s(unicode: true)}\e[0m" # XXX
+              puts "O#{rest.order}: R=#{self.class.num_str(r1, unicode: false)} \e[1;36m#{rest.to_s(unicode: true)}\e[0m / \e[1;35m#{rp.to_s(unicode: true)}\e[0m = \e[1;32m#{result.to_s(unicode: true)}\e[0m + \e[1;33m#{remainder.to_s(unicode: true)}\e[0m" # XXX
 
-            # Is this even possible?
-            raise MB::M::RootMethods::ConvergenceError, 'Dividing a root did not reduce the order' if rest.order == result.order
+              # Is this even possible?
+              raise MB::M::RootMethods::ConvergenceError, 'Dividing a root did not reduce the order' if rest.order == result.order
 
-            raise MB::M::RootMethods::ConvergenceError, 'There was a remainder after trying to remove a root' if remainder.order != 0
+              raise MB::M::RootMethods::ConvergenceError, 'There was a remainder after trying to remove a root' if remainder.order != 0
 
-            roots << r1
-            rest = result
+              roots << r1
+              rest = result
+            rescue => e
+              raise e.class, "Finding a root failed; #{rest.to_s(unicode: true)}: #{e}"
+            end
           end
 
           # Switch to quadratic or linear root finding above for the last one or two roots
@@ -447,6 +454,9 @@ module MB
 
           roots
         end
+
+      rescue => e
+        raise e.class, "#{self.to_s(unicode: true)}: #{e}"
       end
 
       # Returns a new Polynomial with all coefficients rounded to the given
@@ -618,7 +628,7 @@ module MB
 
       # Helper for #to_s and #coeff_str to format numbers, e.g. showing complex
       # values without the real part if the real part is zero.
-      def self.num_str(c, imag = '', unicode:)
+      def self.num_str(c, imag = '', unicode:, unicode_round: 5)
         case c
         when Complex
           if c.real == 0
@@ -644,7 +654,7 @@ module MB
 
         when Float
           if unicode
-            "#{c.round(5)}#{imag}"
+            "#{c.round(unicode_round)}#{imag}"
           else
             "#{c}#{imag}"
           end

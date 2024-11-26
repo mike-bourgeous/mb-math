@@ -18,7 +18,7 @@ module MB
       # distribution of real and imaginary part.  If :polar, generates complex
       # numbers with a uniform distribution of radius within the range
       # specified, and a uniform angle from 0..2pi.
-      def random_value(range = 0.0..1.0, complex: false)
+      def random_value(range = 0.0..1.0, complex: false, denom_range: 1..10000)
         range ||= 0.0..1.0
 
         case complex
@@ -36,10 +36,8 @@ module MB
         if range.begin.is_a?(Float) || range.end.is_a?(Float)
           rand(range)
         elsif range.begin.is_a?(Rational) || range.end.is_a?(Rational)
-          # TODO: Allow specifying the denominator range
           span = range.end - range.begin
-          denom_max = MB::M.max(10000, MB::M.max(range.begin.denominator, range.end.denominator))
-          denominator = rand(1..denom_max) while denominator.nil? || denominator == 0
+          denominator = rand(denom_range) while denominator.nil? || denominator == 0
 
           numrange = range.exclude_end? ? 0...(span * denominator) : 0..(span * denominator)
           numerator = rand(Rational(0, denominator)..(span * denominator))

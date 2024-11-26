@@ -132,7 +132,9 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
     pending 'can provide exact answers for perfect rational square Complex values' do
       # FIXME: sometimes this returns an exact match for the input value but an intermediate result is irrational
       100.times do
-        c = MB::M.random_value(0r..100r, complex: true)
+        # FIXME: increasing the denominator increases the likelihood of a fallback to float
+        # XXX c = MB::M.random_value(0r..100r, complex: true)
+        c = Complex(Rational(rand(0..10000), rand(1..10000)), Rational(rand(0..10000), rand(1..10000)))
         result = MB::M.kind_sqrt(c * c)
 
         puts "\e[1;32m#{MB::M::Polynomial.num_str(c, unicode: true)} ?= \e[1;33m#{MB::M::Polynomial.num_str(result, unicode: true)}" # XXX
