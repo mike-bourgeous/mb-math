@@ -71,7 +71,7 @@ class SyntheticDivisionDemo
     print_table 'Negate and write all but the first denominator coefficients diagonally'
 
     # The @scale part on the left is the first coefficient of the denominator
-    @scale[-1] = hlpoly("\u00f7 #{MB::M::Polynomial.num_str(c0, unicode: true)}", '1;35')
+    @scale[-1] = MB::M::Polynomial.hlpoly("\u00f7 #{MB::M::Polynomial.num_str(c0, unicode: true)}", '1;35')
 
     print_table 'Write the first denominator coefficient below'
 
@@ -124,10 +124,10 @@ class SyntheticDivisionDemo
   # values that have changed since the last display.
   def print_table(title, pause: true)
     new_values = @rows.map { |r|
-      r[:left].map { |v| v && hlpoly(v, '1;35') } +
-        r[:right].map { |v| v && hlpoly(v, '1;36') }
+      r[:left].map { |v| v && MB::M::Polynomial.hlpoly(v, '1;35') } +
+        r[:right].map { |v| v && MB::M::Polynomial.hlpoly(v, '1;36') }
     }
-    new_values += [@scale + @result.map { |v| v && hlpoly(v, '1;32') }]
+    new_values += [@scale + @result.map { |v| v && MB::M::Polynomial.hlpoly(v, '1;32') }]
 
     @old_values ||= new_values
 
@@ -174,28 +174,6 @@ def read_coeff_args
   coeffs
 end
 
-# Prints two Polynomials vertically separated as numerator and denominator.
-def print_over(num, denom)
-  num_str = num.to_s(unicode: true)
-  denom_str = denom.to_s(unicode: true)
-  len = MB::M.max(num_str.length, denom_str.length) + 16
-
-  puts "#{hlpoly(num_str.rjust(len), '1;36')}"
-  puts "\e[36mCalculating:\e[0m  #{"\u2500" * (len - 11)}"
-  puts "#{hlpoly(denom_str.rjust(len), '1;35')}"
-end
-
-# Color highlights a numeric value or polynomial, using the given +color+ for
-# super/sub/normal digits.
-def hlpoly(str, color)
-  str = MB::M::Polynomial.num_str(str, unicode: true) if str.is_a?(Numeric)
-  str
-    .gsub(%r{[0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+([./][0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+)?}, "\e[#{color}m\\&\e[22;39m")
-    .gsub(/ [+-] /, "\e[39m\\&\e[39m") # TODO: color for operators?
-    .gsub('x', "\e[1m\\&\e[22m")
-    .gsub('i', "\e[33m\\&\e[39m")
-end
-
 num_coeffs = read_coeff_args
 if ARGV[0] == '/'
   ARGV.shift
@@ -222,7 +200,7 @@ puts "\e[H\e[J"
 puts "\e[33mSynthetic Division Demo from mb-math: \e[1mhttps://github.com/mike-bourgeous/mb-math\e[0m"
 puts "\nSee Wikipedia: \e[1mhttps://en.wikipedia.org/wiki/Synthetic_division#For_non-monic_divisors\e[0m"
 puts "\n\n"
-print_over(numerator, denominator)
+MB::M::Polynomial.print_over(numerator, denominator, prefix: 'Calculating:')
 
 quotient, remainder = SyntheticDivisionDemo.new(numerator.coefficients, denominator.coefficients).long_divide
 
@@ -233,10 +211,10 @@ MB::U.headline('Answer'.ljust(40), underline: "\u2550")
 
 MB::U.table(
   {
-    "\e[1;36mNumerator\e[0m" => hlpoly(num_str, '1;36'),
-    "\e[1;35mDenominator\e[0m" => hlpoly(denom_str, '1;35'),
-    "\e[1;32mQuotient\e[0m" => hlpoly(quo_poly, '1;32'),
-    "\e[1;33mRemainder\e[0m" => hlpoly(rem_poly, '1;33'),
+    "\e[1;36mNumerator\e[0m" => MB::M::Polynomial.hlpoly(num_str, '1;36'),
+    "\e[1;35mDenominator\e[0m" => MB::M::Polynomial.hlpoly(denom_str, '1;35'),
+    "\e[1;32mQuotient\e[0m" => MB::M::Polynomial.hlpoly(quo_poly, '1;32'),
+    "\e[1;33mRemainder\e[0m" => MB::M::Polynomial.hlpoly(rem_poly, '1;33'),
   }.to_a,
   variable_width: true,
   header: false,

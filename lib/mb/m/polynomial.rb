@@ -1,3 +1,4 @@
+require 'prime'
 require 'numo/pocketfft'
 
 module MB
@@ -536,7 +537,7 @@ module MB
 
         s = String.new
 
-        s << "#{self.class.coeff_str(@coefficients[0], unicode: unicode)}#{self.class.var_str(@order, unicode: unicode)}"
+        s << "#{self.class.coeff_str(@coefficients[0], unicode: unicode)}#{self.class.var_str('x', @order, unicode: unicode)}"
 
         coefficients.each.with_index do |c, idx|
           # Skip terms with a coefficient of zero and skip the first term since
@@ -565,7 +566,7 @@ module MB
           if exponent == 0
             s << "#{self.class.num_str(c, unicode: unicode)}"
           else
-            s << "#{self.class.coeff_str(c, unicode: unicode)}#{self.class.var_str(exponent, unicode: unicode)}"
+            s << "#{self.class.coeff_str(c, unicode: unicode)}#{self.class.var_str('x', exponent, unicode: unicode)}"
           end
         end
 
@@ -664,20 +665,20 @@ module MB
         end
       end
 
-      # Helper for #to_s to generate text for variable and exponent.
-      def self.var_str(exponent, unicode:)
+      # Helper for #to_s to generate text for variable/base and exponent.
+      def self.var_str(base, exponent, unicode:)
         case exponent
         when 0
           raise 'Handle zero-order term elsewhere'
 
         when 1
-          'x'
+          base
 
         else
           if unicode
-            "x#{superscript(exponent)}"
+            "#{base}#{superscript(exponent)}"
           else
-            "x ** #{exponent}"
+            "#{base} ** #{exponent}"
           end
         end
       end
@@ -690,6 +691,53 @@ module MB
       # Returns +value+ (should be an Integer) as a String with Unicode subscript digits.
       def self.subscript(value)
         value.to_s.tr('0-9', "\u2080-\u2089")
+      end
+
+      # Color highlights a numeric value or polynomial, using the given +color+ for
+      # super/sub/normal digits.
+      def self.hlpoly(str, color)
+        str = Polynomial.num_str(str, unicode: true) if str.is_a?(Numeric)
+        str
+          .gsub(%r{[0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+([./][0-9\u2070-\u2079\u00b2\u00b3\u00b9\u2080-\u2089]+)?}, "\e[#{color}m\\&\e[22;39m")
+          .gsub(/ [+-] /, "\e[39m\\&\e[39m") # TODO: color for operators?
+          .gsub('x', "\e[1m\\&\e[22m")
+          .gsub('i', "\e[33m\\&\e[39m")
+      end
+
+      # Prints two Polynomials vertically separated as numerator and
+      # denominator, with the +:prefix+ printed left of the horizontal bar.
+      def self.print_over(num, denom, prefix: nil)
+        prefix = prefix.to_s
+        num_str = num.is_a?(Polynomial) ? num.to_s(unicode: true) : num.to_s
+        denom_str = denom.is_a?(Polynomial) ? denom.to_s(unicode: true) : denom.to_s
+        len = MB::M.max(num_str.length, denom_str.length) + prefix.length + 5
+
+        puts "#{hlpoly(num_str.rjust(len), '1;36')}"
+        puts "\e[36m#{prefix}\e[0m  #{"\u2500" * (len - prefix.length)}"
+        puts "#{hlpoly(denom_str.rjust(len), '1;35')}"
+      end
+
+      # Converts a prime factorization from Prime.prime_division into a String
+      # for display, formatted similarly to #to_s.
+      # TODO: this probably belongs elsewhere
+      def self.prime_str(value)
+        value = Prime.prime_division(value) unless value.is_a?(Array)
+
+        value.map { |prime, exponent|
+          var_str(num_str(prime, unicode: true), exponent, unicode: true)
+        }.join(' + ')
+      end
+
+      # Pretty-prints a prime factorization of an Integer or Rational.
+      # TODO: this probably belongs elsewhere
+      def self.print_prime(value, prefix: nil)
+        case value
+        when Rational
+          print_over(prime_str(value.numerator), prime_str(value.denominator), prefix: prefix)
+
+        else
+          puts hlpoly(prime_str(value), '1;36')
+        end
       end
     end
   end

@@ -23,6 +23,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_runtime_dependency 'bigdecimal', '~> 3.1.8'
+  spec.add_runtime_dependency 'prime', '~> 0.1.3'
   spec.add_runtime_dependency 'numo-narray', '~> 0.9.1'
   spec.add_runtime_dependency 'cmath', '~> 1.0.0'
   spec.add_runtime_dependency 'matrix', '~> 0.4.2'
