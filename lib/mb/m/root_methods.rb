@@ -247,7 +247,7 @@ module MB
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
-          if yprime.abs < tolerance && y != 0 && (step.nil? || step.abs > tolerance) && depth < 2
+          if yprime.abs < tolerance ** 2 && y != 0 && (step.nil? || step.abs > tolerance) && depth < 2
             MB::U.headline("#{prefix}\e[1;34mTrying multiple root method at depth=#{depth}\e[0m", prefix: prefix) if $DEBUG
 
             new_x, new_y = multi_root(x, f: f, f_prime: f_prime, real_range: real_range, imag_range: imag_range, iterations: iterations, tolerance: tolerance, depth: depth, prefix: "#{prefix}  ")
@@ -301,7 +301,7 @@ module MB
           # Rounding method
           MB::U.headline("\e[1;38;5;117mTrying rounding method\e[0m", prefix: prefix) if $DEBUG
           new_x, new_y = rounding_root(x, f: f, prefix: "#{prefix}  ")
-          if new_y && (new_y.abs <= y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?))
+          if false && new_y && (new_y.abs <= y.abs || (new_y.abs.to_f.finite? && !y.abs.to_f.finite?)) # XXX false
             puts "#{prefix}  \e[38;5;117mrounding \e[32mImprovement! (x,y=#{x},#{y} new_x,new_y=#{new_x},#{new_y}\e[0m" if $DEBUG
             step = new_x - x
             x, y = new_x, new_y
