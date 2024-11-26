@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/mike-bourgeous/mb-util.git
-  revision: 1b2662eacaf5ea9c95987fd0c340f459e87198fc
+  revision: d982144e52321810cc96a26d100b2b7cd90cc0be
   specs:
-    mb-util (0.1.19.usegit)
+    mb-util (0.1.20.usegit)
 
 PATH
   remote: .
@@ -11,7 +11,7 @@ PATH
       bigdecimal (~> 3.1.8)
       cmath (~> 1.0.0)
       matrix (~> 0.4.2)
-      mb-util (>= 0.1.19.usegit)
+      mb-util (>= 0.1.20.usegit)
       numo-narray (~> 0.9.1)
       numo-pocketfft (~> 0.4.1)
 
