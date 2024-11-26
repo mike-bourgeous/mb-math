@@ -225,8 +225,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          # XXX puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
           # Try random shifts in case we are stuck.  The random seed is chosen
           # from the current X to make it deterministic.
@@ -242,8 +242,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          # XXX puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
@@ -261,8 +261,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          # XXX puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
           # Secant method
           # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
@@ -280,8 +280,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          # XXX puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
           # Creeping method
           MB::U.headline("\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix) if $DEBUG
@@ -295,8 +295,8 @@ module MB
           end
 
           # Exit early if we have an exact root
-          # XXX puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          # XXX return x if y == 0
+          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          return x if y == 0
 
           # Rounding method
           MB::U.headline("\e[1;38;5;117mTrying rounding method\e[0m", prefix: prefix) if $DEBUG
@@ -323,7 +323,7 @@ module MB
 
           # Stop if we made no progress
           if x_gain == 0
-            puts "No progress made on loop #{last_loop} at depth #{depth}"
+            puts "#{prefix}  \e[31mNo progress made on loop #{last_loop} at depth #{depth}\e[0m" if $DEBUG
 
             if depth < 0 # XXX
               puts "trying rounding imag at depth #{depth}"
@@ -366,6 +366,8 @@ module MB
           prev_x = x
           prev_y = y
         end
+
+        # TODO: maybe do some rounding here to see if we can get an integer
 
         # FIXME: x_gain might be large if loops is 1
         if depth == 0 && (y.abs > tolerance || x_gain.abs > tolerance)
@@ -596,8 +598,8 @@ module MB
         x = x_orig
         y = y_orig
 
-        12.times do |i|
-          new_x = MB::M.round(x, i)
+        7.times do |i|
+          new_x = MB::M.round(x, i + 5)
           new_y = f.call(new_x)
 
           puts "#{prefix}\e[38;5;117mrounding\e[0m trying #{new_x} getting #{new_y} at step #{i}" if $DEBUG

@@ -428,7 +428,7 @@ module MB
             begin
               # TODO: Maybe check if the function actually evaluates to zero at the given root
               # TODO: Maybe some day design a version of find_one_root that uses rationals
-              r1 = MB::M.find_one_root(5+1i, rest, tolerance: 1e-11, loops: 5, iterations: 40)
+              r1 = MB::M.find_one_root(5+1i, rest, tolerance: 1e-10, loops: 5, iterations: 40)
               r1 = MB::M.convert_down(MB::M.float_to_rational(r1)) unless @float
               r1 = MB::M.sigfigs(r1, 8) if r1.is_a?(Float)
               rp = MB::M::Polynomial.new(1, -r1)
