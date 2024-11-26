@@ -633,7 +633,7 @@ module MB
             value = value.next_float
           end
         elsif count < 0
-          count.times do
+          (-count).times do
             value = value.prev_float
           end
         end
