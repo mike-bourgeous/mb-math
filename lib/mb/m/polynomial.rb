@@ -96,6 +96,7 @@ module MB
 
         roots = roots.to_a
         roots << MB::M.random_value(range, complex: complex) until roots.size == order
+        roots = roots.sort_by { |r| [r.real, r.imag] }
 
         scale = 0
         scale = MB::M.random_value(range, complex: complex, denom_range: denom_range) while scale == 0
@@ -481,7 +482,7 @@ module MB
             roots.concat(quad_roots)
           end
 
-          roots
+          roots.sort_by { |r| [r.real, r.imag] }
         end
 
       rescue => e
