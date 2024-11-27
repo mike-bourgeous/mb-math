@@ -80,23 +80,16 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
   describe '.random_roots' do
     it 'can create random integer roots' do
-      begin
-        p, roots, scale = nil
-
-        100.times do
-          p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
-          expect(p.order).to eq(7)
-          expect(p.coefficients).to all(be_a(Integer))
-          expect(roots.count).to eq(7)
-          expect(p.roots.count).to eq(7)
-          expect(roots.uniq.count).to be >= 3
-          expect(roots).to all(be_a(Integer).and be_between(-10, 10))
-          expect(scale).to be_a(Integer).and be_between(-10, 10)
-          expect(MB::M.convert_down(MB::M.round(p.roots, 4)).sort).to eq(roots.sort)
-        end
-      rescue TypeError => e # getting nil when sorting??
-        require 'pry-byebug'; binding.pry # XXX
-        raise
+      100.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
+        expect(p.order).to eq(7)
+        expect(p.coefficients).to all(be_a(Integer))
+        expect(roots.count).to eq(7)
+        expect(p.roots.count).to eq(7)
+        expect(roots.uniq.count).to be >= 3
+        expect(roots).to all(be_a(Integer).and be_between(-10, 10))
+        expect(scale).to be_a(Integer).and be_between(-10, 10)
+        expect(MB::M.convert_down(MB::M.round(p.roots, 4)).sort).to eq(roots.sort)
       end
     end
 

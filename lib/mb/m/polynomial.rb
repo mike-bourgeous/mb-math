@@ -256,7 +256,7 @@ module MB
       def /(other)
         case other
         when Numeric
-          other = other.to_r if other.is_a?(Integer) # TODO: use to_f instead?
+          other = other.to_r if other.is_a?(Integer)
           quotient = @coefficients.map { |c| c / other }
           remainder = [0]
 

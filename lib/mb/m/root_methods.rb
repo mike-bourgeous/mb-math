@@ -34,7 +34,7 @@ module MB
             yleft = base.call(x - delta)
             yright = base.call(x + delta)
 
-            puts "yleft=#{yleft} yright=#{yright} x=#{x} delta=#{delta}" if $DEBUG # XXX
+            puts "yleft=#{yleft} yright=#{yright} x=#{x} delta=#{delta}" if $DEBUG
             (yright - yleft) / (delta * 2)
           }
         end
@@ -181,7 +181,7 @@ module MB
       )
         prefix ||= '  ' * depth
 
-        # TODO: maybe use the Newton's method implementation from BigDecimal/BigMath
+        # TODO: maybe try to adapt the Newton's method implementation from BigDecimal/BigMath to complex values
 
         raise ArgumentError, "Pass only a callable function object, or a block; not both" if func && block_given?
 
@@ -205,8 +205,6 @@ module MB
         y_gain = 100 * tolerance
 
         # TODO: implement min/max clamping
-        # FIXME: bail faster if we hit nan or infinity anywhere
-        # TODO: do something about indeterminate forms (0 / 0) in the multi-root function
 
         last_loop = 0
 
@@ -225,7 +223,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           # Try random shifts in case we are stuck.  The random seed is chosen
@@ -242,7 +240,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
@@ -261,7 +259,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           # Secant method
@@ -280,7 +278,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           # Creeping method
@@ -295,7 +293,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           # Rounding method
@@ -310,7 +308,7 @@ module MB
           end
 
           # Exit early if we have an exact root
-          puts "#{prefix}\e[32mExiting after rounding with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
+          puts "#{prefix}\e[32mExiting after rounding with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG
           break if y == 0
 
           x_gain = x - prev_x
@@ -374,7 +372,7 @@ module MB
 
         # Finite differences
         iterations.times do |i|
-          puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" if $DEBUG # XXX
+          puts "#{prefix}\e[36mapprox i=#{i} x=#{x} y=#{y} step=#{step}\e[0m" if $DEBUG
           break if y == 0 || step == 0
 
           if yprime == 0 || !yprime.abs.to_f.finite?
@@ -410,7 +408,7 @@ module MB
 
           yprime = f_prime.call(x)
 
-          puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" if $DEBUG # XXX
+          puts "#{prefix}  \e[36mapprox i=#{i} yprime=#{yprime} step=#{step}\e[0m" if $DEBUG
 
           x_diff = (x_prev - x).abs
           break if x_diff < tolerance ** 2
@@ -500,7 +498,7 @@ module MB
         y_orig = f.call(x_orig)
 
         x = find_one_root(x_orig, real_range: real_range, imag_range: imag_range, loops: 1, iterations: iterations, tolerance: tolerance, depth: depth + 1, prefix: "#{prefix}  \e[34mmultiroot\e[0m ") { |v|
-          puts "#{prefix}    \e[34mmultiroot\e[0m Evaluating g(#{v})" if $DEBUG # XXX
+          puts "#{prefix}    \e[34mmultiroot\e[0m Evaluating g(#{v})" if $DEBUG
 
           yg = f.call(v)
           ygp = f_prime.call(v)
@@ -546,13 +544,13 @@ module MB
         step = tolerance * 100
 
         iterations.times do |i|
-          puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" if $DEBUG # XXX
+          puts "#{prefix}  secant i=#{i} x=#{x} y=#{y} x2=#{x2} y2=#{y2} step=#{step}" if $DEBUG
 
           break if y.abs <= tolerance && step.abs <= tolerance && i >= 5
 
           xnext = (x2 * y - x * y2) / (y - y2)
           step = xnext - x
-          puts "#{prefix}    secant xnext=#{xnext} step=#{step}" if $DEBUG # XXX
+          puts "#{prefix}    secant xnext=#{xnext} step=#{step}" if $DEBUG
 
           break if step.abs < tolerance.abs ** 2 || !xnext.abs.to_f.finite?
 
@@ -604,7 +602,7 @@ module MB
           imag = rand_shift(random, value.imag, range, tolerance)
           real + 1i * imag
         elsif !value.abs.to_f.finite? || value.abs < tolerance.abs
-          puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? if $DEBUG # XXX
+          puts "\e[33mComplex rand dodging a non-finite: #{value}\e[0m" if !value.abs.to_f.finite? if $DEBUG
           span = (range.end - range.begin) / 2
           random.rand(-span..span)
         else
