@@ -1,3 +1,4 @@
+require 'set'
 require 'prime'
 require 'numo/pocketfft'
 
@@ -69,6 +70,9 @@ module MB
       # the new Polynomial, the list of roots, and the scale factor.  This is
       # useful for testing root-finding algorithms.
       #
+      # The list of roots is not truly random -- this method tries to avoid
+      # highly multiple roots.
+      #
       # Note that coefficients can grow *very* quickly if using a large range
       # or orders past 10, eventually exceeding Ruby's big integer limit.
       #
@@ -79,13 +83,19 @@ module MB
       # actual range.
       # +:denom_range+ - Passed to randomMethods#random_value for random
       # Rationals.
-      def self.random_roots(order, complex: false, range: -10..10, denom_range: 1..1000)
+      def self.random_roots(order, complex: false, range: -15..15, denom_range: 1..1000)
         # Try to get more unique roots
-        roots = nil
-        10.times do
-          roots = Array.new(order) { MB::M.random_value(range, complex: complex) }
-          break if roots.uniq.count >= order * 3 / 2
+        # TODO: this is hackish; there should be a better way
+        # TODO: once this is solved maybe pull it out into a helper called semiunique_random_list or something like that
+        roots = Set.new
+
+        (order * 4).times do
+          roots << MB::M.random_value(range, complex: complex)
+          break if roots.count == order
         end
+
+        roots = roots.to_a
+        roots << MB::M.random_value(range, complex: complex) until roots.size == order
 
         scale = 0
         scale = MB::M.random_value(range, complex: complex, denom_range: denom_range) while scale == 0
@@ -407,6 +417,11 @@ module MB
       # Returns an Array with roots of the polynomial, whether real or complex.
       # In some cases this will preserve exact Rational or Integer roots, but
       # often can only find Float approximations.
+      #
+      # This method is not always super accurate at this point, but can still
+      # be useful to understand a polynomial.  Highly multiple roots (e.g. 4 or
+      # more of the same root mixed with a few others) cause this method to
+      # struggle more.
       def roots
         case @order
         when 0
