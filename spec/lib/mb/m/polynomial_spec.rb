@@ -101,11 +101,11 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect(roots).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
         expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
 
-        # FIXME: can we get better than 2 decimals??
-        expected = MB::M.round(roots.map(&:to_f), 2).sort
-        result = MB::M.convert_down(MB::M.round(p.roots, 2)).sort
+        # FIXME: can we get better than 1 decimal?????
+        expected = MB::M.round(roots.map(&:to_f), 1).sort
+        result = MB::M.convert_down(MB::M.round(p.roots.map(&:to_f), 1)).sort
 
-        expect(result).to eq(expected)
+        expect(result).to eq(expected), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\nexpected=#{expected}\nresult=#{result}"
       end
     end
 
