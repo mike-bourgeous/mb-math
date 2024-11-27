@@ -40,6 +40,7 @@ module MB
     extend RootMethods
     extend RandomMethods
 
+    # TODO: move into separate categorized files
     module NumericMathDSL
       # Returns the number itself (radians are the default).
       def radians
@@ -102,6 +103,16 @@ module MB
       def choose(other)
         return 0 if other < 0 || other > self
         self.factorial / (other.factorial * (self - other).factorial)
+      end
+
+      # Converts to a Float if a 1D Numeric, or converts to a Complex with
+      # Floats if a Complex.
+      def to_f_or_cf
+        if self.is_a?(Complex)
+          Complex(real.to_f, imag.to_f)
+        else
+          self.to_f
+        end
       end
     end
 

@@ -69,6 +69,19 @@ RSpec.describe(MB::M, :aggregate_failures) do
         expect(6.2.choose(2.2).round(8)).to eq(18.0544000000000.round(8))
       end
     end
+
+    describe '#to_f_or_cf' do
+      it 'converts Complex real+imag to Float' do
+        c = 5r/2-7ri/4
+        result = c.to_f_or_cf
+        expect(result.real).to be_a(Float).and eq(2.5)
+        expect(result.imag).to be_a(Float).and eq(-1.75)
+      end
+
+      it 'converts Rational to Float' do
+        expect((11r/4).to_f_or_cf).to be_a(Float).and eq(2.75)
+      end
+    end
   end
 
   describe '.parse_complex' do

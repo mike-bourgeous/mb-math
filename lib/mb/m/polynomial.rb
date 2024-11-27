@@ -490,6 +490,8 @@ module MB
 
       # Returns a new Polynomial with all coefficients converted to Float or
       # Complex with Float.
+      #
+      # TODO: since this doesn't return a Float maybe it should be renamed.
       def to_f
         Polynomial.new(
           @coefficients.map { |c|

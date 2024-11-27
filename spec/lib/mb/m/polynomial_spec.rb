@@ -78,6 +78,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  # FIXME: these tests are _VERY_ flaky
   describe '.random_roots' do
     it 'can create random integer roots' do
       100.times do
@@ -102,8 +103,8 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
 
         # FIXME: can we get better than 1 decimal?????
-        expected = MB::M.round(roots.map(&:to_f), 1).sort
-        result = MB::M.convert_down(MB::M.round(p.roots.map(&:to_f), 1)).sort
+        expected = MB::M.round(roots.map(&:to_f_or_cf), 1).sort
+        result = MB::M.convert_down(MB::M.round(p.roots.map(&:to_f_or_cf), 1)).sort
 
         expect(result).to eq(expected), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected}\nresult=#{result}"
       end
@@ -117,7 +118,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect(roots).to all(be_a(Float).and be_between(-100, 100))
         expect(scale).to be_a(Float).and be_between(-100, 100)
 
-        expected_roots = MB::M.round(roots.map(&:to_f), 5).sort
+        expected_roots = MB::M.round(roots.map(&:to_f_or_cf), 5).sort
         result_roots = MB::M.convert_down(MB::M.round(p.roots, 5)).sort
 
         expect(result_roots).to eq(expected_roots)
