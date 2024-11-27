@@ -101,9 +101,21 @@ module MB
         scale = 0
         scale = MB::M.random_value(range, complex: complex, denom_range: denom_range) while scale == 0
 
-        p = roots.map { |r| MB::M::Polynomial.new(1, -r) }.reduce(&:*) * scale
+        p = from_roots(roots, scale: scale)
 
         return p, roots, scale
+      end
+
+      # Creates a polynomial from the given list of +roots+ (either a variable
+      # argument list of Numerics or an Array of Numerics), optionally applying
+      # a +:scale+ factor to the final coefficients.
+      #
+      # This method generates polynomials of the form (x - r) for each root and
+      # multiplies them together.
+      def self.from_roots(*roots, scale: 1)
+        roots = roots[0] if roots.length == 1 && roots[0].is_a?(Array)
+        # TODO: for rational roots put denominator on X coefficient?
+        roots.map { |r| MB::M::Polynomial.new(1, -r) }.reduce(&:*) * scale
       end
 
       # Initializes a polynomial with the given +coefficients+, which may be a

@@ -145,6 +145,22 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
+  describe '.from_roots' do
+    it 'can construct a polynomial from a list of roots and a scale factor' do
+      roots = [(-22894r/7661), (-11r/4), (-5398r/3549), (1798r/1727), (14645r/5321)]
+      scale = 5r/2
+      p = MB::M::Polynomial.from_roots(roots, scale: scale)
+      expect(p.coefficients).to eq([
+        (5r/2),
+        (17319313536450085r/1998789434746104),
+        -(2969844711416735r/153753033442008),
+        -(25803140851064385r/333131572457684),
+        (1426773780548855r/499697358686526),
+        (2033825271786575r/22713516303933),
+      ])
+    end
+  end
+
   describe '#initialize' do
     it 'can create a polynomial from an Array' do
       p = MB::M::Polynomial.new([1, 2, 3])
