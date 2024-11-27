@@ -77,7 +77,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
-  # FIXME: these tests are _VERY_ flaky
+  # TODO: separate tests of #roots from tests of .random_roots
   describe '.random_roots' do
     it 'can create random integer roots' do
       100.times do
@@ -134,8 +134,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect(scale).to be_a(Integer).and be_between(-10, 10)
 
         # FIXME: can we get better than 1 decimal?
-        # FIXME: precision fails when these are our roots:
-        # [-10, -10, -10, -10, -10, -5, 2, 4]
+        # TODO: use be_within(X).of(0) or diff.abs < X; maybe create a custom RSpec matcher
         sorted_roots = MB::M.round(roots, 1).sort_by { |v| [v.real, v.imag] }
         result_roots = MB::M.round(p.roots, 1).sort_by { |v| [v.real, v.imag] }
 
