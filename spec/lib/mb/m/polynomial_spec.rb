@@ -63,10 +63,9 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
 
     it 'can create float coefficients' do
-      p = MB::M::Polynomial.random(75, range: -1.0..2.0)
+      p = MB::M::Polynomial.random(75, range: -0.9..-0.1, zero_chance: 0)
       expect(p.order).to eq(75)
-      expect(p.coefficients.count { |v| v.is_a?(Float) }).to be > 30
-      expect(p.coefficients).to all(be_a(Float).or be_a(Integer)).and all(be_between(-1.0, 2.0))
+      expect(p.coefficients).to all(be_a(Float)).and all(be_between(-0.9, -0.1))
     end
 
     it 'can create complex float coefficients' do
