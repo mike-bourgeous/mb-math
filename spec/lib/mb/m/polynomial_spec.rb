@@ -102,11 +102,11 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect(roots).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
         expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
 
-        # FIXME: can we get better than 1 decimal?????
-        expected = MB::M.round(roots.map(&:to_f_or_cf), 1).sort
-        result = MB::M.convert_down(MB::M.round(p.roots.map(&:to_f_or_cf), 1)).sort
-
-        expect(result).to eq(expected), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected}\nresult=#{result}"
+        # FIXME: can we get better than within 0.05?????
+        expected = roots.map(&:to_f_or_cf)
+        p.roots.each.with_index do |r, idx|
+          expect(r).to be_within(0.05).of(expected[idx]), "Root #{idx} did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected[idx]}\nresult=#{r}"
+        end
       end
     end
 
@@ -561,6 +561,16 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     it 'returns rational roots for a quadratic when possible' do
       p = MB::M::Polynomial.new(3, -2) * MB::M::Polynomial.new(5r/3, -7r/23)
       expect(p.roots).to all(be_a(Rational)).and eq([2r/3, 21r/115])
+    end
+
+    it 'returns real roots in sorted order' do
+      p = MB::M::Polynomial.from_roots(-1, 2, -3, 4, -5)
+      expect(p.roots).to eq([-5, -3, -1, 2, 4])
+    end
+
+    it 'returns complex roots sorted by real then imaginary' do
+      p = MB::M::Polynomial.from_roots(-1 + 1i, -1 - 1i, -3, 2i, -1i, 5, 5-3i)
+      expect(p.roots).to eq([-3, -1 - 1i, -1 + 1i, -1i, 2i, 5-3i, 5])
     end
 
     it 'can extract roots we assembled ourselves' do
