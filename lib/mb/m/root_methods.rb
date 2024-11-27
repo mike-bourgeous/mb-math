@@ -226,7 +226,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after approx with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           # Try random shifts in case we are stuck.  The random seed is chosen
           # from the current X to make it deterministic.
@@ -243,7 +243,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after random with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           # Possible multiple root; try finding root of f(x)/f'(x) instead of f(x)
           yprime = f_prime.call(x)
@@ -262,7 +262,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after multiroot with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           # Secant method
           # TODO: none of the specs iterate with this method; find a case that needs this method, or remove this code
@@ -281,7 +281,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after secant with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           # Creeping method
           MB::U.headline("\e[1;38;5;150mTrying creeping method\e[0m", prefix: prefix) if $DEBUG
@@ -296,7 +296,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after creeping with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           # Rounding method
           MB::U.headline("\e[1;38;5;117mTrying rounding method\e[0m", prefix: prefix) if $DEBUG
@@ -311,7 +311,7 @@ module MB
 
           # Exit early if we have an exact root
           puts "#{prefix}\e[32mExiting after rounding with an exact root at x=#{x}\e[0m" if y == 0 if $DEBUG # XXX
-          return x if y == 0
+          break if y == 0
 
           x_gain = x - prev_x
           y_gain = y.abs - prev_y.abs
@@ -340,10 +340,15 @@ module MB
         # Do some rounding here to see if we can get an integer
         xround = MB::M.round(x)
         yround = f.call(xround)
-        return xround if (xround - x).abs < 1e-2 && (yround == y || yround == 0)
+        if (xround - x).abs < 1e-2 && (yround == y || yround == 0)
+          puts "#{prefix}  Final rounding helped: f(#{xround})=#{yround} is better than f(#{x})=#{y}" if $DEBUG
+          return xround
+        else
+          puts "#{prefix}  Final rounding did not help: f(#{xround})=#{yround} is NOT better than f(#{x})=#{y}" if $DEBUG
+        end
 
         # FIXME: x_gain might be large if loops is 1
-        if depth == 0 && (y.abs > tolerance || x_gain.abs > tolerance)
+        if depth == 0 && y != 0 && (y.abs > tolerance || x_gain.abs > tolerance)
           raise ConvergenceError, "Failed to converge after #{last_loop} loops within #{tolerance} with x=#{x} y=#{y} x_gain=#{x_gain} y_gain=#{y_gain} f=#{f}"
         end
 
