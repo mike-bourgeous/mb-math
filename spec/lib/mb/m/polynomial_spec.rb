@@ -81,6 +81,8 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
   describe '.random_roots' do
     it 'can create random integer roots' do
       begin
+        p, roots, scale = nil
+
         100.times do
           p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
           expect(p.order).to eq(7)

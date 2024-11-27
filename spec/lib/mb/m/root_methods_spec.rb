@@ -214,11 +214,8 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
         #     # So the fault lies in the square root operation!  It must be
         #     # giving an incorrect answer for this larger value.
 
-        # XXX c = MB::M.random_value(0r..100r, complex: true)
-        c = Complex(Rational(rand(0..10000), rand(1..10000)), Rational(rand(0..10000), rand(1..10000)))
+        c = MB::M.random_value(0r..100r, complex: true)
         result = MB::M.kind_sqrt(c * c)
-
-        puts "\e[1;32m#{MB::M::Polynomial.num_str(c, unicode: true)} ?= \e[1;33m#{MB::M::Polynomial.num_str(result, unicode: true)}" # XXX
 
         expect(result).to eq(c)
         expect(result.real).to be_a(Rational).or be_a(Integer)

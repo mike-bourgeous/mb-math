@@ -324,42 +324,12 @@ module MB
           # Stop if we made no progress
           if x_gain == 0
             puts "#{prefix}  \e[31mNo progress made on loop #{last_loop} at depth #{depth}\e[0m" if $DEBUG
-
-            if depth < 0 # XXX
-              puts "trying rounding imag at depth #{depth}"
-              new_x = find_one_root(Complex(x.real, y.real.round(6)), f, depth: depth + 1)
-              new_y = f.call(new_x)
-
-              if new_y.abs >= y.abs
-                puts "trying rounding real at depth #{depth}"
-                new_x = find_one_root(Complex(x.real.round(6), y.real), f, depth: depth + 1)
-                new_y = f.call(new_x)
-              end
-
-              if new_y.abs >= y.abs
-                puts "trying rounding at depth #{depth}"
-                new_x = find_one_root(MB::M.round(x, 6), f, depth: depth + 1)
-                new_y = f.call(new_x)
-              end
-
-              if new_y.abs < y.abs
-                puts "somehow that worked at depth #{depth}"
-
-                # XXX require 'pry-byebug'; binding.pry if depth == 0 # XXX
-
-                x = new_x
-                y = new_y
-
-                next # XXX
-              end
-            end
-
             break
           end
 
           # Stop if we've reached "good enough"
           if y.abs < tolerance ** 2 && step && step.abs < tolerance ** 2 && x_gain.abs < tolerance ** 2
-            puts "Good enough: y #{y.abs} < #{tolerance ** 2}; step #{step.abs} < #{tolerance ** 2}; xg #{x_gain.abs} < #{tolerance ** 2}"
+            puts "#{prefix}  Good enough: y #{y.abs} < #{tolerance ** 2}; step #{step.abs} < #{tolerance ** 2}; xg #{x_gain.abs} < #{tolerance ** 2}" if $DEBUG
             break
           end
 
@@ -367,7 +337,10 @@ module MB
           prev_y = y
         end
 
-        # TODO: maybe do some rounding here to see if we can get an integer
+        # Do some rounding here to see if we can get an integer
+        xround = MB::M.round(x)
+        yround = f.call(xround)
+        return xround if (xround - x).abs < 1e-2 && (yround == y || yround == 0)
 
         # FIXME: x_gain might be large if loops is 1
         if depth == 0 && (y.abs > tolerance || x_gain.abs > tolerance)

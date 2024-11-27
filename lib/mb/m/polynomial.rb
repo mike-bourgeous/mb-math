@@ -420,7 +420,7 @@ module MB
           [root]
 
         when 2
-          MB::M.quadratic_roots(*@coefficients).tap { |r| puts "quad: #{r}" } # XXX
+          MB::M.quadratic_roots(*@coefficients)
 
         else
           roots = []
@@ -437,7 +437,11 @@ module MB
 
               result, remainder = rest / rp
 
-              puts "O#{rest.order}: R=#{self.class.num_str(r1, unicode: false)} \e[1;36m#{rest.to_s(unicode: true)}\e[0m / \e[1;35m#{rp.to_s(unicode: true)}\e[0m = \e[1;32m#{result.to_s(unicode: true)}\e[0m + \e[1;33m#{remainder.to_s(unicode: true)}\e[0m" # XXX
+              puts "O#{rest.order}: R=#{self.class.num_str(r1, unicode: false)} " \
+                "\e[1;36m#{rest.to_s(unicode: true)}\e[0m / " \
+                "\e[1;35m#{rp.to_s(unicode: true)}\e[0m = " \
+                "\e[1;32m#{result.to_s(unicode: true)}\e[0m + " \
+                "\e[1;33m#{remainder.to_s(unicode: true)}\e[0m" if $DEBUG
 
               # Is this even possible?
               raise MB::M::RootMethods::ConvergenceError, 'Dividing a root did not reduce the order' if rest.order == result.order
@@ -452,7 +456,15 @@ module MB
           end
 
           # Switch to quadratic or linear root finding above for the last one or two roots
-          roots.concat(rest.roots) if rest.order > 0
+          if rest.order > 0
+            quad_roots = rest.roots
+
+            puts "O#{rest.order}: Use quadratic method: " \
+              "\e[1;36m#{rest.to_s(unicode: true)}\e[0m " \
+              "roots: #{MB::U.highlight(quad_roots)}" if $DEBUG
+
+            roots.concat(quad_roots)
+          end
 
           roots
         end
