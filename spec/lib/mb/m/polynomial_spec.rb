@@ -102,10 +102,10 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
 
         # FIXME: can we get better than within 0.05?????
-        expected = roots.map(&:to_f_or_cf)
-        p.roots.each.with_index do |r, idx|
-          expect(r).to be_within(0.05).of(expected[idx]), "Root #{idx} did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected[idx]}\nresult=#{r}"
-        end
+        expected = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
+        result = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
+        diff = (result - expected).abs
+        expect((diff > 0.05).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
       end
     end
 
