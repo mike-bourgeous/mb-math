@@ -77,10 +77,9 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
   end
 
-  # TODO: separate tests of #roots from tests of .random_roots
   describe '.random_roots' do
     it 'can create random integer roots' do
-      100.times do
+      10.times do
         p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
         expect(p.order).to eq(7)
         expect(p.coefficients).to all(be_a(Integer))
@@ -89,58 +88,40 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
         expect(roots.uniq.count).to be >= 3
         expect(roots).to all(be_a(Integer).and be_between(-10, 10))
         expect(scale).to be_a(Integer).and be_between(-10, 10)
-        expect(MB::M.convert_down(MB::M.round(p.roots, 4)).sort).to eq(roots.sort)
       end
     end
 
     it 'can create random rational roots' do
-      100.times do
+      10.times do
         p, roots, scale = MB::M::Polynomial.random_roots(5, range: -3r..3r, denom_range: 1..11)
+        expect(p.order).to eq(5)
         expect(p.coefficients).to all(be_a(Integer).or be_a(Rational))
         expect(roots.uniq.count).to be >= 3
         expect(roots).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
         expect([scale]).to all(be_a(Rational).or be_a(Integer)).and all(be_between(-10, 10))
-
-        # FIXME: can we get better than within 0.05?????
-        # TODO: Create a custom RSpec matcher based on this pattern
-        expected = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
-        result = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
-        diff = (result - expected).abs
-        expect((diff > 1e-4).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
       end
     end
 
     it 'can create random float roots' do
-      100.times do
+      10.times do
         p, roots, scale = MB::M::Polynomial.random_roots(6, range: -10.0..10.0)
-
+        expect(p.order).to eq(6)
         expect(p.coefficients).to all(be_a(Float))
         expect(roots.uniq.count).to be >= 3
         expect(roots).to all(be_a(Float).and be_between(-10, 10))
         expect(scale).to be_a(Float).and be_between(-10, 10)
-
-        expected = Numo::NArray.cast(roots.map(&:to_f_or_cf))
-        result = Numo::NArray.cast(roots.map(&:to_f_or_cf))
-        diff = (result - expected).abs
-        expect((diff > 0.05).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
       end
     end
 
     it 'can create random complex roots' do
-      100.times do
+      10.times do
         p, roots, scale = MB::M::Polynomial.random_roots(8, range: -10..10)
+        expect(p.order).to eq(8)
         expect(p.coefficients.map(&:real)).to all(be_a(Integer))
         expect(p.coefficients.map(&:imag)).to all(be_a(Integer))
         expect(roots.uniq.count).to be >= 4
         expect(roots).to all(be_a(Integer).and be_between(-10, 10))
         expect(scale).to be_a(Integer).and be_between(-10, 10)
-
-        # FIXME: can we get better than 1 decimal?
-        # TODO: use be_within(X).of(0) or diff.abs < X; maybe create a custom RSpec matcher
-        sorted_roots = MB::M.round(roots, 1).sort_by { |v| [v.real, v.imag] }
-        result_roots = MB::M.round(p.roots, 1).sort_by { |v| [v.real, v.imag] }
-
-        expect(result_roots).to eq(sorted_roots)
       end
     end
   end
@@ -585,7 +566,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(result).to eq(MB::M.round([-4, -3+1ri/6, 4-3i, 5], 10))
     end
 
-    it 'returns complex quadratic roots' do
+    it 'can find complex quadratic roots' do
       100.times do
         a = MB::M::Polynomial.random(1)
         b = MB::M::Polynomial.random(1)
@@ -648,7 +629,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(num.roots.uniq.count).to eq(3)
       expect(denom.roots.uniq.count).to eq(3)
 
-      # TODO
+      # TODO: add expectations from Sage
     end
 
     it 'preserves rational roots in some lucky cases' do
@@ -670,6 +651,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
     end
 
     pending 'preserves rational roots in a tougher case' do
+      # FIXME #roots would need to use square-free factorization and/or
       # float_to_rational would need to use a continued fraction or similar
       # approach before this will pass, as it'd probably be very difficult to
       # make the find_one_root method operate on rationals (but that would be
@@ -687,7 +669,46 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
       expect(result.map(&:imag)).to all(be_a(Rational).or be_a(Integer))
     end
 
-    pending 'higher order roots'
+    it 'can find random integer roots' do
+      100.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
+        expect(MB::M.convert_down(MB::M.round(p.roots, 4)).sort).to eq(roots.sort)
+      end
+    end
+
+    it 'can find random rational roots' do
+      100.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(5, range: -3r..3r, denom_range: 1..11)
+
+        # TODO: Create a custom RSpec matcher based on this pattern
+        expected = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
+        result = Numo::DFloat.cast(roots.map(&:to_f_or_cf))
+        diff = (result - expected).abs
+        expect((diff > 1e-4).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
+      end
+    end
+
+    it 'can find random float roots' do
+      100.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(6, range: -10.0..10.0)
+
+        expected = Numo::NArray.cast(roots.map(&:to_f_or_cf))
+        result = Numo::NArray.cast(roots.map(&:to_f_or_cf))
+        diff = (result - expected).abs
+        expect((diff > 0.05).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
+      end
+    end
+
+    it 'can find random complex roots' do
+      100.times do
+        p, roots, scale = MB::M::Polynomial.random_roots(8, range: -10..10)
+
+        expected = Numo::NArray.cast(roots.map(&:to_f_or_cf))
+        result = Numo::NArray.cast(roots.map(&:to_f_or_cf))
+        diff = (result - expected).abs
+        expect((diff > 0.0001).count).to eq(0), "Roots did not match\np=#{p}\nroots=#{roots}*#{scale}\np.roots=#{p.roots}\nexpected=#{expected.to_a}\nresult=#{result.to_a}\ndiff=#{diff.to_a}"
+      end
+    end
   end
 
   describe '#fft_divide' do

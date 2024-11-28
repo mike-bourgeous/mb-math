@@ -182,6 +182,9 @@ module MB
         prefix ||= '  ' * depth
 
         # TODO: maybe try to adapt the Newton's method implementation from BigDecimal/BigMath to complex values
+        # TODO: implement min/max clamping
+        # TODO: explore newer algorithms from https://en.wikipedia.org/wiki/Polynomial_root-finding_algorithms#Numerical_computation_of_multiple_roots
+        # or https://en.wikipedia.org/wiki/Square-free_factorization#Yun's_algorithm
 
         raise ArgumentError, "Pass only a callable function object, or a block; not both" if func && block_given?
 
@@ -203,8 +206,6 @@ module MB
 
         x_gain = 100 * tolerance
         y_gain = 100 * tolerance
-
-        # TODO: implement min/max clamping
 
         last_loop = 0
 
