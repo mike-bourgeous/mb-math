@@ -185,6 +185,61 @@ RSpec.describe(MB::M::RandomMethods) do
       expect(equal_count).to be < 10
     end
 
-    pending 'edge cases like using different types for each endpoint of a range'
+    context 'with different types for Range endpoints' do
+      context 'when :complex is false' do
+        it 'returns Float for Float+Rational' do
+          expect(MB::M.random_value(0.5..(5r/3))).to be_a(Float)
+          expect(MB::M.random_value((5r/3)..42.0)).to be_a(Float)
+        end
+
+        it 'returns Float for Float+Integer' do
+          expect(MB::M.random_value(0.5..5)).to be_a(Float)
+          expect(MB::M.random_value(5..42.0)).to be_a(Float)
+        end
+
+        it 'returns Rational for Rational+Integer' do
+          expect(MB::M.random_value((3r/9)..5)).to be_a(Rational)
+          expect(MB::M.random_value(5..(21r/2))).to be_a(Rational)
+        end
+      end
+
+      context 'when :complex is true' do
+        it 'returns Complex with Float for Float+Rational' do
+          v1 = MB::M.random_value(0.5..(5r/3), complex: true)
+          expect(v1).to be_a(Complex)
+          expect(v1.real).to be_a(Float)
+          expect(v1.imag).to be_a(Float)
+
+          v2 = MB::M.random_value((5r/3)..42.0, complex: true)
+          expect(v2).to be_a(Complex)
+          expect(v2.real).to be_a(Float)
+          expect(v2.imag).to be_a(Float)
+        end
+
+        it 'returns Complex with Float for Float+Integer' do
+          v1 = MB::M.random_value(0.5..5, complex: true)
+          expect(v1).to be_a(Complex)
+          expect(v1.real).to be_a(Float)
+          expect(v1.imag).to be_a(Float)
+
+          v2 = MB::M.random_value(5..42.0, complex: true)
+          expect(v2).to be_a(Complex)
+          expect(v2.real).to be_a(Float)
+          expect(v2.imag).to be_a(Float)
+        end
+
+        it 'returns Complex with Rational for Rational+Integer' do
+          v1 = MB::M.random_value((3r/9)..5, complex: true)
+          expect(v1).to be_a(Complex)
+          expect(v1.real).to be_a(Rational)
+          expect(v1.imag).to be_a(Rational)
+
+          v2 = MB::M.random_value(5..(21r/2), complex: true)
+          expect(v2).to be_a(Complex)
+          expect(v2.real).to be_a(Rational)
+          expect(v2.imag).to be_a(Rational)
+        end
+      end
+    end
   end
 end
