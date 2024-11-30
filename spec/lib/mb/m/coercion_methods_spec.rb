@@ -1,6 +1,80 @@
 RSpec.describe(MB::M::CoercionMethods, :aggregate_failures) do
   describe '#convert_down' do
-    pending
+    context 'with Floats' do
+      it 'converts integer Floats to Integers' do
+        expect(MB::M.convert_down(1337.0)).to eq(1337).and be_a(Integer)
+        expect(MB::M.convert_down(-42.0)).to eq(-42).and be_a(Integer)
+      end
+
+      it 'does not convert non-integer Float to another type' do
+        expect(MB::M.convert_down(0.5)).to eq(0.5).and be_a(Float)
+        expect(MB::M.convert_down(-1.5)).to eq(-1.5).and be_a(Float)
+        expect(MB::M.convert_down(Math::PI)).to eq(Math::PI).and be_a(Float)
+      end
+
+      it 'does not convert to Integer if :drop_float is false' do
+        expect(MB::M.convert_down(-6.0, drop_float: false)).to eq(-6.0).and be_a(Float)
+        expect(MB::M.convert_down(5.0, drop_float: false)).to eq(5.0).and be_a(Float)
+      end
+    end
+
+    context 'with Rationals' do
+      it 'converts degenerate Rationals to Integers' do
+        expect(MB::M.convert_down(Rational(10, 2))).to eq(5).and be_a(Integer)
+      end
+
+      it 'does not convert Rationals where the denominator is not 1' do
+        expect(MB::M.convert_down(Rational(5, 2))).to eq(5r/2).and be_a(Rational)
+      end
+    end
+
+    context 'with Integers' do
+      it 'returns the value unmodified' do
+        expect(MB::M.convert_down(0)).to eq(0).and be_a(Integer)
+        expect(MB::M.convert_down(-12345)).to eq(-12345).and be_a(Integer)
+      end
+    end
+
+    context 'with an Array' do
+      let(:mixed) { [5r/3, 1.5, 10r/2, -7.0, 42] }
+
+      it 'converts values in the array' do
+        expect(MB::M.convert_down([1,2,3,4,5])).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Integer))
+
+        expect(MB::M.convert_down([1,2,3,4,5])).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Integer))
+        expect(MB::M.convert_down([1.5,2.5,3.5,4.5,5.5])).to eq([1.5,2.5,3.5,4.5,5.5]).and be_a(Array).and all(be_a(Float))
+        expect(MB::M.convert_down([1.5i,2.5i,3.5i,4.5i,5.5i])).to eq([1.5i,2.5i,3.5i,4.5i,5.5i]).and be_a(Array).and all(be_a(Complex))
+      end
+
+      it 'can convert an Array with mixed types' do
+        result = MB::M.convert_down(mixed)
+        expect(result).to be_a(Array).and eq([5r/3, 1.5, 5, -7, 42])
+        expect(result.map(&:class)).to eq([Rational, Float, Integer, Integer, Integer])
+      end
+
+      it 'honors the :drop_float paramter' do
+        expect(MB::M.convert_down([1,2,3,4,5], drop_float: false)).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Float))
+
+        result = MB::M.convert_down(mixed, drop_float: false)
+        expect(result).to be_a(Array).and eq([5r/3, 1.5, 5, -7.0, 42])
+        expect(result.map(&:class)).to eq([Rational, Float, Integer, Float, Integer])
+      end
+    end
+
+    context 'with a Numo::NArray' do
+      it 'returns values in an Array' do
+        expect(MB::M.convert_down(Numo::DFloat[1,2,3,4,5])).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Integer))
+
+        expect(MB::M.convert_down(Numo::DComplex[1,2,3,4,5])).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Integer))
+        expect(MB::M.convert_down(Numo::DComplex[1.5,2.5,3.5,4.5,5.5])).to eq([1.5,2.5,3.5,4.5,5.5]).and be_a(Array).and all(be_a(Float))
+        expect(MB::M.convert_down(Numo::DComplex[1.5i,2.5i,3.5i,4.5i,5.5i])).to eq([1.5i,2.5i,3.5i,4.5i,5.5i]).and be_a(Array).and all(be_a(Complex))
+      end
+
+      it 'honors the :drop_float paramter' do
+        expect(MB::M.convert_down(Numo::DFloat[1,2,3,4,5], drop_float: false)).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Float))
+        expect(MB::M.convert_down(Numo::DComplex[1,2,3,4,5], drop_float: false)).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Float))
+      end
+    end
   end
 
   describe '#float_to_rational' do
