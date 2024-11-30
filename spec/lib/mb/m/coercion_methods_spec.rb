@@ -35,6 +35,42 @@ RSpec.describe(MB::M::CoercionMethods, :aggregate_failures) do
       end
     end
 
+    context 'with Complex' do
+      it 'returns the real component if the imaginary component is zero' do
+        expect(MB::M.convert_down(Complex(1.25, 0))).to eq(1.25).and be_a(Float)
+        expect(MB::M.convert_down(Complex(-2.0, 0))).to eq(-2).and be_a(Integer)
+        expect(MB::M.convert_down(Complex(7r/11, 0))).to eq(7r/11).and be_a(Rational)
+      end
+
+      it 'converts the real and imaginary components to lower types if possible' do
+        c = Complex(42.0, 10r/2)
+        result = MB::M.convert_down(c)
+        expect(result).to eq(Complex(42, 5))
+        expect(result.real).to eq(42).and be_a(Integer)
+        expect(result.imag).to eq(5).and be_a(Integer)
+
+        c2 = 0.0 + 5ri/7
+        r2 = MB::M.convert_down(c2)
+        expect(r2).to eq(Complex(0, 5r/7))
+        expect(r2.real).to eq(0).and be_a(Integer)
+        expect(r2.imag).to eq(5r/7).and be_a(Rational)
+      end
+
+      it 'honors the :drop_float parameter' do
+        c = Complex(42.0, 10r/2)
+        result = MB::M.convert_down(c, drop_float: false)
+        expect(result).to eq(Complex(42, 5))
+        expect(result.real).to eq(42).and be_a(Float)
+        expect(result.imag).to eq(5).and be_a(Integer)
+
+        c2 = 0.0 + 5ri/7
+        r2 = MB::M.convert_down(c2, drop_float: false)
+        expect(r2).to eq(Complex(0, 5r/7))
+        expect(r2.real).to eq(0).and be_a(Float)
+        expect(r2.imag).to eq(5r/7).and be_a(Rational)
+      end
+    end
+
     context 'with an Array' do
       let(:mixed) { [5r/3, 1.5, 10r/2, -7.0, 42] }
 
