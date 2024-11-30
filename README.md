@@ -146,14 +146,6 @@ p.plot({ circle: points })
      -1    -0.5      0     0.5     1
 ```
 
-### Quadratic roots
-
-```ruby
-# f(x) = x^2 + 4
-MB::M.quadratic_roots(1, 0, 4)
-# => [(0.0+2.0i), (0.0-2.0i)]
-```
-
 ### Scaling ranges
 
 Scales values or `Numo::NArray`s from one linear range to another,
@@ -170,6 +162,53 @@ MB::M.scale(-2, 0..4, 10..12)
 MB::M.scale(Numo::SFloat[0, 1, 2, 3, 4], 1..3, 6..2)
 # => Numo::SFloat[8, 6, 4, 2, 0]
 ```
+
+### Finding roots of functions
+
+#### Quadratic roots
+
+```ruby
+# f(x) = x^2 + 4
+MB::M.quadratic_roots(1, 0, 4)
+# => [(0.0+2.0i), (0.0-2.0i)]
+```
+
+#### Polynomials
+
+There is a `MB::M::Polynomial` class for representing polynomials of one
+variable, and its `roots` method can usually find exact or approximate roots
+for most polynomials, even `Complex` roots.
+
+Note that the `MB::M::RootMethods#find_one_root` method that drives this code
+is not the fastest, most reliable, or most accurate method possible.  This code
+is still mainly useful for experimentation and exploration, rather than serious
+numerical computing.
+
+```ruby
+p = MB::M::Polynomial.new(1, 0, 0, 0, -1)
+puts p.to_s(unicode: true)
+# => x⁴ - 1
+p.roots
+# => [-1, (0-1i), (0+1i), 1]
+```
+
+See `experiments/polynomial/*` and `spec/lib/mb/m/polynomial_spec.rb` for more
+examples.
+
+#### Other functions
+
+You can find one approximate root at a time for any Ruby function that accepts
+and returns a single `Numeric` value using `MB::M::RootMethods#find_one_root`:
+
+```ruby
+MB::M.find_one_root(0.25, Math.method(:sin))
+# => 0
+
+MB::M.find_one_root(7.1-8.2i, ->(x) { CMath.cos(Math::PI * (x - 3)) * CMath.sin(Math::PI * (1i * x + 2)) })
+=> (-3.302389731710742e-41-0.9999999999999998i)
+```
+
+There are other examples in `spec/lib/mb/m/root_methods_spec.rb`.
 
 ## Installation and usage
 
@@ -191,7 +230,8 @@ Next, install Ruby.  RVM binary rubies are still broken on Ubuntu 20.04.x, so
 use the `--disable-binary` option if you are running Ubuntu 20.04.x.
 
 ```bash
-rvm install --disable-binary 2.7.3
+# Also compatible with Ruby 3.3
+rvm install --disable-binary 2.7.8
 ```
 
 You can tell RVM to isolate all your projects and switch Ruby versions
@@ -228,7 +268,8 @@ gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
 
 ## Testing
 
-Run `rspec` to run all tests.
+Run `rspec` to run all tests.  There is also a GitHub actions pipeline that
+runs tests automatically.
 
 ## Contributing
 
