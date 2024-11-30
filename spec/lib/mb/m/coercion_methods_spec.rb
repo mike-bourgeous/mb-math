@@ -53,7 +53,7 @@ RSpec.describe(MB::M::CoercionMethods, :aggregate_failures) do
       end
 
       it 'honors the :drop_float paramter' do
-        expect(MB::M.convert_down([1,2,3,4,5], drop_float: false)).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Float))
+        expect(MB::M.convert_down([1.0,2.0,3.0,4.0,5.0], drop_float: false)).to eq([1,2,3,4,5]).and be_a(Array).and all(be_a(Float))
 
         result = MB::M.convert_down(mixed, drop_float: false)
         expect(result).to be_a(Array).and eq([5r/3, 1.5, 5, -7.0, 42])

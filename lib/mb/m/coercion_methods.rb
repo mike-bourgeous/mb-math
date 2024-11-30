@@ -8,12 +8,17 @@ module MB
       # fractional part is zero.  Also converts individual Complex components
       # in the same fashion.
       #
+      # If given an Array of values, then each individual value is coerced to a
+      # lower type when possible.  If given a Numo::NArray, then the coerced
+      # values are returned in a standard Ruby Array.
+      #
       # If +:drop_float+ is true, then Floats that are exact integers will be
       # converted to Integer.
       def convert_down(value, drop_float: true)
-        # TODO: PrecisionMethods isn't exactly the right place for this function
         if value.is_a?(Array) || value.is_a?(Numo::NArray)
-          return value.map { |v| convert_down(v) }
+          # TODO: should this also downconvert the Numo::NArray type?  NArray
+          # doesn't have a rational type so what would we do there?
+          return value.to_a.map { |v| convert_down(v, drop_float: drop_float) }
         end
 
         value = value.real if value.is_a?(Complex) && value.imag == 0
