@@ -46,13 +46,16 @@ module MB
       end
 
       # Rounds the given Complex, Float, Array, or Numo::NArray to the given
-      # number of digits after the decimal point.
+      # number of digits after the decimal point, removing the imaginary part
+      # of Complex numbers if it goes to zero.
       def round(value, figs = 0)
         if value.is_a?(Numo::NArray)
           exp = (10 ** figs.floor).to_f
           return (value * exp).round / exp
         elsif value.is_a?(Complex)
-          return Complex(value.real.round(figs), value.imag.round(figs))
+          real, imag = value.real.round(figs), value.imag.round(figs)
+          return real if imag == 0
+          return Complex(real, imag)
         elsif value.respond_to?(:map)
           return value.map { |v| round(v, figs) }
         else

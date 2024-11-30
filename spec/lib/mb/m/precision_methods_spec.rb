@@ -128,6 +128,18 @@ RSpec.describe(MB::M::PrecisionMethods) do
         expect(MB::M.round(Numo::DFloat[12345.6789], 2.9)).to eq([12345.68])
       end
     end
+
+    context 'with complex numbers' do
+      it 'removes imaginary parts if they become zero' do
+        result = MB::M.round(1+0.001i)
+        expect(result).to eq(1)
+        expect(result).not_to be_a(Complex)
+      end
+
+      it 'rounds real and imaginary parts separately' do
+        expect(MB::M.round(1.23456-0.00789i, 3)).to eq(1.235-0.008i)
+      end
+    end
   end
 
   describe '#round_to' do

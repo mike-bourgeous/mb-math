@@ -310,6 +310,11 @@ RSpec.describe(MB::M::ArrayMethods) do
       expect(MB::M.zpad(Numo::SFloat[], 2)).to eq(Numo::SFloat[0, 0])
     end
 
+    it 'can pad a Ruby Array' do
+      expect(MB::M.zpad([1,2,3], 5, alignment: 0)).to eq([1, 2, 3, 0, 0])
+      expect(MB::M.zpad([1,2,3], 5, alignment: 1)).to eq([0, 0, 1, 2, 3])
+    end
+
     context 'when a block is given' do
       it 'returns original length data as modified by the block' do
         expect(MB::M.zpad(Numo::SFloat.ones(3), 5) { |p| p + 1 }).to eq(Numo::SFloat.ones(3) * 2)
@@ -349,23 +354,144 @@ RSpec.describe(MB::M::ArrayMethods) do
     end
   end
 
+  describe '#ltrim' do
+    context 'with Numo::NArray' do
+      let(:zero) { Numo::SFloat[0, 0, 0, 1, 2, 3] }
+      let(:one) { Numo::SFloat[1, 1, 1, 2, 3, 4] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.ltrim(Numo::SFloat[])).to eq(Numo::SFloat[])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.ltrim(zero, 1)).to eq(zero)
+        expect(MB::M.ltrim(zero, 0)).to eq(Numo::SFloat[1, 2, 3])
+
+        expect(MB::M.ltrim(one, 0)).to eq(one)
+        expect(MB::M.ltrim(one, 1)).to eq(Numo::SFloat[2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.ltrim(Numo::Int32[1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([2, 4, 6])
+        expect(MB::M.ltrim(Numo::SFloat[Float::NAN, Float::INFINITY, -Float::INFINITY, 2, 4, 6]) { |v| !v.finite? }).to eq(Numo::SFloat[2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.ltrim(Numo::SFloat.zeros(6))).to eq(Numo::SFloat[])
+        expect(MB::M.ltrim(Numo::SFloat.ones(6), 1)).to eq(Numo::SFloat[])
+      end
+
+      it 'returns the same type' do
+        expect(MB::M.ltrim(Numo::SFloat[0,1,2])).to be_a(Numo::SFloat)
+        expect(MB::M.ltrim(Numo::Int32[0,1,2])).to be_a(Numo::Int32)
+      end
+    end
+
+    context 'with Array' do
+      let(:zero) { [0, 0, 0, 1, 2, 3] }
+      let(:one) { [1, 1, 1, 2, 3, 4] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.ltrim([])).to eq([])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.ltrim(zero, 1)).to eq(zero)
+        expect(MB::M.ltrim(zero, 0)).to eq([1, 2, 3])
+
+        expect(MB::M.ltrim(one, 0)).to eq(one)
+        expect(MB::M.ltrim(one, 1)).to eq([2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.ltrim([1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([2, 4, 6])
+        expect(MB::M.ltrim([Float::NAN, Float::INFINITY, -Float::INFINITY, 2, 4, 6]) { |v| !v.finite? }).to eq([2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.ltrim([0] * 6)).to eq([])
+        expect(MB::M.ltrim([1] * 6, 1)).to eq([])
+      end
+    end
+
+    it 'raises an error for a non-array type' do
+      expect { MB::M.ltrim('hello', 'h') }.to raise_error(ArgumentError, /array/i)
+    end
+  end
+
   describe '.rol' do
-    it 'returns the same array with a rotation of 0' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
+    context 'with Numo::NArray' do
+      it 'returns the same array with a rotation of 0' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
+      end
+
+      it 'can rotate left' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[2,3,1])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[3,1,2])
+      end
+
+      it 'can rotate right' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -1)).to eq(Numo::SFloat[3,1,2])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -2)).to eq(Numo::SFloat[2,3,1])
+      end
+
+      it 'wraps rotation amounts to fit within the array length' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 10)).to eq(Numo::SFloat[2,3,1])
+      end
+
+      it 'does nothing if the rotation amount is a multiple of the array length' do
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 3)).to eq(Numo::SFloat[1,2,3])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], 6)).to eq(Numo::SFloat[1,2,3])
+        expect(MB::M.rol(Numo::SFloat[1,2,3], -3)).to eq(Numo::SFloat[1,2,3])
+      end
+
+      it 'does nothing if the array is empty' do
+        expect(MB::M.rol(Numo::SFloat[], 5)).to eq(Numo::SFloat[])
+      end
+
+      it 'does nothing if the array length is 1' do
+        expect(MB::M.rol(Numo::SFloat[5], 1)).to eq(Numo::SFloat[5])
+      end
     end
 
-    it 'can rotate left' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[2,3,1])
-      expect(MB::M.rol(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[3,1,2])
-    end
+    context 'with a Ruby Array' do
+      it 'returns the same array with a rotation of 0' do
+        expect(MB::M.rol([1,2,3], 0)).to eq([1,2,3])
+      end
 
-    it 'can rotate right' do
-      expect(MB::M.rol(Numo::SFloat[1,2,3], -1)).to eq(Numo::SFloat[3,1,2])
-      expect(MB::M.rol(Numo::SFloat[1,2,3], -2)).to eq(Numo::SFloat[2,3,1])
+      it 'can rotate left' do
+        expect(MB::M.rol([1,2,3], 1)).to eq([2,3,1])
+        expect(MB::M.rol([1,2,3], 2)).to eq([3,1,2])
+      end
+
+      it 'can rotate right' do
+        expect(MB::M.rol([1,2,3], -1)).to eq([3,1,2])
+        expect(MB::M.rol([1,2,3], -2)).to eq([2,3,1])
+      end
+
+      it 'wraps rotation amounts to fit within the array length' do
+        expect(MB::M.rol([1,2,3], 10)).to eq([2,3,1])
+      end
+
+      it 'does nothing if the rotation amount is a multiple of the array length' do
+        expect(MB::M.rol([1,2,3], 0)).to eq([1,2,3])
+      end
+
+      it 'does nothing if the array is empty' do
+        expect(MB::M.rol([], 5)).to eq([])
+      end
+
+      it 'does nothing if the array length is 1' do
+        expect(MB::M.rol([5], 1)).to eq([5])
+      end
     end
   end
 
   describe '.ror' do
+    # TODO: currently ror calls rol so rol tests cover ror.  But if ror and rol
+    # were ever split for some reason, we could just negate the parameters from
+    # the rol tests to generate ror tests.
+
     it 'returns the same array with a rotation of 0' do
       expect(MB::M.ror(Numo::SFloat[1,2,3], 0)).to eq(Numo::SFloat[1,2,3])
     end
@@ -378,6 +504,15 @@ RSpec.describe(MB::M::ArrayMethods) do
     it 'can rotate right' do
       expect(MB::M.ror(Numo::SFloat[1,2,3], 1)).to eq(Numo::SFloat[3,1,2])
       expect(MB::M.ror(Numo::SFloat[1,2,3], 2)).to eq(Numo::SFloat[2,3,1])
+    end
+
+    it 'can rotate a Ruby Array' do
+      expect(MB::M.ror([1,2,3], 1)).to eq([3,1,2])
+      expect(MB::M.ror([1,2,3], 2)).to eq([2,3,1])
+    end
+
+    it 'wraps around rotation amounts' do
+      expect(MB::M.ror([1,2,3], 5)).to eq([2,3,1])
     end
   end
 
@@ -501,5 +636,142 @@ RSpec.describe(MB::M::ArrayMethods) do
     end
 
     pending 'can accept an interpolator function like smoothstep'
+  end
+
+  describe '#convolve' do
+    let(:array_int) { [1, 2, 3] }
+    let(:array_float) { [0.5, -1, 0.25] }
+    let(:array_float4) { [0.5, -1, 0.25, 9] }
+    let(:array_complex) { [1, 2.0, 3+3i] }
+    let(:i16) { Numo::Int16[1, 3, 5] }
+    let(:i32) { Numo::Int32[1, 2, 4, -1] }
+    let(:i64) { Numo::Int64[-1, 1, -1, -2] }
+    let(:sfloat) { Numo::SFloat[-0.1, 0.5, -0.3] }
+    let(:dfloat) { Numo::DFloat[-0.25, 0.75, -0.1] }
+    let(:scomplex) { Numo::SComplex[-0.1 - 0.25i, 0.25 - 0.75i, 0.3] }
+    let(:dcomplex) { Numo::DComplex[5, -3i, 1i, -1] }
+
+    it "can produce Pascal's triangle" do
+      result = Array.new(5) do |i|
+        ([[1, 1]] * (i + 1)).reduce(&MB::M.method(:convolve))
+      end
+
+      expect(result).to eq([
+        [1, 1],
+        [1, 2, 1],
+        [1, 3, 3, 1],
+        [1, 4, 6, 4, 1],
+        [1, 5, 10, 10, 5, 1],
+      ])
+    end
+
+    shared_examples_for :type_correct_convolution do
+      it "returns the expected class" do
+        result = MB::M.convolve(a1, a2)
+        expect(result).to be_a(expected.class)
+
+        result = MB::M.convolve(a2, a1)
+        expect(result).to be_a(expected.class)
+      end
+
+      it "convolves correctly" do
+        result = MB::M.convolve(a1, a2)
+        expect(MB::M.round(result, 6)).to eq(expected)
+
+        result = MB::M.convolve(a2, a1)
+        expect(MB::M.round(result, 6)).to eq(expected)
+      end
+    end
+
+    # Expected values below were calculated using Octave's conv() function
+
+    context 'with Ruby Arrays' do
+      it 'can convolve Arrays of the same length' do
+        expected = [0.5, 0, -0.25, -2.5, 0.75]
+        expect(MB::M.convolve(array_int, array_float)).to eq(expected)
+        expect(MB::M.convolve(array_float, array_int)).to eq(expected)
+      end
+
+      it 'can convolve Arrays of differing lengths' do
+        expected = [0.25, -1.0, 1.25, 4.0, -8.9375, 2.25]
+        expect(MB::M.convolve(array_float4, array_float)).to eq(expected)
+        expect(MB::M.convolve(array_float, array_float4)).to eq(expected)
+      end
+
+      it 'can convolve Arrays containing Complex values' do
+        expected = [1, 4, 10+3i, 12+6i, 9+9i]
+
+        expect(MB::M.convolve(array_int, array_complex)).to eq(expected)
+        expect(MB::M.convolve(array_complex, array_int)).to eq(expected)
+      end
+    end
+
+    context 'with Numo::NArrays' do
+      context 'with Numo::SFloat and Numo::DComplex returning Numo::DComplex' do
+        let(:a1) { sfloat }
+        let(:a2) { dcomplex }
+        let(:expected) { Numo::DComplex[-0.5+0i, 2.5+0.3i, -1.5-1.6i, 0.1+1.4i, -0.5-0.3i, 0.3+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::DFloat and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { dfloat }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[0.025+0.0625i, -0.1375+0i, 0.1225-0.5375i, 0.2+0.075i, -0.03+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int16 and Numo::SComplex returning Numo::SComplex' do
+        let(:a1) { i16 }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::SComplex[-0.1-0.25i, -0.05-1.5i, 0.55-3.5i, 2.15-3.75i, 1.5+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int32 and Numo::SFloat returning Numo::DFloat' do
+        let(:a1) { i32 }
+        let(:a2) { sfloat }
+        let(:expected) { Numo::DFloat[-0.1, 0.3, 0.3, 1.5, -1.7, 0.3] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with Numo::Int64 and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { i64 }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[0.1+0.25i, -0.35+0.5i, 0.05-0.5i, 0.25+1.25i, -0.8+1.5i, -0.6+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+    end
+
+    context 'with Array and NArray (in either order)' do
+      context 'with float Array and Numo::SFloat returning Numo::DFloat' do
+        let(:a1) { array_float }
+        let(:a2) { sfloat }
+        let(:expected) { Numo::DFloat[-0.05, 0.35, -0.675, 0.425, -0.075] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with complex Array amd Numo::DFloat returning Numo::DComplex' do
+        let(:a1) { array_complex }
+        let(:a2) { dfloat }
+        let(:expected) { Numo::DComplex[-0.25+0i, 0.25+0i, 0.65-0.75i, 2.05+2.25i, -0.3-0.3i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+
+      context 'with float Array and Numo::SComplex returning Numo::DComplex' do
+        let(:a1) { array_float }
+        let(:a2) { scomplex }
+        let(:expected) { Numo::DComplex[-0.05-0.125i, 0.225-0.125i, -0.125+0.6875i, -0.2375-0.1875i, 0.075+0i] }
+
+        it_behaves_like :type_correct_convolution
+      end
+    end
   end
 end

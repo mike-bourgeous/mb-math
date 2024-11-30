@@ -176,7 +176,7 @@ module MB
         if length_before > 0
           narray_before = narray.class.new(length_before).fill(before)
           if narray.size > 0
-            narray = narray_before.append(narray)
+            narray = array_append(narray_before, narray)
           else
             narray = narray_before
           end
@@ -185,7 +185,7 @@ module MB
         if length_after > 0
           narray_after = narray.class.new(length_after).fill(after)
           if narray.size > 0
-            narray = narray.append(narray_after)
+            narray = array_append(narray, narray_after)
           else
             narray = narray_after
           end
@@ -218,14 +218,80 @@ module MB
         pad(narray, min_length, value: 1, alignment: alignment, &bl)
       end
 
+      # Returns a new Array or Numo::NArray with leading copies of +value+
+      # removed from the given +array+.  Returns an empty array if the array is
+      # entirely equal to +value+.
+      #
+      # For Ruby Arrays, this just calls Array#drop_while.  The method is
+      # provided mainly for use with Numo::NArray.
+      #
+      # Example:
+      #     MB::M.ltrim([0, 1, 2, 3])
+      #     # => [1, 2, 3]
+      #
+      #     MB::M.ltrim(Numo::SFloat[1, 1, 2, 3, 4], 1)
+      #     # => [2, 3, 4]
+      #
+      # If a block is given, then each leading value will be yielded to the
+      # block, and the leading elements for which the block returns true will
+      # be removed (iteration will stop when the block returns false).  The
+      # +value+ parameter is ignored when a block is given.
+      #
+      # Example:
+      #     MB::M.ltrim([1, 3, 5, 2, 4, 6], &:odd?)
+      #     # => [2, 4, 6]
+      #
+      # Comparison uses the == and != operators, so 0.0 and -0.0 are considered
+      # equal.
+      def ltrim(array, value = 0)
+        case array
+        when Numo::NArray
+          # TODO: there's got to be a faster way to do this, like a
+          # clz/count-leading-zeros function or something
+          # TODO: add an approximation option and use nearly_eq?
+
+          if block_given?
+            idx = array.each_with_index { |v, idx| break idx if !yield(v) }
+          else
+            idx = array.each_with_index { |v, idx| break idx if v != value }
+            idx = nil unless idx.is_a?(Integer) # if we didn't break then we got the array instead
+          end
+
+          return array.class[] if idx.nil?
+
+          array[idx..]
+
+        when Array
+          if block_given?
+            array.drop_while { |v| yield v }
+          else
+            array.drop_while { |v| v == value }
+          end
+
+        else
+          raise ArgumentError, "Expecting Numo::NArray or Array, got #{array.class}"
+        end
+      end
+
       # Rotates a 1D NArray left by +n+ places, which must be less than the
-      # length of the NArray.  Returns the array unmodified if +n+ is zero.
-      # Use negative values for +n+ to rotate right.
+      # length of the NArray.  Returns a duplicate of the original array if +n+
+      # is zero or the rotation would have no effect.  Use negative values for
+      # +n+ to rotate right.
       def rol(array, n)
         # TODO: Support in-place modification
-        return array if n == 0
-        a, b = array.split([n])
-        b.concatenate(a)
+        return array.dup if array.length <= 1
+
+        n %= array.length
+        return array.dup if n == 0
+
+        if array.is_a?(Array)
+          a = array[0...n]
+          b = array[n..-1]
+          b + a
+        else
+          a, b = array.split([n])
+          b.concatenate(a)
+        end
       end
 
       # Rotates a 1D NArray right by +n+ places (calls .rol(array, -n)).
@@ -298,6 +364,67 @@ module MB
         i2 = index.ceil
         blend = index - i1
         MB::M.interp(array[i1], array[i2], blend, func: func)
+      end
+
+      # Performs direct convolution of +array1+ with +array2+, returning a new
+      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm.
+      def convolve(array1, array2)
+        array1, array2 = array2, array1 if array2.length > array1.length
+
+        length = array1.length + array2.length - 1
+
+        if array1.is_a?(Array) && array2.is_a?(Array)
+          result = Array.new(length, 0)
+        else
+          result = promoted_array_type(array1, array2).zeros(length)
+        end
+
+        for i in 0...array1.length
+          for j in 0...array2.length
+            result[i + j] += array2[j] * array1[i]
+          end
+        end
+
+        result
+      end
+
+      private
+
+      # For #pad, do the right thing for Numo::NArray and Array to concatenate
+      # arrays to a new array.
+      def array_append(array1, array2)
+        case array1
+        when Numo::NArray
+          array1.append(array2)
+
+        when Array
+          array1 + array2
+        end
+      end
+
+      PROMOTED_NARRAY_TYPE_MAP = {
+        [false, false] => Numo::SFloat,
+        [false, true] => Numo::SComplex,
+        [true, false] => Numo::DFloat,
+        [true, true] => Numo::DComplex,
+      }.freeze
+
+      # Returns the Array or Numo::NArray class that should hold (most) of the
+      # range of both +array1+ and +array2+.  Returns Array if both objects are
+      # Ruby Arrays.
+      def promoted_array_type(array1, array2)
+        double = array1.is_a?(Numo::DFloat) || array1.is_a?(Numo::DComplex) ||
+          array1.is_a?(Numo::Int32) || array1.is_a?(Numo::Int64) ||
+          array2.is_a?(Numo::DFloat) || array2.is_a?(Numo::DComplex) ||
+          array2.is_a?(Numo::Int32) || array2.is_a?(Numo::Int64) ||
+          array1.is_a?(Array) || array2.is_a?(Array)
+
+        complex = array1.is_a?(Numo::SComplex) || array1.is_a?(Numo::DComplex) ||
+          array2.is_a?(Numo::SComplex) || array2.is_a?(Numo::DComplex) ||
+          (array1.is_a?(Array) && array1.any?(Complex)) ||
+          (array2.is_a?(Array) && array2.any?(Complex))
+
+        PROMOTED_NARRAY_TYPE_MAP[[double, complex]]
       end
     end
   end
