@@ -248,14 +248,21 @@ RSpec.describe(MB::M::RootMethods, :aggregate_failures) do
       expect(MB::M.find_one_root(-3, p).round(12)).to eq(0)
     end
 
-    pending 'with real roots'
-    pending 'with complex roots'
+    it 'can find a root of the sine function' do
+      expect(MB::M.find_one_root(0.25, Math.method(:sin)).round(12)).to eq(0)
+    end
 
+    it 'can find a root from a Proc object' do
+      expect(MB::M.find_one_root(0.25, ->(x) { Math.sin(x) }).round(12)).to eq(0)
+    end
+
+    it 'fails to find roots if the iteration count is too low' do
+      expect { MB::M.find_one_root(Math::PI / 2, Math.method(:sin), iterations: 2) }.to raise_error(MB::M::RootMethods::ConvergenceError)
+    end
+
+    # TODO: have to implement range limits before the following tests could ever pass
     pending 'with real min and/or max'
     pending 'with complex min and/or max'
-    pending 'with different iteration count'
     pending 'with different range'
-
-    pending 'with a callable function object instead of a block'
   end
 end

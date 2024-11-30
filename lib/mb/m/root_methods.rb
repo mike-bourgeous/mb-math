@@ -40,6 +40,7 @@ module MB
         end
       end
       Proc.include(RootProcExtensions)
+      Method.include(RootProcExtensions) # TODO: special prime method for sin/cos?
 
       # Raised when #find_one_root does not find a root
       class ConvergenceError < RangeError; end
