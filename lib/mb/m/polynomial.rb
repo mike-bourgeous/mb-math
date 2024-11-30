@@ -792,6 +792,11 @@ module MB
         end
       end
 
+      # Pretty-prints a Numeric value, displaying Rational as a vertical
+      # fraction, and Complex with Rational as the sum of two vertical
+      # fractions.
+      # See experiments/polynomial/synthetic_division.rb for example usage.
+      # TODO: this probably belongs elsewhere
       def self.print_value(value, prefix: nil)
         case value
         when Rational

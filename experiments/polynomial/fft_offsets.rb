@@ -297,6 +297,9 @@ def find_offset(target, query)
   nil
 end
 
+# Converts an Array of Structs (Hashes) to a Struct (Hash) of Arrays for
+# MB::U.table.  Converting AoS to SoA is also a common CPU cache optimization
+# for data processing.
 def aos_to_soa(array_of_hashes)
   hash_of_arrays = {}
   array_of_hashes.each do |h|
