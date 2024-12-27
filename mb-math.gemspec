@@ -24,10 +24,10 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'bigdecimal', '~> 3.1.8'
   spec.add_runtime_dependency 'prime', '~> 0.1.3'
-  spec.add_runtime_dependency 'numo-narray', '~> 0.9.1'
+  spec.add_runtime_dependency 'numo-narray', '~> 0.9.2.1'
   spec.add_runtime_dependency 'cmath', '~> 1.0.0'
   spec.add_runtime_dependency 'matrix', '~> 0.4.2'
-  spec.add_runtime_dependency 'mb-util', '>= 0.1.20.usegit'
+  spec.add_runtime_dependency 'mb-util', '>= 0.1.21.usegit'
   spec.add_runtime_dependency 'numo-pocketfft', '~> 0.4.1'
 
   spec.add_development_dependency 'pry'
