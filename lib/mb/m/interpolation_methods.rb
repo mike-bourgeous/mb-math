@@ -137,7 +137,7 @@ module MB
       # detection and reporting.
       def very_deep_math(a, operation, b, path: [], visited: {})
         # TODO: better name
-        # TODO: can we handle cycles by ensuring that both a and b have the same cyclic structure?
+        return visited[a] if visited.include?(a) && visited[a].equal?(visited[b])
         raise 'Cycle detected' if visited.include?(a) || visited.include?(b)
 
         if a.is_a?(Hash) && b.is_a?(Hash)

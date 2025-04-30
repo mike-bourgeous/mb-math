@@ -285,12 +285,26 @@ RSpec.describe(MB::M::InterpolationMethods) do
       expect { MB::M.very_deep_math(a, :*, b) }.to raise_error(/.*at path \[:a\]\[:b\]\[:c\].*do not have the same length?/)
     end
 
-    it 'raises an error for cycles in the data graph' do
+    it 'can handle identical cycles in a and b' do
+      a = {a: {b: {c: [1, 2]}}}
+      b = {a: {b: {c: [-1, -2]}}}
+
+      a[:a][:b][:c] << a
+      b[:a][:b][:c] << b
+
+      result = MB::M.very_deep_math(a, :+, b)
+      recursed = result[:a][:b][:c].pop
+      expect(recursed).to equal(result)
+      expect(result).to eq({a: {b: {c: [0, 0]}}})
+    end
+
+    it 'raises an error for unsupported cycles in the data graph' do
       a = {a: nil}
       a[:a] = a
+      b = {a: {b: nil}}
+      b[:a][:b] = b
 
-      # TODO
-      expect { MB::M.very_deep_math(a, :+, a) }.to raise_error(/Cycle detected/)
+      expect { MB::M.very_deep_math(a, :+, b) }.to raise_error(/Cycle detected/)
     end
   end
 
