@@ -162,6 +162,50 @@ RSpec.describe(MB::M::InterpolationMethods) do
     end
   end
 
+  describe '#deep_math' do
+    context 'with operation: :*' do
+      it 'can multiply Strings just because it was more work to avoid it' do
+        expect(MB::M.deep_math(['a', {b: 'c'}], 3, operation: :*)).to eq(['aaa', {b: 'ccc'}])
+      end
+    end
+
+    it 'handles cycles in the data graph' do
+      a = {a: 1, b: 2, c: {d: nil}}
+      a[:c][:d] = a
+
+      expected = {a: 2, b: 3, c: {d: nil}}
+
+      result = MB::M.deep_math(a, 1, operation: :+)
+      recursed = result[:c][:d]
+      expect(recursed[:a]).to eq(2)
+      expect(recursed.__id__).to eq(result.__id__)
+
+      # RSpec eq() seems not to handle cycles in data structures
+      result[:c][:d] = nil
+      expect(result).to eq(expected)
+    end
+
+    pending 'with Numo::NArray'
+
+    pending 'can add numbers'
+    pending 'can multiply numbers'
+    pending 'can subtract numbers'
+    pending 'can divide numbers'
+    pending 'can exponentiate numbers'
+
+    pending
+  end
+
+  describe '#very_deep_math' do
+    context 'with operation: :*' do
+      it 'can multiply Strings with Integers' do
+        expect(MB::M.very_deep_math(['q', {a: 'a', b: 'bc'}], [2, {a: 3, b: 2}], operation: :*)).to eq(['qq', {a: 'aaa', b: 'bcbc'}])
+      end
+    end
+
+    pending 'raises an error for cycles in the data graph'
+  end
+
   describe '#catmull_rom' do
     it 'can interpolate numeric values' do
       expect(MB::M.catmull_rom(1, 5, 15, 3, 0.5)).to be_between(10, 12)
