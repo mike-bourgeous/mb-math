@@ -215,6 +215,14 @@ RSpec.describe(MB::M::InterpolationMethods) do
     it 'can exponentiate numbers' do
       expect(MB::M.deep_math(Math::E, :**, 1i * Math::PI)).to eq(-1)
     end
+
+    it 'raises an error if given an unsupported operation' do
+      expect { MB::M.deep_math(16, :^, 2) }.to raise_error(ArgumentError, /Error at.*Unknown operation :\^/)
+    end
+
+    it 'raises an error if given incompatible data types' do
+      expect { MB::M.deep_math(5, :*, 'invalid') }.to raise_error(TypeError, /Error at root/)
+    end
   end
 
   describe '#very_deep_math' do

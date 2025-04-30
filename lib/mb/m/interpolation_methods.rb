@@ -123,6 +123,7 @@ module MB
             raise ArgumentError, "Unknown operation #{operation.inspect}"
           end
         end
+
       rescue => e
         raise if e.message.start_with?('Error at')
         raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace
