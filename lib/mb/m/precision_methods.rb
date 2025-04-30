@@ -34,6 +34,8 @@ module MB
         raise 'Number of significant digits must be >= 1' if figs < 1
         return 0.0 if value == 0
 
+        # TODO: Add Hash support?
+
         return value.map { |v| sigfigs(v, figs) } if value.respond_to?(:map)
 
         # TODO: should this do something different when real and imag have very different magnitudes?
@@ -45,21 +47,26 @@ module MB
         value.round(round_digits)
       end
 
-      # Rounds the given Complex, Float, Array, or Numo::NArray to the given
-      # number of digits after the decimal point, removing the imaginary part
-      # of Complex numbers if it goes to zero.
+      # Rounds the given Complex, Float, Array, Numeric, or Numo::NArray to the
+      # given number of digits after the decimal point, removing the imaginary
+      # part of Complex numbers if it goes to zero.  Recursively follows nested
+      # Hash and Array data structures to find numeric values to round.
       def round(value, figs = 0)
         if value.is_a?(Numo::NArray)
           exp = (10 ** figs.floor).to_f
-          return (value * exp).round / exp
+          (value * exp).round / exp
         elsif value.is_a?(Complex)
           real, imag = value.real.round(figs), value.imag.round(figs)
           return real if imag == 0
-          return Complex(real, imag)
+          Complex(real, imag)
+        elsif value.is_a?(Hash)
+          value.map { |k, v|
+            [k, round(v, figs)]
+          }.to_h
         elsif value.respond_to?(:map)
-          return value.map { |v| round(v, figs) }
+          value.map { |v| round(v, figs) }
         else
-          return value.round(figs)
+          value.round(figs)
         end
       end
 
