@@ -67,33 +67,40 @@ module MB
       # Recursively applies +:operation+ against +scalar+ to each nested value
       # in +data+, traversing through Hashes and Arrays.
       #
+      # The +:path+ and +:visited+ parameters are used internally for error
+      # detection and reporting.
+      #
+      # This function preserves cycles in the data structure by replacing the
+      # cyclic reference with its modified output value.
+      #
       # Examples:
-      #     deep_math({a: 1, b: [2, 3], 2, operation: :*)
+      #     deep_math({a: 1, b: [2, 3]}, :*, 2)
       #     => {a: 2, b: [4, 6]}
       #
-      #     deep_math(['a', 'b'], 3, operation: :*)
+      #     deep_math(['a', 'b'], :*, 3)
       #     => ['aaa', 'bbb']
-      def deep_math(data, scalar, operation:, path: [], visited: {})
-        # TODO: would deep_math(data, operation, scalar) be a better argument layout?
-        # XXX require 'pry-byebug' ; binding.pry # XXX
-        #raise "Cycle detected with visited #{visited}" if visited.include?(data) # XXX
-        raise 'Super deep!' if path.length > 100 # XXX
+      #
+      #     # Cycle
+      #     a = [1, 2]
+      #     a << a
+      #     deep_math(a, :+, 4)
+      #     => [5, 6, [...]]
+      #
+      def deep_math(data, operation, scalar, path: [], visited: {})
         return visited[data] if visited.include?(data)
 
         case data
         when Hash
           visited[data] = {}
-          data.map.with_object(visited[data]) { |(k, v), h|
-            h[k] = deep_math(v, scalar, operation: operation, path: path + [k], visited: visited)
-          }.to_h
-          visited[data]
+          data.each_with_object(visited[data]) { |(k, v), h|
+            h[k] = deep_math(v, operation, scalar, path: path + [k], visited: visited)
+          }
 
         when Array
           visited[data] = Array.new(data.length)
-          data.each_with_index { |v, idx|
-            visited[data][idx] = deep_math(v, scalar, operation: operation, path: path + [idx], visited: visited)
-          }
-          visited[data]
+          data.each_with_index.with_object(visited[data]) do |(v, idx), arr|
+            arr[idx] = deep_math(v, operation, scalar, path: path + [idx], visited: visited)
+          end
 
         else
           case operation
@@ -125,33 +132,36 @@ module MB
       # +a+ and +b+, traversing through Hashes and Arrays.  Raises an error if
       # +a+ and +b+ have different schemas, unless +b+ has a Numeric where +a+
       # has a traversable data structure.
-      def very_deep_math(a, b, operation:, path: [], visited: {})
+      #
+      # The +:path+ and +:visited+ parameters are used internally for error
+      # detection and reporting.
+      def very_deep_math(a, operation, b, path: [], visited: {})
         # TODO: better name
-        # TODO: can we handle cycles by ensuring that both a and b are in visited?
+        # TODO: can we handle cycles by ensuring that both a and b have the same cyclic structure?
         raise 'Cycle detected' if visited.include?(a) || visited.include?(b)
 
         if a.is_a?(Hash) && b.is_a?(Hash)
           raise 'Hash a and b do not have the same keys' unless a.keys == b.keys
 
-          visited[a] = true
-          visited[b] = true
+          visited[a] = {}
+          visited[b] = visited[a]
 
-          a.map { |k, v|
-            [k, very_deep_math(a[k], b[k], operation: operation, path: path + [k], visited: visited)]
-          }.to_h
+          a.each_with_object(visited[a]) { |(k, v), h|
+            h[k] = very_deep_math(a[k], operation, b[k], path: path + [k], visited: visited)
+          }
 
         elsif a.is_a?(Array) && b.is_a?(Array)
           raise 'Array a and b do not have the same length' unless a.length == b.length
 
-          visited[a] = true
-          visited[b] = true
+          visited[a] = Array.new(a.length)
+          visited[b] = visited[a]
 
-          a.map.with_index { |v, idx|
-            very_deep_math(a[idx], b[idx], operation: operation, path: path + [idx], visited: visited)
+          a.each_with_index.with_object(visited[a]) { |(v, idx), arr|
+            arr[idx] = very_deep_math(a[idx], operation, b[idx], path: path + [idx], visited: visited)
           }
 
         else
-          deep_math(a, b, operation: operation, path: path, visited: visited)
+          deep_math(a, operation, b, path: path, visited: visited)
         end
 
       rescue => e
@@ -159,17 +169,19 @@ module MB
         raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace_locations
       end
 
-      # Multiplies +value+ recursively by +scalar+, traversing through Hashes
-      # and Arrays.
+      # Computes a nested sum of +values+ weighted by +weights+, each of which
+      # must be an Array of the same length.  Each individual element in
+      # +values+ may be a complex structure of Hashes and Arrays.  Returns the
+      # weighted sum of the values.
       #
-      # Used by #multi_blend for weighted interpolation.
-      #
-      def deep_multiply(value, scalar)
-        deep_math(value, scalar, operation: :*)
-      end
+      # If the +weights+ add up to 1.0, then this computes the weighted average
+      # of the +values+.
+      def weighted_sum(values, weights)
+        unless values.is_a?(Array) && weights.is_a?(Array) && values.length == weights.length
+          raise 'Values and weights must be Arrays of the same length'
+        end
 
-      def multi_blend(values, weights, func: nil)
-        very_deep_math(values, weights, operation: :*)
+        very_deep_math(values, :*, weights).reduce { |a, b| very_deep_math(a, :+, b) }
       end
 
       # Returns the value at +blend+ (from 0 to 1) of a Catmull-Rom spline
