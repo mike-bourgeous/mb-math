@@ -230,7 +230,17 @@ RSpec.describe(MB::M::InterpolationMethods) do
       expect(MB::M.very_deep_math({1 => 2}, :+, {1 => 4})).to eq({1 => 6})
     end
 
-    pending 'with Numo::NArray'
+    it 'can apply an operator to two Numo::NArrays' do
+      expect(MB::M.very_deep_math({a: Numo::SFloat[-1, 2, 3]}, :**, {a: Numo::SFloat[3, 3, 2]})).to eq({a: Numo::SFloat[-1, 8, 9]})
+    end
+
+    it 'can apply a scalar to a Numo::NArray' do
+      expect(MB::M.very_deep_math({a: Numo::SFloat[-1, 2, 3]}, :**, {a: 2})).to eq({a: Numo::SFloat[1, 4, 9]})
+    end
+
+    it 'can apply a Numo::NArray to a scalar' do
+      expect(MB::M.very_deep_math({a: 2}, :**, {a: Numo::SFloat[2, 3, 16]})).to eq({a: Numo::SFloat[4, 8, 65536]})
+    end
 
     it 'can add numbers' do
       expect(MB::M.very_deep_math(1, :+, 2)).to eq(3)
