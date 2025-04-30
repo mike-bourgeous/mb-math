@@ -671,7 +671,7 @@ RSpec.describe(MB::M::Polynomial, :aggregate_failures) do
 
     it 'can find random integer roots' do
       100.times do
-        p, roots, scale = MB::M::Polynomial.random_roots(7, range: -10..10)
+        p, roots, _scale = MB::M::Polynomial.random_roots(7, range: -10..10)
         expect(MB::M.convert_down(MB::M.round(p.roots, 4)).sort).to eq(roots.sort)
       end
     end

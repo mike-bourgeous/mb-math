@@ -162,6 +162,197 @@ RSpec.describe(MB::M::InterpolationMethods) do
     end
   end
 
+  describe '#deep_math' do
+    it 'can multiply Strings just because it was more work to avoid it' do
+      expect(MB::M.deep_math(['a', {b: 'c'}], :*, 3)).to eq(['aaa', {b: 'ccc'}])
+    end
+
+    it 'can add a constant to structures' do
+      expect(MB::M.deep_math({q: 17, r: [5, -3.25]}, :+, 1i)).to eq({q: 17+1i, r: [5+1i, -3.25+1i]})
+    end
+
+    it 'does not modify keys' do
+      expect(MB::M.deep_math({1 => 2}, :+, 3)).to eq({1 => 5})
+    end
+
+    it 'handles cycles in the data graph' do
+      a = {a: 1, b: 2, c: {d: nil}}
+      a[:c][:d] = a
+
+      expected = {a: 2, b: 3, c: {d: nil}}
+
+      result = MB::M.deep_math(a, :+, 1)
+      recursed = result[:c][:d]
+      expect(recursed[:a]).to eq(2)
+      expect(recursed[:b]).to eq(3)
+      expect(recursed.__id__).to eq(result.__id__)
+
+      # RSpec eq() seems not to handle cycles in data structures
+      result[:c][:d] = nil
+      expect(result).to eq(expected)
+    end
+
+    it 'passes operations through to Numo::NArray' do
+      expect(MB::M.deep_math(Numo::SFloat[-1, 2, 3], :**, Numo::SFloat[2, 3, 4])).to eq(Numo::SFloat[1, 8, 81])
+    end
+
+    it 'can add numbers' do
+      expect(MB::M.deep_math(3, :+, -2.5)).to eq(0.5)
+    end
+
+    it 'can multiply numbers' do
+      expect(MB::M.deep_math(5, :*, -5)).to eq(-25)
+    end
+
+    it 'can subtract numbers' do
+      expect(MB::M.deep_math(13.25, :-, 1.25)).to eq(12)
+    end
+
+    it 'can divide numbers' do
+      expect(MB::M.deep_math(12i, :/, 2i)).to eq(6)
+    end
+
+    it 'can exponentiate numbers' do
+      expect(MB::M.deep_math(Math::E, :**, 1i * Math::PI)).to eq(-1)
+    end
+
+    it 'raises an error if given an unsupported operation' do
+      expect { MB::M.deep_math(16, :^, 2) }.to raise_error(ArgumentError, /Error at.*Unknown operation :\^/)
+    end
+
+    it 'raises an error if given incompatible data types' do
+      expect { MB::M.deep_math(5, :*, 'invalid') }.to raise_error(TypeError, /Error at root/)
+    end
+  end
+
+  describe '#very_deep_math' do
+    it 'can multiply Strings with Integers' do
+      expect(MB::M.very_deep_math(['q', {a: 'a', b: 'bc'}], :*, [2, {a: 3, b: 2}])).to eq(['qq', {a: 'aaa', b: 'bcbc'}])
+    end
+
+    it 'can concatenate Strings' do
+      expect(MB::M.very_deep_math([{a: 'q'}, 'r'], :+, [{a: 'a'}, 'b'])).to eq([{a: 'qa'}, 'rb'])
+    end
+
+    it 'does not modify keys' do
+      expect(MB::M.very_deep_math({1 => 2}, :+, {1 => 4})).to eq({1 => 6})
+    end
+
+    it 'can apply an operator to two Numo::NArrays' do
+      expect(MB::M.very_deep_math({a: Numo::SFloat[-1, 2, 3]}, :**, {a: Numo::SFloat[3, 3, 2]})).to eq({a: Numo::SFloat[-1, 8, 9]})
+    end
+
+    it 'can apply a scalar to a Numo::NArray' do
+      expect(MB::M.very_deep_math({a: Numo::SFloat[-1, 2, 3]}, :**, {a: 2})).to eq({a: Numo::SFloat[1, 4, 9]})
+    end
+
+    it 'can apply a Numo::NArray to a scalar' do
+      expect(MB::M.very_deep_math({a: 2}, :**, {a: Numo::SFloat[2, 3, 16]})).to eq({a: Numo::SFloat[4, 8, 65536]})
+    end
+
+    it 'can add numbers' do
+      expect(MB::M.very_deep_math(1, :+, 2)).to eq(3)
+      expect(MB::M.very_deep_math([1], :+, [2])).to eq([3])
+      expect(MB::M.very_deep_math([1], :+, 2)).to eq([3])
+    end
+
+    it 'can multiply numbers' do
+      expect(MB::M.very_deep_math(2, :*, 2)).to eq(4)
+      expect(MB::M.very_deep_math([2], :*, [2])).to eq([4])
+      expect(MB::M.very_deep_math([2], :*, 2)).to eq([4])
+    end
+
+    it 'can subtract numbers' do
+      expect(MB::M.very_deep_math(2, :-, 5)).to eq(-3)
+      expect(MB::M.very_deep_math([2], :-, [5])).to eq([-3])
+      expect(MB::M.very_deep_math([2], :-, 5)).to eq([-3])
+    end
+
+    it 'can divide numbers' do
+      expect(MB::M.very_deep_math(2, :/, 5.0)).to eq(0.4)
+      expect(MB::M.very_deep_math([2], :/, [5.0])).to eq([0.4])
+      expect(MB::M.very_deep_math([2], :/, 5.0)).to eq([0.4])
+    end
+
+    it 'can exponentiate numbers' do
+      expect(MB::M.very_deep_math(2, :**, 5.0)).to eq(32)
+      expect(MB::M.very_deep_math([2], :**, [5.0])).to eq([32])
+      expect(MB::M.very_deep_math([2], :**, 5.0)).to eq([32])
+    end
+
+    it 'does not concatenate arrays but instead adds their components' do
+      expect(MB::M.very_deep_math([[1, 2, 3]], :+, [[4, 5, 6]])).to eq([[5, 7, 9]])
+    end
+
+    it 'can add a structure to itself' do
+      a = {a: 1, b: 2, c: ['d']}
+      expect(MB::M.very_deep_math(a, :+, a)).to eq({a: 2, b: 4, c: ['dd']})
+    end
+
+    it 'raises an error if Hash structures do not match' do
+      a = {a: {b: {c: {}}}}
+      b = {a: {b: {c: {d: nil}}}}
+
+      expect { MB::M.very_deep_math(a, :*, b) }.to raise_error(/.*at path \[:a\]\[:b\]\[:c\].*do not have the same keys?/)
+    end
+
+    it 'raises an error if Array lengths do not match' do
+      a = {a: {b: {c: [1, 2]}}}
+      b = {a: {b: {c: [1, 2, 3]}}}
+
+      expect { MB::M.very_deep_math(a, :*, b) }.to raise_error(/.*at path \[:a\]\[:b\]\[:c\].*do not have the same length?/)
+    end
+
+    it 'can handle identical cycles in a and b' do
+      a = {a: {b: {c: [1, 2]}}}
+      b = {a: {b: {c: [-1, -2]}}}
+
+      a[:a][:b][:c] << a
+      b[:a][:b][:c] << b
+
+      result = MB::M.very_deep_math(a, :+, b)
+      recursed = result[:a][:b][:c].pop
+      expect(recursed).to equal(result)
+      expect(result).to eq({a: {b: {c: [0, 0]}}})
+    end
+
+    it 'raises an error for unsupported cycles in the data graph' do
+      a = {a: nil}
+      a[:a] = a
+      b = {a: {b: nil}}
+      b[:a][:b] = b
+
+      expect { MB::M.very_deep_math(a, :+, b) }.to raise_error(/Cycle detected/)
+    end
+  end
+
+  describe '#weighted_sum' do
+    it 'can add weighted numbers' do
+      expect(MB::M.weighted_sum([2, 2], [0.5, 0.5])).to eq(2)
+      expect(MB::M.weighted_sum([3, -3], [1, 4])).to eq(-9)
+      expect(MB::M.weighted_sum([1, 2, 3], [1, 1, 1])).to eq(6)
+    end
+
+    it 'can add weighted arrays' do
+      expect(MB::M.weighted_sum([[2, 4], [3, 7]], [0.5, 0.5])).to eq([2.5, 5.5])
+    end
+
+    it 'can add weighted hashes' do
+      expect(
+        MB::M.weighted_sum(
+          [
+            {a: [1, 2], b: 3},
+            {a: [2, 4], b: -2},
+            {a: [-2, -1.5], b: 1.5},
+          ],
+          [1, 2, 3]
+        )
+      ).to eq(
+        {a: [-1, 5.5], b: 3.5}
+      )
+    end
+  end
+
   describe '#catmull_rom' do
     it 'can interpolate numeric values' do
       expect(MB::M.catmull_rom(1, 5, 15, 3, 0.5)).to be_between(10, 12)

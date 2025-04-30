@@ -75,6 +75,10 @@ RSpec.describe(MB::M::PrecisionMethods) do
       it 'rounds NArrays' do
         expect(MB::M.round(Numo::SFloat[-3.4, -2.9, -2.1, 0.4, 1.5])).to eq([-3, -3, -2, 0, 2])
       end
+
+      it 'rounds Hashes' do
+        expect(MB::M.round({a: 1.2, b: [2.1, 3.9]})).to eq({a: 1, b: [2, 4]})
+      end
     end
 
     context 'with positive figs' do
@@ -97,6 +101,10 @@ RSpec.describe(MB::M::PrecisionMethods) do
         expect(MB::M.round(Numo::SFloat[-0.00125, 1.23456], 4)).to eq([-0.0013, 1.2346])
         expect(MB::M.round(Numo::SFloat[-0.00125, 1.23456], 7)).to eq([-0.00125, 1.23456])
       end
+
+      it 'rounds Hashes' do
+        expect(MB::M.round({a: 0.00125, b: [1.23456, 6.11111111]}, 4)).to eq({a: 0.0013, b: [1.2346, 6.1111]})
+      end
     end
 
     context 'with negative figs' do
@@ -115,6 +123,10 @@ RSpec.describe(MB::M::PrecisionMethods) do
       it 'rounds NArrays' do
         expect(MB::M.round(Numo::SFloat[12345.6789, -543], -1)).to eq(Numo::SFloat[12350, -540])
         expect(MB::M.round(Numo::SFloat[12345.6789, -543], -4)).to eq(Numo::SFloat[10000, 0])
+      end
+
+      it 'rounds Hashes' do
+        expect(MB::M.round({a: 12345.67, b: [-543, 543]}, -2)).to eq({a: 12300, b: [-500, 500]})
       end
     end
 
@@ -138,6 +150,10 @@ RSpec.describe(MB::M::PrecisionMethods) do
 
       it 'rounds real and imaginary parts separately' do
         expect(MB::M.round(1.23456-0.00789i, 3)).to eq(1.235-0.008i)
+      end
+
+      it 'rounds Complex numbers within a Hash' do
+        expect(MB::M.round({a: [1.25i, 1.75i], b: 3.95 + 3.0005i}, 1)).to eq({a: [1.3i, 1.8i], b: 4+3i})
       end
     end
   end
