@@ -125,7 +125,7 @@ module MB
         end
       rescue => e
         raise if e.message.start_with?('Error at')
-        raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace_locations
+        raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace
       end
 
       # Recursively applies +:operation+ between the two matching elements in
@@ -166,7 +166,7 @@ module MB
 
       rescue => e
         raise if e.message.start_with?('Error at')
-        raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace_locations
+        raise e.class, "#{path_string(path, prefix: 'Error at ')}: #{e.message}", e.backtrace
       end
 
       # Computes a nested sum of +values+ weighted by +weights+, each of which
