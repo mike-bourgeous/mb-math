@@ -1,4 +1,4 @@
-RSpec.describe(MB::M::ArrayMethods) do
+RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
   describe '.array_to_narray' do
     it 'converts a 1D array' do
       expect(MB::M.array_to_narray([1,2,3])).to eq(Numo::NArray[1,2,3])
@@ -772,6 +772,70 @@ RSpec.describe(MB::M::ArrayMethods) do
 
         it_behaves_like :type_correct_convolution
       end
+    end
+  end
+
+  describe '#find_first' do
+    it 'can operate on a Ruby Array' do
+      expect(MB::M.find_first([0, 1, 2, 3, 4, 3, 2, 1], 3)).to eq(3)
+    end
+
+    it 'can operate on a Numo::SFloat' do
+      expect(MB::M.find_first(Numo::SFloat[0, 1, 2, 3, 4, 3, 2, 1], 3)).to eq(3)
+    end
+
+    it 'returns nil if there is no match' do
+      expect(MB::M.find_first([0, 0, 0], 3)).to eq(nil)
+      expect(MB::M.find_first(Numo::SFloat[1, 1, 1], 0)).to eq(nil)
+    end
+
+    it 'handles empty arrays' do
+      expect(MB::M.find_first([], 0)).to eq(nil)
+      expect(MB::M.find_first(Numo::SFloat[], 0)).to eq(nil)
+    end
+  end
+
+  describe '#find_first_not' do
+    it 'can operate on a Ruby Array' do
+      expect(MB::M.find_first_not([3, 3, 3, 0, 1, 2, 3, 4, 3, 2, 1], 3)).to eq(3)
+    end
+
+    it 'can operate on a Numo::SFloat' do
+      expect(MB::M.find_first_not(Numo::SFloat[3, 3, 0, 1, 2, 3, 4, 3, 2, 1], 3)).to eq(2)
+    end
+
+    it 'returns nil if there is no match' do
+      expect(MB::M.find_first_not([0, 0, 0], 0)).to eq(nil)
+      expect(MB::M.find_first_not(Numo::SFloat[1, 1, 1], 1)).to eq(nil)
+    end
+
+    it 'handles empty arrays' do
+      expect(MB::M.find_first_not([], 0)).to eq(nil)
+      expect(MB::M.find_first_not(Numo::SFloat[], 0)).to eq(nil)
+    end
+  end
+
+  describe '#skip_leading' do
+    it 'skips zeros on a Ruby Array' do
+      expect(MB::M.skip_leading([0, 0, 0, 1, 2], 0)).to eq([1, 2])
+    end
+
+    it 'skips 1i on a NArray' do
+      expect(MB::M.skip_leading(Numo::DComplex[1i, 1i, 1i, 0, 1, 2], 1i)).to eq([0, 1, 2])
+    end
+
+    it 'returns an empty array if all values match' do
+      expect(MB::M.skip_leading([5], 5)).to eq([])
+      expect(MB::M.skip_leading(Numo::DFloat[5], 5)).to eq(Numo::DFloat[])
+    end
+
+    it 'returns an empty array for an empty array' do
+      expect(MB::M.skip_leading([], 0)).to eq([])
+      expect(MB::M.skip_leading(Numo::DFloat[], 0)).to eq(Numo::DFloat[])
+    end
+
+    it 'raises an error for an unsupported empty type' do
+      expect { MB::M.skip_leading({}, 0) }.to raise_error(/Unsupported type Hash/)
     end
   end
 end

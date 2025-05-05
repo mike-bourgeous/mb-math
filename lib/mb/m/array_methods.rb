@@ -388,6 +388,48 @@ module MB
         result
       end
 
+      # Returns the index of the first element equal to +value+ in the given
+      # +array+ (a function that is apparently not built in to Numo::NArray).
+      #
+      # Returns nil if no matching element was found.
+      def find_first(array, value)
+        return array.find_index(value) if array.respond_to?(:find_index)
+
+        array.each_with_index do |v, idx|
+          return idx if v == value
+        end
+
+        nil
+      end
+
+      # Returns the index of the first element that is not equal to +value+ in
+      # the given +array+.  Useful for skipping leading zeros, for example.
+      #
+      # Returns nil if no matching element was found.
+      def find_first_not(array, value)
+        array.each_with_index do |v, idx|
+          return idx if v != value
+        end
+
+        nil
+      end
+
+      # Returns a subset of the +array+ that skips any leading elements equal
+      # to +value+.  Returns an empty array if the array has no elements not
+      # equal to the given +value+.
+      def skip_leading(array, value)
+        index = find_first_not(array, value)
+        if index
+          array[index..]
+        elsif array.is_a?(Array)
+          []
+        elsif array.is_a?(Numo::NArray)
+          array.class[]
+        else
+          raise "Unsupported type #{array.class}"
+        end
+      end
+
       private
 
       # For #pad, do the right thing for Numo::NArray and Array to concatenate
