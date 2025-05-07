@@ -1,0 +1,73 @@
+RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
+  describe('all_be_within') do
+    it 'fails if array lengths differ' do
+      expect {
+        expect(Numo::SFloat[1]).to all_be_within(0).of_array(Numo::SFloat[1, 2])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+    end
+
+    it 'fails if any elements are NaN' do
+      expect {
+        expect(Numo::SFloat[1, Float::NAN]).to all_be_within(1).of_array(Numo::SFloat[1, 2])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      expect {
+        expect(Numo::SFloat[1, 2]).to all_be_within(1).of_array(Numo::SFloat[1, Float::NAN])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+    end
+
+    it 'passes if arrays are equal' do
+      expect {
+        expect(Numo::SFloat[1, 2]).to all_be_within(0).of_array(Numo::SFloat[1, 2])
+      }.not_to raise_error
+      expect {
+        expect(Numo::SFloat[1, 2]).to all_be_within(0.001).of_array(Numo::SFloat[1, 2])
+      }.not_to raise_error
+    end
+
+    it 'passes if arrays are within tolerance' do
+      expect {
+        expect(Numo::SFloat[0, 1]).to all_be_within(0.5).of_array(Numo::SFloat[0.5, 0.5])
+      }.not_to raise_error
+      expect {
+        expect(Numo::SFloat[0.001, 0.002]).to all_be_within(0.005).of_array(Numo::SFloat[0, 0])
+      }.not_to raise_error
+    end
+
+    it 'can compare complex values' do
+      expect {
+        expect(Numo::SComplex[0.25i, 1i]).to all_be_within(0.5).of_array(Numo::SComplex[0.25, 0.25+0.75i])
+      }.not_to raise_error
+      expect {
+        expect(Numo::SComplex[0.001i, 0.002 + 0.002i]).to all_be_within(0.005).of_array(Numo::SFloat[0, 0])
+      }.not_to raise_error
+    end
+
+    it 'fails if values are outside of tolerance' do
+      expect {
+        expect(Numo::SFloat[0, 1]).to all_be_within(0.4999).of_array(Numo::SFloat[0.5, 0.5])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+
+      expect {
+        expect(Numo::SFloat[0.001, 0.002]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+
+      expect {
+        expect(Numo::SComplex[0.001i, 0.002 + 0.002i]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+    end
+
+    it 'can compare Ruby Arrays to other Arrays and to Numo::NArrays' do
+      expect {
+        expect([1, 2, 3]).to all_be_within(10).of_array(Numo::SFloat[0, 0, 0])
+      }.not_to raise_error
+
+      expect {
+        expect([1, 2, 3]).to all_be_within(10).of_array([0, 0, 0])
+      }.not_to raise_error
+
+      expect {
+        expect(Numo::DComplex[1, 2, 3]).to all_be_within(10).of_array([0, 0, 5i])
+      }.not_to raise_error
+    end
+  end
+end

@@ -4,6 +4,7 @@ SimpleCov.start do
 end
 
 require 'mb/math'
+require 'mb/m/rspec_matchers'
 
 MB::U.sigquit_backtrace
 

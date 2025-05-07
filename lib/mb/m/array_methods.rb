@@ -272,6 +272,7 @@ module MB
           raise ArgumentError, "Expecting Numo::NArray or Array, got #{array.class}"
         end
       end
+      alias skip_leading ltrim
 
       # Rotates a 1D NArray left by +n+ places, which must be less than the
       # length of the NArray.  Returns a duplicate of the original array if +n+
@@ -412,22 +413,6 @@ module MB
         end
 
         nil
-      end
-
-      # Returns a subset of the +array+ that skips any leading elements equal
-      # to +value+.  Returns an empty array if the array has no elements not
-      # equal to the given +value+.
-      def skip_leading(array, value)
-        index = find_first_not(array, value)
-        if index
-          array[index..]
-        elsif array.is_a?(Array)
-          []
-        elsif array.is_a?(Numo::NArray)
-          array.class[]
-        else
-          raise "Unsupported type #{array.class}"
-        end
       end
 
       private

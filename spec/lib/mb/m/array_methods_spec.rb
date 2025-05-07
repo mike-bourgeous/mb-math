@@ -835,7 +835,7 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
 
     it 'raises an error for an unsupported empty type' do
-      expect { MB::M.skip_leading({}, 0) }.to raise_error(/Unsupported type Hash/)
+      expect { MB::M.skip_leading({}, 0) }.to raise_error(ArgumentError, /Hash/)
     end
   end
 end

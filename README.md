@@ -271,6 +271,24 @@ gem 'mb-math', git: 'https://github.com/mike-bourgeous/mb-math.git
 Run `rspec` to run all tests.  There is also a GitHub actions pipeline that
 runs tests automatically.
 
+### Testing helpers for your projects
+
+`mb-math` provides some RSpec matchers to help with comparing `Array` and
+`Numo::NArray`:
+
+- Approximate element-by-element equality: `all_be_within(max_delta).of_array(other)`
+
+To use these matchers, `requre 'mb/m/rspec_matchers'` to your `spec_helper.rb`
+file:
+
+```ruby
+# spec/spec_helper.rb in your project
+
+require 'mb/m/rspec_matchers'
+```
+
+See `lib/mb/m/rspec_matchers.rb`.
+
 ## Contributing
 
 Pull requests welcome, though development is focused specifically on the needs
