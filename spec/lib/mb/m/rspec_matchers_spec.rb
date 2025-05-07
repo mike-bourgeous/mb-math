@@ -44,8 +44,8 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
 
     it 'fails if values are outside of tolerance' do
       expect {
-        expect(Numo::SFloat[0, 1]).to all_be_within(0.4999).of_array(Numo::SFloat[0.5, 0.5])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum/)
+        expect(Numo::SFloat[-1, 1]).to all_be_within(0.4999).of_array(Numo::SFloat[0.5, 0.5])
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum.*index 0/)
 
       expect {
         expect(Numo::SFloat[0.001, 0.002]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
@@ -53,7 +53,7 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
 
       expect {
         expect(Numo::SComplex[0.001i, 0.002 + 0.002i]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum/)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum.*index 1/)
     end
 
     it 'can compare Ruby Arrays to other Arrays and to Numo::NArrays' do

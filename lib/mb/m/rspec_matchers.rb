@@ -42,9 +42,16 @@ RSpec::Matchers.define :all_be_within do |max_delta|
       next false
     end
 
-    delta = diff.abs.max
+    absdiff = diff.abs
+
+    delta = absdiff.max
     if delta > max_delta
-      @msg = "the maximum difference was #{delta}"
+      idx = absdiff.max_index
+      expected_at_idx = na_expected.is_a?(Numeric) ? na_expected : na_expected[idx]
+      actual_at_idx = na_actual[idx]
+
+      @msg = "the maximum difference was #{delta} at index #{absdiff.max_index} (value=#{actual_at_idx} expected=#{expected_at_idx})"
+
       next false
     end
 
@@ -56,8 +63,9 @@ RSpec::Matchers.define :all_be_within do |max_delta|
   end
 
   failure_message do
-    "expected elements of #{actual} to be within #{@max_delta} of #{@expected}, but #{@msg}"
+    "expected all elements of #{actual} to be within #{@max_delta} of #{@expected}, but #{@msg}\n#{super()}"
   end
 
+  # FIXME: is this even doing anything?
   diffable
 end
