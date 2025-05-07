@@ -3,16 +3,16 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
     it 'fails if array lengths differ' do
       expect {
         expect(Numo::SFloat[1]).to all_be_within(0).of_array(Numo::SFloat[1, 2])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /lengths differ/)
     end
 
     it 'fails if any elements are NaN' do
       expect {
         expect(Numo::SFloat[1, Float::NAN]).to all_be_within(1).of_array(Numo::SFloat[1, 2])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /not a number/)
       expect {
         expect(Numo::SFloat[1, 2]).to all_be_within(1).of_array(Numo::SFloat[1, Float::NAN])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /not a number/)
     end
 
     it 'passes if arrays are equal' do
@@ -45,15 +45,15 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
     it 'fails if values are outside of tolerance' do
       expect {
         expect(Numo::SFloat[0, 1]).to all_be_within(0.4999).of_array(Numo::SFloat[0.5, 0.5])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum/)
 
       expect {
         expect(Numo::SFloat[0.001, 0.002]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum/)
 
       expect {
         expect(Numo::SComplex[0.001i, 0.002 + 0.002i]).to all_be_within(0.0005).of_array(Numo::SFloat[0, 0])
-      }.to raise_error(RSpec::Expectations::ExpectationNotMetError)
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /the maximum/)
     end
 
     it 'can compare Ruby Arrays to other Arrays and to Numo::NArrays' do
@@ -67,6 +67,12 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
 
       expect {
         expect(Numo::DComplex[1, 2, 3]).to all_be_within(10).of_array([0, 0, 5i])
+      }.not_to raise_error
+    end
+
+    it 'can compare arrays to numbers' do
+      expect {
+        expect([1, 2]).to all_be_within(1).of_array(1)
       }.not_to raise_error
     end
   end
