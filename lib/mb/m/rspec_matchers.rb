@@ -101,9 +101,9 @@ RSpec::Matchers.define :all_be_within do |max_delta|
 
   failure_message do
     if @sigfigs
-      "expected all elements of #{actual.inspect} to match at least #{@max_delta} significant figures of #{@expected.inspect}, but #{@msg}\n#{super()}"
+      "expected all elements of #{actual.inspect} to match at least #{@max_delta} significant figures of #{@expected.inspect}, but #{@msg}"
     else
-      "expected all elements of #{actual.inspect} to be within #{@max_delta} of #{@expected.inspect}, but #{@msg}\n#{super()}"
+      "expected all elements of #{actual.inspect} to be within #{@max_delta} of #{@expected.inspect}, but #{@msg}"
     end
   end
 
