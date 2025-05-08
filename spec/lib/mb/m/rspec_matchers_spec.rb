@@ -75,5 +75,58 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
         expect([1, 2]).to all_be_within(1).of_array(1)
       }.not_to raise_error
     end
+
+    it 'can compare empty arrays' do
+      expect {
+        expect([]).to all_be_within(0).of_array([])
+      }.not_to raise_error
+      expect {
+        expect(Numo::SFloat[]).to all_be_within(0).of_array(Numo::DComplex[])
+      }.not_to raise_error
+    end
+
+    describe '.sigfigs' do
+      it 'compares leading digits instead of absolute differences for a match' do
+        expect {
+          expect(Numo::SComplex[0.00101i, 0.00201]).to all_be_within(2).sigfigs.of_array(Numo::SComplex[0.001i, 0.002])
+        }.not_to raise_error
+
+        expect {
+          expect(Numo::SFloat[12347]).to all_be_within(4).sigfigs.of_array(Numo::SFloat[12345])
+        }.not_to raise_error
+
+        expect {
+          expect([12357]).to all_be_within(4).sigfigs.of_array([12345])
+        }.not_to raise_error
+
+        expect {
+          expect(Numo::SFloat[100010]).to all_be_within(5).sigfigs.of_array(Numo::SFloat[100000])
+        }.not_to raise_error
+      end
+
+      it 'includes the significant figures in the message for a non-match' do
+        expect {
+          expect(Numo::SComplex[0.001i, 0.002 + 0.002i]).to all_be_within(3).sigfigs.of_array(Numo::SFloat[1, 1])
+        }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /3 significant figures/)
+
+        expect {
+          expect(Numo::SFloat[12345]).to all_be_within(4).sigfigs.of_array(Numo::SFloat[12357.4])
+        }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /4 significant figures/)
+
+        expect {
+          expect(Numo::SFloat[100011]).to all_be_within(5).sigfigs.of_array(Numo::SFloat[100000])
+        }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /5 significant figures/)
+
+        expect {
+          expect(Numo::SFloat[12358]).to all_be_within(4).sigfigs.of_array(Numo::SFloat[12345])
+        }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /4 significant figures/)
+      end
+
+      it 'can compare zero to zero' do
+        expect {
+          expect(Numo::SComplex[0]).to all_be_within(2).sigfigs.of_array(Numo::SFloat[0])
+        }.not_to raise_error
+      end
+    end
   end
 end

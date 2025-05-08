@@ -277,6 +277,7 @@ runs tests automatically.
 `Numo::NArray`:
 
 - Approximate element-by-element equality: `all_be_within(max_delta).of_array(other)`
+- Approximate element-by-element sigfigs equality: `all_be_within(max_delta).sigfigs.of_array(other)`
 
 To use these matchers, `requre 'mb/m/rspec_matchers'` to your `spec_helper.rb`
 file:
