@@ -1,5 +1,3 @@
-# This file defines RSpec matchers.
-
 require 'rspec/expectations'
 
 # This matcher compares individual elements of Arrays or Numo::NArrays of the
@@ -9,10 +7,15 @@ require 'rspec/expectations'
 # If .sigfigs is added before .of_array, then the delta given will be treated
 # as a number of digits, and the log10 is compared instead.  This is useful for
 # comparing floating point values of unknown magnitudes.  The difference is
-# given in number of matching digits when in sigfigs mode.
+# given in number of matching digits when in sigfigs mode.  In other words, the
+# match succeeds if the absolute difference is within the expected value
+# divided by 10 ** (max_delta - 1).  So 12345 will match 12357 with sigfigs of
+# 4 but not 12358.
 #
 # Example:
 #     expect(Numo::SFloat[1,2,3]).to all_be_within(3).of_array([0, 1, 2])
+#
+#     expect([12357]).to all_be_within(4).sigfigs.of_array([12345])
 RSpec::Matchers.define :all_be_within do |max_delta|
   match do |actual|
     @max_delta = max_delta
@@ -43,24 +46,19 @@ RSpec::Matchers.define :all_be_within do |max_delta|
     next true if na_actual.length == 0
 
     if @sigfigs
-      puts 'sigfigs diff'
       diff = na_actual.map_with_index { |v, idx|
         v2 = na_expected[idx]
 
-        inputs = [v.abs, v2.abs]
-        inputs += [v.real.abs, v.imag.abs] if v.respond_to?(:real)
-        inputs += [v2.real.abs, v2.imag.abs] if v2.respond_to?(:real)
-
-        if inputs.max == 0
+        if v2.abs == 0
           scale = 0
         else
-          # Subtracting log10(0.5) to get within +/- 5 at the target digit
-          scale = Math.log10(inputs.max) - Math.log10(0.5)
+          scale = Math.log10(v2.abs)
         end
 
         d = (v - v2).abs
 
-        d == 0 ? Float::INFINITY : scale - Math.log10(d)
+        # Number of matching digits
+        d == 0 ? Float::INFINITY : scale - Math.log10(d) + 1
       }
 
       absdiff = diff.abs
@@ -69,15 +67,12 @@ RSpec::Matchers.define :all_be_within do |max_delta|
       idx = absdiff.min_index
       failure = delta < max_delta
     else
-      puts 'normal diff'
       diff = na_actual - na_expected
       absdiff = diff.abs
       delta = absdiff.max
       idx = absdiff.max_index
       failure = delta > max_delta
     end
-
-    puts "failure=#{failure} delta=#{delta} max_delta=#{max_delta} absdiff=#{absdiff}"
 
     if diff.respond_to?(:isnan) && diff.isnan.count_1 != 0
       @msg = 'some elements of either array were NaN (not a number)'
@@ -105,8 +100,11 @@ RSpec::Matchers.define :all_be_within do |max_delta|
   end
 
   failure_message do
-    puts "expected all elements of #{actual} to be within #{@max_delta}#{' significant figures' if @sigfigs} of #{@expected}, but #{@msg}\n#{super()}"
-    "expected all elements of #{actual} to be within #{@max_delta}#{' significant figures' if @sigfigs} of #{@expected}, but #{@msg}\n#{super()}"
+    if @sigfigs
+      "expected all elements of #{actual.inspect} to match at least #{@max_delta} significant figures of #{@expected.inspect}, but #{@msg}\n#{super()}"
+    else
+      "expected all elements of #{actual.inspect} to be within #{@max_delta} of #{@expected.inspect}, but #{@msg}\n#{super()}"
+    end
   end
 
   # FIXME: is this even doing anything?
