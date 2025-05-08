@@ -119,7 +119,7 @@ RSpec.describe('mb-math RSpec matchers', aggregate_failures: false) do
 
         expect {
           expect(Numo::SFloat[12358]).to all_be_within(4).sigfigs.of_array(Numo::SFloat[12345])
-        }.to raise_error
+        }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /4 significant figures/)
       end
 
       it 'can compare zero to zero' do
