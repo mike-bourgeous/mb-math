@@ -392,12 +392,22 @@ module MB
       # Returns the index of the first element equal to +value+ in the given
       # +array+ (a function that is apparently not built in to Numo::NArray).
       #
+      # If a block is given, then the +value+ is ignored, and the block will be
+      # yielded each element and its index.  The method will return the first
+      # index for which the block returns true.
+      #
       # Returns nil if no matching element was found.
-      def find_first(array, value)
+      def find_first(array, value = nil)
         return array.find_index(value) if array.respond_to?(:find_index)
 
-        array.each_with_index do |v, idx|
-          return idx if v == value
+        if block_given?
+          array.each_with_index do |v, idx|
+            return idx if yield v, idx
+          end
+        else
+          array.each_with_index do |v, idx|
+            return idx if v == value
+          end
         end
 
         nil
@@ -406,14 +416,37 @@ module MB
       # Returns the index of the first element that is not equal to +value+ in
       # the given +array+.  Useful for skipping leading zeros, for example.
       #
+      # If a block is given, then the +value+ is ignored, and the block will be
+      # yielded each element and its index.  The method will return the first
+      # index for which the block returns false.
+      #
       # Returns nil if no matching element was found.
-      def find_first_not(array, value)
-        array.each_with_index do |v, idx|
-          return idx if v != value
+      def find_first_not(array, value = nil)
+        if block_given?
+          array.each_with_index do |v, idx|
+            return idx unless yield v, idx
+          end
+        else
+          array.each_with_index do |v, idx|
+            return idx if v != value
+          end
         end
 
         nil
       end
+
+      # Returns the index of the first non-negative value in the +array+ after
+      # at least one negative value.  Returns nil if the +array+ is empty or if
+      # there is never a negative-to-non-negative transition.
+      def find_sign_change(array)
+        return nil if array.empty?
+
+        prior = array[0]
+        find_first(array) do |v, _idx|
+          (prior < 0 && v >= 0).tap { prior = v }
+        end
+      end
+      alias find_zero_crossing find_sign_change
 
       private
 
