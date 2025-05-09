@@ -880,6 +880,10 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.find_sign_change(Numo::SFloat[])).to eq(nil)
     end
 
+    it 'can find a sign change in a Ruby Array' do
+      expect(MB::M.find_sign_change([0,3,2,1,0,-1,-2,-1], false)).to eq(4)
+    end
+
     it 'returns nil if there is never a rising zero crossing' do
       expect(MB::M.find_sign_change([0,3,2,1,0,-1,-2,-1])).to eq(nil)
     end
@@ -890,6 +894,65 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
 
     it 'can find falling edges' do
       expect(MB::M.find_sign_change(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1], false)).to eq(4)
+    end
+  end
+
+  describe '#select_sign_changes' do
+    let(:data) {
+      Numo::SFloat[0].concatenate(
+        ([Numo::SFloat[0, 1, 0, -1]] * 30).reduce(&:concatenate)
+      ).concatenate(
+        Numo::SFloat[1, 2, 3, 4, 5]
+      )
+    }
+
+    it 'can return a single cycle' do
+      expect(MB::M.select_sign_changes(data, 1)).to eq(Numo::SFloat[0, 1, 0, -1])
+    end
+
+    it 'can select cycles from a Ruby Array' do
+      expect(MB::M.select_sign_changes(data.to_a, 2)).to eq([0, 1, 0, -1] * 2)
+    end
+
+    it 'can return multiple cycles' do
+      expect(MB::M.select_sign_changes(data, 3)).to eq(Numo::SFloat[0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1])
+    end
+
+    it 'can return the expected maximum number of sign changes' do
+      expect(MB::M.select_sign_changes(data.to_a, 29)).to eq([0, 1, 0, -1] * 29)
+    end
+
+    it 'returns all of the full cycles if count is nil or false' do
+      expect(MB::M.select_sign_changes(data.to_a, nil)).to eq([0, 1, 0, -1] * 29)
+      expect(MB::M.select_sign_changes(data.to_a, false)).to eq([0, 1, 0, -1] * 29)
+    end
+
+    it 'returns nil if there are not enough sign changes' do
+      expect(MB::M.select_sign_changes(data, 30)).to eq(nil)
+    end
+
+    it 'returns nil for an empty array' do
+      expect(MB::M.select_sign_changes([], 1)).to eq(nil)
+    end
+
+    it 'returns nil if there are no matching rising sign changes' do
+      expect(MB::M.select_sign_changes(Numo::DFloat[1, 2, 3, -1], 1)).to eq(nil)
+    end
+
+    it 'can find falling changes as well' do
+      expect(MB::M.select_sign_changes(data, 2, false)).to eq(Numo::SFloat[0, -1, 0, 1, 0, -1, 0, 1])
+    end
+
+    it 'can find falling changes in a Ruby Array' do
+      expect(MB::M.select_sign_changes(data.to_a, 1, false)).to eq([0, -1, 0, 1])
+    end
+
+    it 'returns nil if there are no matching falling sign changes' do
+      expect(MB::M.select_sign_changes(Numo::DFloat[-1, 2, 3], 1, false)).to eq(nil)
+    end
+
+    it 'raises an error if count is 0' do
+      expect { MB::M.select_sign_changes(data, 0) }.to raise_error(/>= 1/)
     end
   end
 end

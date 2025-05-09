@@ -398,13 +398,14 @@ module MB
       #
       # Returns nil if no matching element was found.
       def find_first(array, value = nil)
-        return array.find_index(value) if array.respond_to?(:find_index)
 
         if block_given?
           array.each_with_index do |v, idx|
             return idx if yield v, idx
           end
         else
+          return array.find_index(value) if array.respond_to?(:find_index)
+
           array.each_with_index do |v, idx|
             return idx if v == value
           end
@@ -465,6 +466,47 @@ module MB
         end
       end
       alias find_zero_crossing find_sign_change
+
+      # Uses #find_sign_change to return a subset of +array+ that starts at a
+      # sign change and continues until +count+ additional sign changes have
+      # been found.  The value that triggered the final sign change is omitted.
+      #
+      # If +count+ is nil, then all remaining full cycles in the +array+ will
+      # be returned.
+      #
+      # Returns nil if there are fewer than +count+ sign changes after the
+      # first sign change or if the +array+ is empty.
+      #
+      # This can be useful for selecting +count+ cycles of a simple waveform
+      # when you don't know the phase or frequency in advance.
+      def select_sign_changes(array, count, rising = true)
+        if count && !(count.is_a?(Integer) && count >= 1)
+          raise ArgumentError, "Count must be falsey or an Integer >= 1"
+        end
+
+        return nil if array.empty?
+
+        start_index = find_sign_change(array, rising)
+        return nil if start_index.nil?
+
+        end_index = start_index
+        if count
+          count.times do
+            next_index = find_sign_change(array[end_index..], rising)
+            return nil unless next_index
+            end_index += next_index
+          end
+        else
+          loop do
+            next_index = find_sign_change(array[end_index..], rising)
+            break unless next_index
+            end_index += next_index
+          end
+        end
+
+        array[start_index...end_index]
+      end
+      alias select_zero_crossings select_sign_changes
 
       private
 
