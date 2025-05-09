@@ -899,7 +899,7 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
 
   describe '#select_sign_changes' do
     let(:data) {
-      Numo::SFloat[2].concatenate(
+      Numo::SFloat[0].concatenate(
         ([Numo::SFloat[0, 1, 0, -1]] * 30).reduce(&:concatenate)
       ).concatenate(
         Numo::SFloat[1, 2, 3, 4, 5]
@@ -933,6 +933,22 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
 
     it 'returns nil for an empty array' do
       expect(MB::M.select_sign_changes([], 1)).to eq(nil)
+    end
+
+    it 'returns nil if there are no matching rising sign changes' do
+      expect(MB::M.select_sign_changes(Numo::DFloat[1, 2, 3, -1], 1)).to eq(nil)
+    end
+
+    it 'can find falling changes as well' do
+      expect(MB::M.select_sign_changes(data, 2, false)).to eq(Numo::SFloat[0, -1, 0, 1, 0, -1, 0, 1])
+    end
+
+    it 'can find falling changes in a Ruby Array' do
+      expect(MB::M.select_sign_changes(data.to_a, 1, false)).to eq([0, -1, 0, 1])
+    end
+
+    it 'returns nil if there are no matching falling sign changes' do
+      expect(MB::M.select_sign_changes(Numo::DFloat[-1, 2, 3], 1, false)).to eq(nil)
     end
 
     it 'raises an error if count is 0' do
