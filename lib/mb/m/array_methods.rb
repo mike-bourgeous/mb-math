@@ -435,15 +435,33 @@ module MB
         nil
       end
 
-      # Returns the index of the first non-negative value in the +array+ after
-      # at least one negative value.  Returns nil if the +array+ is empty or if
-      # there is never a negative-to-non-negative transition.
-      def find_sign_change(array)
+      # This function finds zero-crossings / sign changes in an Array or
+      # Numo::NArray.
+      #
+      # If +rising+ is true, returns the index of the first non-negative value
+      # in the +array+ after at least one negative value.
+      #
+      # If +rising+ is false, returns the index of the first non-positive value
+      # in the +array+ after at least one positive value.
+      #
+      # Returns nil if the +array+ is empty or if there is never a
+      # negative-to-non-negative transition.
+      def find_sign_change(array, rising = true)
         return nil if array.empty?
 
+        # TODO: add a threshold parameter that defaults to 0?  Callers can just
+        # subtract that threshold before passing the array to this method until
+        # then
+
         prior = array[0]
-        find_first(array) do |v, _idx|
-          (prior < 0 && v >= 0).tap { prior = v }
+        if rising
+          find_first(array) do |v, _idx|
+            (prior < 0 && v >= 0).tap { prior = v }
+          end
+        else
+          find_first(array) do |v, _idx|
+            (prior > 0 && v <= 0).tap { prior = v }
+          end
         end
       end
       alias find_zero_crossing find_sign_change

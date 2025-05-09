@@ -885,5 +885,13 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     it 'returns nil if there is never a rising zero crossing' do
       expect(MB::M.find_sign_change([0,3,2,1,0,-1,-2,-1])).to eq(nil)
     end
+
+    it 'is aliased to find_zero_crossing' do
+      expect(MB::M.find_zero_crossing(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1])).to eq(6)
+    end
+
+    it 'can find falling edges' do
+      expect(MB::M.find_sign_change(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1], false)).to eq(4)
+    end
   end
 end
