@@ -789,9 +789,28 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.find_first(Numo::SFloat[1, 1, 1], 0)).to eq(nil)
     end
 
-    it 'handles empty arrays' do
+    it 'returns nil for empty arrays' do
       expect(MB::M.find_first([], 0)).to eq(nil)
       expect(MB::M.find_first(Numo::SFloat[], 0)).to eq(nil)
+    end
+
+    it 'accepts a block' do
+      prior = nil
+      expect(
+        MB::M.find_first(Numo::SFloat[-1, -2, -1, 0, 1]) { |v, idx|
+          if idx > 0
+            next true if prior && prior < 0 && v >= 0
+          end
+          prior = v
+          false
+        }
+      ).to eq(3)
+    end
+
+    it 'returns nil if the block always returns false' do
+      expect(
+        MB::M.find_first(Numo::SFloat[-1, -2, -1, 0, 1]) { false }
+      ).to eq(nil)
     end
   end
 
@@ -809,13 +828,26 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.find_first_not(Numo::SFloat[1, 1, 1], 1)).to eq(nil)
     end
 
-    it 'handles empty arrays' do
+    it 'returns nil for empty arrays' do
       expect(MB::M.find_first_not([], 0)).to eq(nil)
       expect(MB::M.find_first_not(Numo::SFloat[], 0)).to eq(nil)
+    end
+
+    it 'accepts a block' do
+      expect(
+        MB::M.find_first_not(Numo::SFloat[-1, -2, -1, 0, 1]) { |v, _idx| v <= 0 }
+      ).to eq(4)
+    end
+
+    it 'returns nil if the block always returns true' do
+      expect(
+        MB::M.find_first_not(Numo::SFloat[-1, -2, -1, 0, 1]) { true }
+      ).to eq(nil)
     end
   end
 
   describe '#skip_leading' do
+    # Note: this is an alias for ltrim
     it 'skips zeros on a Ruby Array' do
       expect(MB::M.skip_leading([0, 0, 0, 1, 2], 0)).to eq([1, 2])
     end
@@ -836,6 +868,28 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
 
     it 'raises an error for an unsupported empty type' do
       expect { MB::M.skip_leading({}, 0) }.to raise_error(ArgumentError, /Hash/)
+    end
+  end
+
+  describe '#find_sign_change' do
+    it 'finds the correct index' do
+      expect(MB::M.find_sign_change(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1])).to eq(6)
+    end
+
+    it 'returns nil for an empty array' do
+      expect(MB::M.find_sign_change(Numo::SFloat[])).to eq(nil)
+    end
+
+    it 'returns nil if there is never a rising zero crossing' do
+      expect(MB::M.find_sign_change([0,3,2,1,0,-1,-2,-1])).to eq(nil)
+    end
+
+    it 'is aliased to find_zero_crossing' do
+      expect(MB::M.find_zero_crossing(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1])).to eq(6)
+    end
+
+    it 'can find falling edges' do
+      expect(MB::M.find_sign_change(Numo::SFloat[0, 1, 2, 1, 0, -1, 0, 1], false)).to eq(4)
     end
   end
 end
