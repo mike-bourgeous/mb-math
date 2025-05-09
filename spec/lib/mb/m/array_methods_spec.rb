@@ -807,8 +807,7 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       ).to eq(3)
     end
 
-    it 'returns nil if the block always returns falsey' do
-      prior = nil
+    it 'returns nil if the block always returns false' do
       expect(
         MB::M.find_first(Numo::SFloat[-1, -2, -1, 0, 1]) { false }
       ).to eq(nil)
@@ -841,7 +840,6 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
 
     it 'returns nil if the block always returns true' do
-      prior = nil
       expect(
         MB::M.find_first_not(Numo::SFloat[-1, -2, -1, 0, 1]) { true }
       ).to eq(nil)
