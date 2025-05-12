@@ -463,10 +463,6 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       it 'returns an empty array if given a block and all values match' do
         expect(MB::M.rtrim(Numo::SFloat.ones(6)) { true }).to eq(Numo::SFloat[])
       end
-
-      it 'raises an error if given a different type' do
-        expect { MB::M.rtrim({}) }.to raise_error(ArgumentError, /Expecting.*got.*Hash/)
-      end
     end
 
     context 'with Array' do
@@ -510,7 +506,53 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
 
     it 'raises an error for a non-array type' do
-      expect { MB::M.rtrim('hello', 'h') }.to raise_error(ArgumentError, /array/i)
+      expect { MB::M.rtrim({}) }.to raise_error(ArgumentError, /Expecting.*got.*Hash/)
+      expect { MB::M.rtrim('hello', 'h') }.to raise_error(ArgumentError, /array.*String/i)
+    end
+  end
+
+  describe '.trim' do
+    it 'can remove leading values' do
+      expect(MB::M.trim([0, 1, 2, 3])).to eq([1, 2, 3])
+      expect(MB::M.trim(Numo::DFloat[0, 1, 2, 3])).to eq(Numo::DFloat[1, 2, 3])
+    end
+
+    it 'can remove trailing values' do
+      expect(MB::M.trim([0, 1, 2, 3])).to eq([1, 2, 3])
+      expect(MB::M.trim(Numo::DFloat[0, 1, 2, 3])).to eq(Numo::DFloat[1, 2, 3])
+    end
+
+    it 'can remove values on both ends' do
+      expect(MB::M.trim([1, 0, 1], 1)).to eq([0])
+      expect(MB::M.trim(Numo::Int32[1, 0, 1], 1)).to eq(Numo::Int32[0])
+    end
+
+    it 'can use a block to reject values' do
+      expect(MB::M.trim([0, 1, 2, 3, 4], &:even?)).to eq([1, 2, 3])
+      expect(MB::M.trim(Numo::Int32[0, 1, 2, 3, 4], &:even?)).to eq(Numo::Int32[1, 2, 3])
+
+      expect(MB::M.trim([0, 1, 2, 3, 4], &:odd?)).to eq([0, 1, 2, 3, 4])
+      expect(MB::M.trim(Numo::Int32[0, 1, 2, 3, 4], &:odd?)).to eq(Numo::Int32[0, 1, 2, 3, 4])
+    end
+
+    it 'returns an empty array for an empty array' do
+      expect(MB::M.trim([])).to eq([])
+      expect(MB::M.trim(Numo::SFloat[])).to eq(Numo::SFloat[])
+    end
+
+    it 'returns an empty array if all values are removed' do
+      expect(MB::M.trim([2, 2, 2], 2)).to eq([])
+      expect(MB::M.trim(Numo::Int64[2, 2, 2], 2)).to eq(Numo::Int64[])
+    end
+
+    it 'returns an empty array if all values are removed by a block' do
+      expect(MB::M.trim([2, 4, 6], &:even?)).to eq([])
+      expect(MB::M.trim(Numo::DComplex[2, 4, 6]) { true }).to eq(Numo::DComplex[])
+    end
+
+    it 'raises an error for a non-array type' do
+      expect { MB::M.trim({}) }.to raise_error(ArgumentError, /Expecting.*got.*Hash/)
+      expect { MB::M.trim('hello', 'h') }.to raise_error(ArgumentError, /array.*String/i)
     end
   end
 

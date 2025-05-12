@@ -312,6 +312,17 @@ module MB
       end
       alias skip_trailing rtrim
 
+      # Equivalent to both rtrim and ltrim together.  Calls ltrim first, then
+      # rtrim.
+      def trim(array, value = 0)
+        if block_given?
+          a = ltrim(array) do |v| yield v end
+          rtrim(a) do |v| yield v end
+        else
+          rtrim(ltrim(array, value), value)
+        end
+      end
+
       # Rotates a 1D NArray left by +n+ places, which must be less than the
       # length of the NArray.  Returns a duplicate of the original array if +n+
       # is zero or the rotation would have no effect.  Use negative values for
