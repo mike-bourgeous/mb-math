@@ -254,8 +254,8 @@ module MB
             idx = array.each_with_index { |v, idx| break idx if !yield(v) }
           else
             idx = array.each_with_index { |v, idx| break idx if v != value }
-            idx = nil unless idx.is_a?(Integer) # if we didn't break then we got the array instead
           end
+          idx = nil unless idx.is_a?(Integer) # if we didn't break then we got the array instead
 
           return array.class[] if idx.nil?
 

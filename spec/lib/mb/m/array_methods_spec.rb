@@ -385,6 +385,14 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
         expect(MB::M.ltrim(Numo::SFloat[0,1,2])).to be_a(Numo::SFloat)
         expect(MB::M.ltrim(Numo::Int32[0,1,2])).to be_a(Numo::Int32)
       end
+
+      it 'returns an empty array if given a block and all values match' do
+        expect(MB::M.ltrim(Numo::SFloat.ones(6)) { true }).to eq(Numo::SFloat[])
+      end
+
+      it 'raises an error if given a different type' do
+        expect { MB::M.ltrim({}) }.to raise_error(ArgumentError, /Expecting.*got.*Hash/)
+      end
     end
 
     context 'with Array' do
