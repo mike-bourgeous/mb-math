@@ -427,6 +427,93 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
+  describe '#rtrim' do
+    context 'with Numo::NArray' do
+      let(:zero) { Numo::SFloat[1, 2, 3, 0, 0, 0] }
+      let(:one) { Numo::SFloat[2, 3, 4, 1, 1, 1] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.rtrim(Numo::SFloat[])).to eq(Numo::SFloat[])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.rtrim(zero, 1)).to eq(zero)
+        expect(MB::M.rtrim(zero, 0)).to eq(Numo::SFloat[1, 2, 3])
+
+        expect(MB::M.rtrim(one, 0)).to eq(one)
+        expect(MB::M.rtrim(one, 1)).to eq(Numo::SFloat[2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.rtrim(Numo::Int32[1, 3, 5, 2, 4, 6], 1, &:even?)).to eq([1, 3, 5])
+        expect(MB::M.rtrim(Numo::Int32[1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([1, 3, 5, 2, 4, 6])
+        expect(MB::M.rtrim(Numo::SFloat[2, 4, 6, Float::NAN, Float::INFINITY, -Float::INFINITY]) { |v| !v.finite? }).to eq(Numo::SFloat[2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.rtrim(Numo::SFloat.zeros(6))).to eq(Numo::SFloat[])
+        expect(MB::M.rtrim(Numo::SFloat.ones(6), 1)).to eq(Numo::SFloat[])
+      end
+
+      it 'returns the same type' do
+        expect(MB::M.rtrim(Numo::SFloat[0,1,2])).to be_a(Numo::SFloat)
+        expect(MB::M.rtrim(Numo::Int32[0,1,2])).to be_a(Numo::Int32)
+      end
+
+      it 'returns an empty array if given a block and all values match' do
+        expect(MB::M.rtrim(Numo::SFloat.ones(6)) { true }).to eq(Numo::SFloat[])
+      end
+
+      it 'raises an error if given a different type' do
+        expect { MB::M.rtrim({}) }.to raise_error(ArgumentError, /Expecting.*got.*Hash/)
+      end
+    end
+
+    context 'with Array' do
+      let(:zero) { [1, 2, 3, 0, 0, 0] }
+      let(:one) { [2, 3, 4, 1, 1, 1] }
+
+      it 'returns an empty array for an empty array' do
+        expect(MB::M.rtrim([])).to eq([])
+      end
+
+      it 'accepts a value parameter' do
+        expect(MB::M.rtrim(zero, 1)).to eq(zero)
+        expect(MB::M.rtrim(zero, 0)).to eq([1, 2, 3])
+
+        expect(MB::M.rtrim(one, 0)).to eq(one)
+        expect(MB::M.rtrim(one, 1)).to eq([2, 3, 4])
+      end
+
+      it 'accepts a block' do
+        expect(MB::M.rtrim([1, 3, 5, 2, 4, 6], 1, &:even?)).to eq([1, 3, 5])
+        expect(MB::M.rtrim([1, 3, 5, 2, 4, 6], 1, &:odd?)).to eq([1, 3, 5, 2, 4, 6])
+        expect(MB::M.rtrim([2, 4, 6, Float::NAN, Float::INFINITY, -Float::INFINITY]) { |v| !v.finite? }).to eq([2, 4, 6])
+      end
+
+      it 'returns an empty array if all values match' do
+        expect(MB::M.rtrim([0] * 6)).to eq([])
+        expect(MB::M.rtrim([1] * 6, 1)).to eq([])
+      end
+
+      it 'does not have to use numbers in a Ruby Array' do
+        expect(MB::M.rtrim(['a', 'b', '', ''], '')).to eq(['a', 'b'])
+      end
+
+      it 'returns an empty array if given a block and all values match' do
+        expect(MB::M.rtrim([1, 2, 3, 4, 5, 6]) { true }).to eq([])
+      end
+    end
+
+    it 'is aliased to skip_trailing' do
+      expect(MB::M.skip_trailing([1, 2, 0, 0])).to eq([1, 2])
+    end
+
+    it 'raises an error for a non-array type' do
+      expect { MB::M.rtrim('hello', 'h') }.to raise_error(ArgumentError, /array/i)
+    end
+  end
+
   describe '.rol' do
     context 'with Numo::NArray' do
       it 'returns the same array with a rotation of 0' do

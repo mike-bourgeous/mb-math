@@ -218,9 +218,9 @@ module MB
         pad(narray, min_length, value: 1, alignment: alignment, &bl)
       end
 
-      # Returns a new Array or Numo::NArray with leading copies of +value+
-      # removed from the given +array+.  Returns an empty array if the array is
-      # entirely equal to +value+.
+      # Returns a new Array or a Numo::NArray view with leading copies of
+      # +value+ removed from the given +array+.  Returns an empty array if the
+      # array is entirely equal to +value+.
       #
       # For Ruby Arrays, this just calls Array#drop_while.  The method is
       # provided mainly for use with Numo::NArray.
@@ -273,6 +273,44 @@ module MB
         end
       end
       alias skip_leading ltrim
+
+      # Returns a new Array or a Numo::NArray view with trailing copies of
+      # +value+ removed from the +array+.  Returns an empty array if the array
+      # is entirely equal to +value+.
+      #
+      # If a block is given, then instead of using +value+, array elements are
+      # removed from the end as long as the block returns true when yielded the
+      # element.  Returns an empty array if the block always returns true.
+      def rtrim(array, value = 0)
+        case array
+        when Numo::NArray, Array
+          idx = nil
+
+          if block_given?
+            for i in (-1..-array.length).step(-1)
+              unless yield array[i]
+                idx = i
+                break
+              end
+            end
+          else
+            for i in (-1..-array.length).step(-1)
+              unless array[i] == value
+                idx = i
+                break
+              end
+            end
+          end
+
+          return array.class[] if idx.nil?
+
+          array[0..idx]
+
+        else
+          raise ArgumentError, "Expecting Numo::NArray or Array, got #{array.class}"
+        end
+      end
+      alias skip_trailing rtrim
 
       # Rotates a 1D NArray left by +n+ places, which must be less than the
       # length of the NArray.  Returns a duplicate of the original array if +n+
