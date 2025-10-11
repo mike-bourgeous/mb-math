@@ -154,5 +154,7 @@ RSpec.describe MB::M::Plot do
         end
       end
     end
+
+    pending '3D plots'
   end
 end

@@ -7,9 +7,31 @@ module MB
     # Super basic interface to GNUplot.  You can plot to the terminal or to a
     # separate window.
     #
-    # See README.md for a couple of examples.
+    # Example:
     #
-    # TODO: more examples
+    #     p = MB::M::Plot.terminal
+    #
+    #     # Debug plotting issues
+    #     p.debug = true
+    #
+    #     # Data arrays directly
+    #     p.yrange(-1, 3)
+    #     p.plot({one: [1,1,1], two: [2,2,2]})
+    #
+    #     # Data plus info in a Hash
+    #     p.plot({a: {data: [1,2,3], yrange: [-3, 3]}, b: {data: [-1, 2, 1]}})
+    #
+    #     # 2D surface plot in 3D
+    #     # FIXME: terminal plot chops off the top of 3D plots
+    #     p = MB::M::Plot.graphical
+    #     p.type = 'pm3d' # or lines or surface
+    #
+    #     a = Numo::SFloat[Numo::SFloat.linspace(1, 5, 30).map { |v| Math.sin(v) * 3 }] * \
+    #       Numo::SFloat[Numo::SFloat.linspace(-10, 10, 30).map { |v| Math.sin(v / 2) * 7 }].transpose
+    #
+    #     p.plot({wavy: {data: a, zrange: [-30, 30]}})
+    #
+    # See README.md for more examples.
     #
     # Created because Numo::Gnuplot was giving an error.
     class Plot
@@ -21,6 +43,11 @@ module MB
         cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
         rows = ENV['PLOT_HEIGHT']&.to_i || (((height || MB::U.height) - 1) * height_fraction).round
         Plot.new(terminal: 'dumb', width: cols, height: rows)
+      end
+
+      # Creates a graphical plotter.
+      def self.graphical(width: 800, height: 800)
+        Plot.new(terminal: 'qt', width: width, height: height)
       end
 
       # The plot type (e.g. 'lines', 'boxes', 'pm3d').
@@ -63,7 +90,10 @@ module MB
         @print = true
         @t = Thread.new do read_loop end
 
+        @tempfiles = []
+
         at_exit do
+          cleanup
           @timeout = 1
           close rescue nil
         end
@@ -220,8 +250,20 @@ module MB
       #
       # If +:print+ is true, then 'dumb' terminal plots are printed to the
       # console.  If false, then plots are returned as an array of lines.
+      #
+      # Supported dataset plot info keys:
+      #   :data - Data (Array or Numo::NArray)
+      #   :xrange - X range (Array of two numbers)
+      #   :yrange - Y range (Array of two numbers)
+      #   :zrange - Z range (Array of two numbers)
+      #   :logscale - Use logarithmic X-axis scale
+      #   :type - Plot type just for this dataset (e.g. 'lines', 'pm3d', 'surface')
       def plot(data, rows: nil, columns: nil, print: true)
         raise PlotError, 'Plotter is closed' unless @pid
+
+        # Don't remove temp files until creating a new plot so that gnuplot can
+        # replot when the window is resized/zoomed/etc.
+        cleanup
 
         @read_mutex.synchronize {
           if @terminal == 'dumb'
@@ -242,10 +284,16 @@ module MB
 
         tmps = data.compact.each_with_index.map { |(name, a), idx| [Tempfile.new("plotdata_#{idx}"), name, a] }
         tmps.each do |(file, name, plotinfo)|
+          @tempfiles << file
+
           if plotinfo.is_a?(Hash)
-            write_data(file, plotinfo[:data])
+            write_data(file, plotinfo[:data], plotinfo[:type] || @type)
           else
-            write_data(file, plotinfo)
+            write_data(file, plotinfo, @type)
+          end
+
+          if @debug
+            puts "\e[1;36mData file #{name}:#{file.path}: \e[22m\n\t#{File.read(file).lines.join("\t")}\e[0m"
           end
         end
 
@@ -271,6 +319,9 @@ module MB
             xrange(*plotinfo[:xrange], false)
           elsif @xrange
             xrange(*@xrange, false)
+          elsif array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            xrange(0, array.shape[1], false)
           else
             xrange(nil, nil, false)
           end
@@ -279,6 +330,9 @@ module MB
             yrange(*plotinfo[:yrange], false)
           elsif @yrange
             yrange(*@yrange, false)
+          elsif array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            yrange(0, array.shape[0], false)
           else
             if array.is_a?(Array) && array.all?(Array)
               xr = array.map { |v| v[0].is_a?(Complex) ? v[0].abs : v[0] }
@@ -300,13 +354,28 @@ module MB
             yrange(min, max, false)
           end
 
+          if plotinfo[:zrange]
+            command "set zrange [#{plotinfo[:zrange][0]}:#{plotinfo[:zrange][1]}]"
+          else
+            command 'unset zrange'
+          end
+
           if plotinfo[:logscale] == true || (plotinfo[:logscale] != false && @logscale)
             command "set logscale x 10"
           else
             command "unset logscale x"
           end
 
-          command %Q{plot '#{file.path}' using 1:2 with #{@type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}"}
+          if array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            cmd = 'splot'
+            range = '1:2:3'
+          else
+            cmd = 'plot'
+            range = '1:2'
+          end
+
+          command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}"}
         end
 
         command 'unset multiplot'
@@ -314,15 +383,17 @@ module MB
         if @terminal == 'dumb'
           print_terminal_plot(print)
         end
-
-      ensure
-        tmps&.map { |(file, data)|
-          file&.close rescue puts $!
-          file&.unlink rescue puts $!
-        }
       end
 
       private
+
+      # Removes temporary files from previous plot(s).
+      def cleanup
+        @tempfiles.each do |file|
+          file.close rescue puts $!
+          file.unlink rescue puts $!
+        end
+      end
 
       def print_terminal_plot(print)
         buf = read.reject { |l| l.empty? || l.include?('plot>') || l.strip.start_with?(/[[:alpha:]]/) }
@@ -424,11 +495,27 @@ module MB
       # Writes data to a temporary file.  Plotting larger amounts of data is faster
       # if the data is written to a file, rather than input on the gnuplot
       # commandline.
-      def write_data(file, array)
-        array.each_with_index do |value, idx|
-          idx, value = value if value.is_a?(Array)
-          value = value.abs if value.is_a?(Complex)
-          file.puts "#{idx}\t#{value}"
+      def write_data(file, array, type)
+        case
+        when array.is_a?(Numo::NArray) && array.ndim == 2
+          # Waterfall-like plot or surface plot
+          last_y = 0
+          array.each_with_index do |z, y, x|
+            if y != last_y
+              # Break apart rows to give a waterfall-type plot
+              file.puts "\nNaN NaN NaN" if type == 'lines'
+              file.puts
+              last_y = y
+            end
+            file.puts "#{x}\t#{y}\t#{z}"
+          end
+
+        else
+          array.each_with_index do |value, idx|
+            idx, value = value if value.is_a?(Array)
+            value = value.abs if value.is_a?(Complex)
+            file.puts "#{idx}\t#{value}"
+          end
         end
 
         file.close
