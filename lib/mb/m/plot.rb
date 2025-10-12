@@ -416,7 +416,8 @@ module MB
       def print_terminal_plot(print)
         buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
         start_index = buf.rindex { |l| l.include?('plot>') }
-        raise "Error: no plot was found within #{buf}" unless start_index
+        raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
+        start_index ||= 0
         lines = buf[(start_index + 2)..-1]
 
         row = 0
