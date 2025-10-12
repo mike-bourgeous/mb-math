@@ -15,8 +15,8 @@ RSpec.describe MB::M::Plot do
   end
 
   describe '#plot' do
+    let(:plot) { MB::M::Plot.terminal(width: 80, height: 50) }
     let(:data) { {test123: [1, 0, 0, 0, 0], data321: [1, 0, 1, 0, 0, 0]} }
-
     let(:scatter) {
       {
         scatter123: [
@@ -38,8 +38,6 @@ RSpec.describe MB::M::Plot do
     }
 
     context 'with the dumb terminal type' do
-      let(:plot) { MB::M::Plot.terminal(width: 80, height: 50) }
-
       it 'can plot to an array of lines' do
         begin
           lines = plot.plot(data, print: false)
@@ -132,6 +130,15 @@ RSpec.describe MB::M::Plot do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
       expect(lines.count).to eq(80)
+    end
+
+    it 'raises an error when given something other than a Hash' do
+      expect { plot.plot([1,2,3]) }.to raise_error(ArgumentError, /hash/i)
+    end
+
+    it 'raises an error when a data element is not an Array or Numo::NArray' do
+      expect { plot.plot({a: {data: nil}}) }.to raise_error(ArgumentError, /nil.*array/i)
+      expect { plot.plot({a: "1, 2, 3"}) }.to raise_error(ArgumentError, /string.*array/i)
     end
 
     context '3D plots' do

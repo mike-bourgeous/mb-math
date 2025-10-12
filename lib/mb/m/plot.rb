@@ -267,6 +267,8 @@ module MB
       def plot(data, rows: nil, columns: nil, print: true)
         raise PlotError, 'Plotter is closed' unless @pid
 
+        raise ArgumentError, 'Data must be a hash mapping graph titles to data.' unless data.is_a?(Hash)
+
         # Don't remove temp files until creating a new plot so that gnuplot can
         # replot when the window is resized/zoomed/etc.
         cleanup
@@ -413,8 +415,9 @@ module MB
 
       def print_terminal_plot(print)
         buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
-        start_index = buf.rindex { |l| l.include?('plot>') } + 2
-        lines = buf[start_index..-1]
+        start_index = buf.rindex { |l| l.include?('plot>') }
+        raise "Error: no plot was found within #{buf}" unless start_index
+        lines = buf[(start_index + 2)..-1]
 
         row = 0
         in_graph = false
@@ -436,7 +439,11 @@ module MB
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
         }
 
-        binding.pry if lines.any? { |l| l.include?('plot') } # XXX seeing some spurious lines above graphs
+        if lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
+          puts "\e[1;31mBUG: prompt lines present in graph??\e[0m"
+          puts MB::U.highlight(lines)
+          binding.pry
+        end
 
         if @print && print
           puts lines
@@ -540,13 +547,16 @@ module MB
             end
           end
 
-        else
+        when array.is_a?(Numo::NArray) || array.is_a?(Array)
           # Standard 1D/2D plot
           array.each_with_index do |value, idx|
             idx, value = value if value.is_a?(Array)
             value = value.abs if value.is_a?(Complex)
             file.puts "#{idx}\t#{value}"
           end
+
+        else
+          raise ArgumentError, "Received unsupported data type #{array.class}; pass Array or Numo::NArray for :data"
         end
 
         file.close
