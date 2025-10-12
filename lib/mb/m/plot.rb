@@ -411,6 +411,7 @@ module MB
           file.close rescue puts $!
           file.unlink rescue puts $!
         end
+        @tempfiles.clear
       end
 
       def print_terminal_plot(print)
