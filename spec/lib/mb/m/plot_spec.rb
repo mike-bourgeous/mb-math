@@ -87,19 +87,19 @@ RSpec.describe MB::M::Plot do
       it 'can plot using columns' do
         plot.print = false
         lines = plot.plot(data, columns: 2)
-        border_line = lines.first { |l| l.include?('----') }
+        border_line = lines.detect { |l| l.include?('----') }
 
         # Expect the border to be half the screen width
         expect(border_line.match(/\+---+\+/).to_s.length).to be_between(plot.width / 3, plot.width / 2)
 
         # Expect the legend of both plots to be on the same line
-        legend_line = lines.select { |l| l.include?('data321') }.first
+        legend_line = lines.detect { |l| l.include?('data321') }
         expect(legend_line).to include('test123')
       end
 
       it 'can plot using rows' do
         lines = plot.plot(data, columns: 1, rows: 2, print: false)
-        border_line = lines.first { |l| l.include?('----') }
+        border_line = lines.detect { |l| l.include?('----') }
 
         # Expect the border to be half the screen width
         expect(border_line.match(/---+/).to_s.length).to be_between(plot.width * 0.7, plot.width)
@@ -125,6 +125,25 @@ RSpec.describe MB::M::Plot do
         sideways_lines = lines.map { |l| l.ljust(80).chars }.transpose.map(&:join)
         overlapping_lines = sideways_lines.select { |l| l =~ /-(\s+\*+){2,}/ }
         expect(overlapping_lines.count).to be > 4
+      end
+    end
+
+    it 'can plot a Numo::NArray' do
+      plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
+      lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
+      expect(lines.count).to eq(80)
+    end
+
+    context '3D plots' do
+      it 'can plot a 2D NArray as a stacked line plot' do
+        plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
+        data = Numo::SFloat[Numo::SFloat.linspace(-10, 10, 30).map { |v| Math.sin(v) * 3 }] *
+          Numo::SFloat[Numo::SFloat.linspace(-7, 7, 2).map { |v| Math.sin(v / 2) * 7 }].transpose
+        lines = plot.plot({siney: data}, print: false)
+        text = MB::U.remove_ansi(lines.join("\n"))
+        expect(text).to include('siney ****')
+        expect(text).to include('----')
+        expect(lines.count).to eq(80)
       end
     end
 
@@ -154,7 +173,5 @@ RSpec.describe MB::M::Plot do
         end
       end
     end
-
-    pending '3D plots'
   end
 end

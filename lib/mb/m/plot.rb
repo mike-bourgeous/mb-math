@@ -42,9 +42,11 @@ module MB
       class PlotError < RuntimeError; end
 
       # Creates an ASCII-art plotter sized to the terminal.
+      # The :width_fraction and :height_fraction parameters compensate for
+      # character aspect ratio so an "80x80" plot will look square.
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
         cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
-        rows = ENV['PLOT_HEIGHT']&.to_i || (((height || MB::U.height) - 1) * height_fraction).round
+        rows = ENV['PLOT_HEIGHT']&.to_i || ((height || (MB::U.height - 1)) * height_fraction).round
         Plot.new(terminal: 'dumb', width: cols, height: rows)
       end
 
@@ -252,7 +254,8 @@ module MB
       # displayed.
       #
       # If +:print+ is true, then 'dumb' terminal plots are printed to the
-      # console.  If false, then plots are returned as an array of lines.
+      # console.  If false, then terminal plots are returned as an array of
+      # lines.
       #
       # Supported dataset plot info keys:
       #   :data - Data (Array or Numo::NArray)
@@ -392,6 +395,9 @@ module MB
 
         if @terminal == 'dumb'
           print_terminal_plot(print)
+        else
+          read
+          nil
         end
       end
 
@@ -406,8 +412,8 @@ module MB
       end
 
       def print_terminal_plot(print)
-        buf = read.reject { |l| l.strip.empty? || l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }
-        start_index = buf.index { |l| l.include?('+----') || l.include?('*') }
+        buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
+        start_index = buf.rindex { |l| l.include?('plot>') } + 2
         lines = buf[start_index..-1]
 
         row = 0
@@ -424,7 +430,7 @@ module MB
           end
 
           clr = (row + 1) % 6 + 31
-          l.gsub(/^\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
+          l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
             .gsub(/([[:alnum:]_-]+ ){0,}[*]+/, "\e[1;#{clr}m\\&\e[0m")
             .gsub(/(?<=[|])-[+]| [+] |[+]-(?=[|])/, "\e[1;35m\\&\e[0m")
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
