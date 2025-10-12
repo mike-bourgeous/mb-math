@@ -406,14 +406,14 @@ module MB
       end
 
       def print_terminal_plot(print)
-        buf = read.reject { |l| l.empty? || l.include?('plot>') || l.strip.start_with?(/[[:alpha:]]/) }
-        start_index = buf.index { |l| l.include?('+----') }
+        buf = read.reject { |l| l.strip.empty? || l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }
+        start_index = buf.index { |l| l.include?('+----') || l.include?('*') }
         lines = buf[start_index..-1]
 
         row = 0
         in_graph = false
         lines.map!.with_index { |l, idx|
-          if l.include?('+----')
+          if l.match?(/\+-{10,}\+/)
             if in_graph
               in_graph = false
               row += 1
@@ -523,7 +523,7 @@ module MB
           else
             array.each_with_index do |z, y, x|
               if y != last_y
-                # Break apart rows to give a waterfall-type plot
+                # Break apart rows to give a waterfall-type plot when type is lines
                 file.puts if type == 'lines'
                 file.puts
               end
