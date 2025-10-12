@@ -7,6 +7,10 @@ module MB
     # Super basic interface to GNUplot.  You can plot to the terminal or to a
     # separate window.
     #
+    # For 3D surface plots, use type lines for waterfall-like non-occluding
+    # lines, zerrorfill for something approximating a fence plot, surface for a
+    # grid, and pm3d for a solid plot.
+    #
     # Example:
     #
     #     p = MB::M::Plot.terminal
@@ -21,8 +25,7 @@ module MB
     #     # Data plus info in a Hash
     #     p.plot({a: {data: [1,2,3], yrange: [-3, 3]}, b: {data: [-1, 2, 1]}})
     #
-    #     # 2D surface plot in 3D
-    #     # FIXME: terminal plot chops off the top of 3D plots
+    #     # Surface plot in 3D
     #     p = MB::M::Plot.graphical
     #     p.type = 'pm3d' # or lines or surface
     #
@@ -369,13 +372,20 @@ module MB
           if array.is_a?(Numo::NArray) && array.ndim == 2
             # Waterfall-like plot or surface plot
             cmd = 'splot'
-            range = '1:2:3'
+
+            case (plotinfo[:type] || @type)&.to_s
+            when 'zerrorfill'
+              range = '1:2:3:4:5'
+
+            else
+              range = '1:2:3'
+            end
           else
             cmd = 'plot'
             range = '1:2'
           end
 
-          command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}"}
+          command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]} fillcolor white"}
         end
 
         command 'unset multiplot'
@@ -496,21 +506,36 @@ module MB
       # if the data is written to a file, rather than input on the gnuplot
       # commandline.
       def write_data(file, array, type)
+        last_y = 0
+
         case
         when array.is_a?(Numo::NArray) && array.ndim == 2
           # Waterfall-like plot or surface plot
-          last_y = 0
-          array.each_with_index do |z, y, x|
-            if y != last_y
-              # Break apart rows to give a waterfall-type plot
-              file.puts "\nNaN NaN NaN" if type == 'lines'
-              file.puts
+          case type
+          when 'zerrorfill'
+            # fence plot
+            array.not_inplace!.each_with_index do |z, y, x|
+              file.puts "\n\n" if y != last_y
+              file.puts "#{x}\t#{y}\t0\t0\t#{z}"
               last_y = y
             end
-            file.puts "#{x}\t#{y}\t#{z}"
+
+          else
+            array.each_with_index do |z, y, x|
+              if y != last_y
+                # Break apart rows to give a waterfall-type plot
+                file.puts if type == 'lines'
+                file.puts
+              end
+
+              file.puts "#{x}\t#{y}\t#{z}"
+
+              last_y = y
+            end
           end
 
         else
+          # Standard 1D/2D plot
           array.each_with_index do |value, idx|
             idx, value = value if value.is_a?(Array)
             value = value.abs if value.is_a?(Complex)
