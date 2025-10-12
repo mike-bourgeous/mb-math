@@ -7,9 +7,34 @@ module MB
     # Super basic interface to GNUplot.  You can plot to the terminal or to a
     # separate window.
     #
-    # See README.md for a couple of examples.
+    # For 3D surface plots, use type lines for waterfall-like non-occluding
+    # lines, zerrorfill for something approximating a fence plot, surface for a
+    # grid, and pm3d for a solid plot.
     #
-    # TODO: more examples
+    # Example:
+    #
+    #     p = MB::M::Plot.terminal
+    #
+    #     # Debug plotting issues
+    #     p.debug = true
+    #
+    #     # Data arrays directly
+    #     p.yrange(-1, 3)
+    #     p.plot({one: [1,1,1], two: [2,2,2]})
+    #
+    #     # Data plus info in a Hash
+    #     p.plot({a: {data: [1,2,3], yrange: [-3, 3]}, b: {data: [-1, 2, 1]}})
+    #
+    #     # Surface plot in 3D
+    #     p = MB::M::Plot.graphical
+    #     p.type = 'pm3d' # or lines or surface
+    #
+    #     a = Numo::SFloat.linspace(1, 5, 30).map { |v| Math.sin(v) * 3 }.reshape(1, nil) * \
+    #       Numo::SFloat.linspace(-10, 10, 30).map { |v| Math.sin(v / 2) * 7 }.reshape(nil, 1)
+    #
+    #     p.plot({wavy: {data: a, zrange: [-30, 30]}})
+    #
+    # See README.md for more examples.
     #
     # Created because Numo::Gnuplot was giving an error.
     class Plot
@@ -17,10 +42,17 @@ module MB
       class PlotError < RuntimeError; end
 
       # Creates an ASCII-art plotter sized to the terminal.
+      # The :width_fraction and :height_fraction parameters compensate for
+      # character aspect ratio so an "80x80" plot will look square.
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
         cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
-        rows = ENV['PLOT_HEIGHT']&.to_i || (((height || MB::U.height) - 1) * height_fraction).round
+        rows = ENV['PLOT_HEIGHT']&.to_i || ((height || (MB::U.height - 1)) * height_fraction).round
         Plot.new(terminal: 'dumb', width: cols, height: rows)
+      end
+
+      # Creates a graphical plotter.
+      def self.graphical(width: 800, height: 800)
+        Plot.new(terminal: 'qt', width: width, height: height)
       end
 
       # The plot type (e.g. 'lines', 'boxes', 'pm3d').
@@ -63,7 +95,10 @@ module MB
         @print = true
         @t = Thread.new do read_loop end
 
+        @tempfiles = []
+
         at_exit do
+          cleanup
           @timeout = 1
           close rescue nil
         end
@@ -219,9 +254,24 @@ module MB
       # displayed.
       #
       # If +:print+ is true, then 'dumb' terminal plots are printed to the
-      # console.  If false, then plots are returned as an array of lines.
+      # console.  If false, then terminal plots are returned as an array of
+      # lines.
+      #
+      # Supported dataset plot info keys:
+      #   :data - Data (Array or Numo::NArray)
+      #   :xrange - X range (Array of two numbers)
+      #   :yrange - Y range (Array of two numbers)
+      #   :zrange - Z range (Array of two numbers)
+      #   :logscale - Use logarithmic X-axis scale
+      #   :type - Plot type just for this dataset (e.g. 'lines', 'pm3d', 'surface')
       def plot(data, rows: nil, columns: nil, print: true)
         raise PlotError, 'Plotter is closed' unless @pid
+
+        raise ArgumentError, 'Data must be a hash mapping graph titles to data.' unless data.is_a?(Hash)
+
+        # Don't remove temp files until creating a new plot so that gnuplot can
+        # replot when the window is resized/zoomed/etc.
+        cleanup
 
         @read_mutex.synchronize {
           if @terminal == 'dumb'
@@ -242,10 +292,16 @@ module MB
 
         tmps = data.compact.each_with_index.map { |(name, a), idx| [Tempfile.new("plotdata_#{idx}"), name, a] }
         tmps.each do |(file, name, plotinfo)|
+          @tempfiles << file
+
           if plotinfo.is_a?(Hash)
-            write_data(file, plotinfo[:data])
+            write_data(file, plotinfo[:data], plotinfo[:type] || @type)
           else
-            write_data(file, plotinfo)
+            write_data(file, plotinfo, @type)
+          end
+
+          if @debug
+            puts "\e[1;36mData file #{name}:#{file.path}: \e[22m\n\t#{File.read(file).lines.join("\t")}\e[0m"
           end
         end
 
@@ -271,6 +327,9 @@ module MB
             xrange(*plotinfo[:xrange], false)
           elsif @xrange
             xrange(*@xrange, false)
+          elsif array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            xrange(0, array.shape[1], false)
           else
             xrange(nil, nil, false)
           end
@@ -279,6 +338,9 @@ module MB
             yrange(*plotinfo[:yrange], false)
           elsif @yrange
             yrange(*@yrange, false)
+          elsif array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            yrange(0, array.shape[0], false)
           else
             if array.is_a?(Array) && array.all?(Array)
               xr = array.map { |v| v[0].is_a?(Complex) ? v[0].abs : v[0] }
@@ -300,39 +362,68 @@ module MB
             yrange(min, max, false)
           end
 
+          if plotinfo[:zrange]
+            command "set zrange [#{plotinfo[:zrange][0]}:#{plotinfo[:zrange][1]}]"
+          else
+            command 'unset zrange'
+          end
+
           if plotinfo[:logscale] == true || (plotinfo[:logscale] != false && @logscale)
             command "set logscale x 10"
           else
             command "unset logscale x"
           end
 
-          command %Q{plot '#{file.path}' using 1:2 with #{@type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]}"}
+          if array.is_a?(Numo::NArray) && array.ndim == 2
+            # Waterfall-like plot or surface plot
+            cmd = 'splot'
+
+            case (plotinfo[:type] || @type)&.to_s
+            when 'zerrorfill'
+              range = '1:2:3:4:5'
+
+            else
+              range = '1:2:3'
+            end
+          else
+            cmd = 'plot'
+            range = '1:2'
+          end
+
+          command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]} fillcolor white"}
         end
 
         command 'unset multiplot'
 
         if @terminal == 'dumb'
           print_terminal_plot(print)
+        else
+          read
+          nil
         end
-
-      ensure
-        tmps&.map { |(file, data)|
-          file&.close rescue puts $!
-          file&.unlink rescue puts $!
-        }
       end
 
       private
 
+      # Removes temporary files from previous plot(s).
+      def cleanup
+        @tempfiles.each do |file|
+          file.close rescue puts $!
+          file.unlink rescue puts $!
+        end
+      end
+
       def print_terminal_plot(print)
-        buf = read.reject { |l| l.empty? || l.include?('plot>') || l.strip.start_with?(/[[:alpha:]]/) }
-        start_index = buf.index { |l| l.include?('+----') }
-        lines = buf[start_index..-1]
+        buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
+        start_index = buf.rindex { |l| l.include?('plot>') }
+        raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
+        start_index ||= 0
+        lines = buf[(start_index + 2)..-1]
 
         row = 0
         in_graph = false
         lines.map!.with_index { |l, idx|
-          if l.include?('+----')
+          if l.match?(/\+-{10,}\+/)
             if in_graph
               in_graph = false
               row += 1
@@ -343,13 +434,17 @@ module MB
           end
 
           clr = (row + 1) % 6 + 31
-          l.gsub(/^\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
+          l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
             .gsub(/([[:alnum:]_-]+ ){0,}[*]+/, "\e[1;#{clr}m\\&\e[0m")
             .gsub(/(?<=[|])-[+]| [+] |[+]-(?=[|])/, "\e[1;35m\\&\e[0m")
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
         }
 
-        binding.pry if lines.any? { |l| l.include?('plot') } # XXX seeing some spurious lines above graphs
+        if lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
+          puts "\e[1;31mBUG: prompt lines present in graph??\e[0m"
+          puts MB::U.highlight(lines)
+          binding.pry
+        end
 
         if @print && print
           puts lines
@@ -424,11 +519,45 @@ module MB
       # Writes data to a temporary file.  Plotting larger amounts of data is faster
       # if the data is written to a file, rather than input on the gnuplot
       # commandline.
-      def write_data(file, array)
-        array.each_with_index do |value, idx|
-          idx, value = value if value.is_a?(Array)
-          value = value.abs if value.is_a?(Complex)
-          file.puts "#{idx}\t#{value}"
+      def write_data(file, array, type)
+        last_y = 0
+
+        case
+        when array.is_a?(Numo::NArray) && array.ndim == 2
+          # Waterfall-like plot or surface plot
+          case type
+          when 'zerrorfill'
+            # fence plot
+            array.not_inplace!.each_with_index do |z, y, x|
+              file.puts "\n\n" if y != last_y
+              file.puts "#{x}\t#{y}\t0\t0\t#{z}"
+              last_y = y
+            end
+
+          else
+            array.each_with_index do |z, y, x|
+              if y != last_y
+                # Break apart rows to give a waterfall-type plot when type is lines
+                file.puts if type == 'lines'
+                file.puts
+              end
+
+              file.puts "#{x}\t#{y}\t#{z}"
+
+              last_y = y
+            end
+          end
+
+        when array.is_a?(Numo::NArray) || array.is_a?(Array)
+          # Standard 1D/2D plot
+          array.each_with_index do |value, idx|
+            idx, value = value if value.is_a?(Array)
+            value = value.abs if value.is_a?(Complex)
+            file.puts "#{idx}\t#{value}"
+          end
+
+        else
+          raise ArgumentError, "Received unsupported data type #{array.class}; pass Array or Numo::NArray for :data"
         end
 
         file.close
