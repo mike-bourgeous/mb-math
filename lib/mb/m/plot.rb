@@ -29,8 +29,8 @@ module MB
     #     p = MB::M::Plot.graphical
     #     p.type = 'pm3d' # or lines or surface
     #
-    #     a = Numo::SFloat[Numo::SFloat.linspace(1, 5, 30).map { |v| Math.sin(v) * 3 }] * \
-    #       Numo::SFloat[Numo::SFloat.linspace(-10, 10, 30).map { |v| Math.sin(v / 2) * 7 }].transpose
+    #     a = Numo::SFloat.linspace(1, 5, 30).map { |v| Math.sin(v) * 3 }.reshape(1, nil) * \
+    #       Numo::SFloat.linspace(-10, 10, 30).map { |v| Math.sin(v / 2) * 7 }.reshape(nil, 1)
     #
     #     p.plot({wavy: {data: a, zrange: [-30, 30]}})
     #
