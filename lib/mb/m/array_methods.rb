@@ -579,9 +579,8 @@ module MB
         [true, true] => Numo::DComplex,
       }.freeze
 
-      # Returns the Array or Numo::NArray class that should hold (most) of the
-      # range of both +array1+ and +array2+.  Returns Array if both objects are
-      # Ruby Arrays.
+      # Returns the Numo::NArray class that should hold (most) of the range of
+      # both +array1+ and +array2+.
       def promoted_array_type(array1, array2)
         double = array1.is_a?(Numo::DFloat) || array1.is_a?(Numo::DComplex) ||
           array1.is_a?(Numo::Int32) || array1.is_a?(Numo::Int64) ||
