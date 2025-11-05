@@ -401,6 +401,7 @@ module MB
 
         prefix_length = srclen - source_offset
 
+        raise NotImplementedError
         # TODO: Prefix from source_offset to source_length or destination end
         # TODO: Main loop copying all of source in srclen chunks
         # TODO: Suffix from source 0 until end of destination
