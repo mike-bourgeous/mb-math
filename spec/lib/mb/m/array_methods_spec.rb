@@ -912,7 +912,23 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
-  pending '#fftconvolve'
+  describe'#fftconvolve' do
+    it 'accepts Numo::NArrays' do
+      a1 = Numo::SFloat[1,2,3]
+      a2 = Numo::SFloat[1, 0, 0, 1, 1, 0]
+      expected = Numo::SFloat[1, 2, 3, 1, 3, 5, 3, 0]
+
+      expect(MB::M.round(MB::M.fftconvolve(a1, a2), 10)).to eq(expected)
+    end
+
+    it 'accepts Ruby Arrays' do
+      a1 = [1,2,3]
+      a2 = [1, 0, 0, 1, 1, 0]
+      expected = Numo::SFloat[1, 2, 3, 1, 3, 5, 3, 0]
+
+      expect(MB::M.round(MB::M.fftconvolve(a1, a2), 10)).to eq(expected)
+    end
+  end
 
   describe '#find_first' do
     it 'can operate on a Ruby Array' do
