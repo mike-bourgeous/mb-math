@@ -418,9 +418,9 @@ module MB
       end
 
       # Performs direct convolution of +array1+ with +array2+, returning a new
-      # Numo::NArray with the result.  Uses a naive O(n*m) algorithm which is
-      # faster than FFT-based convolution when array sizes are around 5-10
-      # elements, but otherwise much slower.
+      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm
+      # which is faster than FFT-based convolution when array sizes are around
+      # 5-10 elements, but otherwise much slower.
       #
       # You should use #fftconvolve in most cases, unless exact results are
       # needed.
@@ -437,7 +437,11 @@ module MB
           end
         end
 
-        result = promoted_array_type(array1, array2).zeros(length)
+        if array1.is_a?(Array) && array2.is_a?(Array)
+          result = Array.new(length, 0)
+        else
+          result = promoted_array_type(array1, array2).zeros(length)
+        end
 
         for i in 0...array1.length
           for j in 0...array2.length
