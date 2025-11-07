@@ -418,21 +418,30 @@ module MB
       end
 
       # Performs direct convolution of +array1+ with +array2+, returning a new
-      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm.
-      def convolve(array1, array2)
+      # Numo::NArray with the result.  Uses a naive O(n*m) algorithm.
+      def convolve(array1, array2, use_fft: true)
         array1, array2 = array2, array1 if array2.length > array1.length
 
         length = array1.length + array2.length - 1
 
-        if array1.is_a?(Array) && array2.is_a?(Array)
-          result = Array.new(length, 0)
+        if use_fft
+          type = promoted_array_type(array1, array2)
+          a1 = zpad(type.cast(array1), length)
+          a2 = zpad(type.cast(array2), length)
+          f1 = Numo::Pocketfft.fft(a1)
+          f2 = Numo::Pocketfft.fft(a2)
+          d = f1 * f2
+          result = Numo::Pocketfft.ifft(d)
+          result = result.real unless a1.is_a?(Numo::SComplex) || a1.is_a?(Numo::DComplex) || a2.is_a?(Numo::SComplex) || a2.is_a?(Numo::DComplex)
+
+
         else
           result = promoted_array_type(array1, array2).zeros(length)
-        end
 
-        for i in 0...array1.length
-          for j in 0...array2.length
-            result[i + j] += array2[j] * array1[i]
+          for i in 0...array1.length
+            for j in 0...array2.length
+              result[i + j] += array2[j] * array1[i]
+            end
           end
         end
 
