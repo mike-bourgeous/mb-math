@@ -449,20 +449,16 @@ module MB
       end
 
       # Uses FFT multiplication to perform fast convolution of +array1+ with
-      # +array2+, which may be 1D Ruby Arrays or Numo::NArrays.
+      # +array2+, which may be 1D Ruby Arrays or Numo::NArrays.  Returns a
+      # Numo::NArray with the result.
       #
-      # If both +array1+ and +array2+ are Numo::NArrays, you should call
-      # Numo::Pocketfft.fftconvolve instead.
+      # If both +array1+ and +array2+ are already Numo::NArrays, you should
+      # consider calling Numo::Pocketfft.fftconvolve directly instead.
       def fftconvolve(array1, array2)
         type = promoted_array_type(array1, array2)
-        length = array1.length + array2.length - 1
-        a1 = zpad(type.cast(array1), length)
-        a2 = zpad(type.cast(array2), length)
-        f1 = Numo::Pocketfft.fft(a1)
-        f2 = Numo::Pocketfft.fft(a2)
-        d = f1 * f2
-        result = Numo::Pocketfft.ifft(d)
-        result = result.real unless a1.is_a?(Numo::SComplex) || a1.is_a?(Numo::DComplex) || a2.is_a?(Numo::SComplex) || a2.is_a?(Numo::DComplex)
+        array1 = type.cast(array1) if array1.is_a?(Array)
+        array2 = type.cast(array2) if array2.is_a?(Array)
+        Numo::Pocketfft.fftconvolve(array1, array2)
       end
 
       # Returns the index of the first element equal to +value+ in the given
