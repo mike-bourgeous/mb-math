@@ -22,13 +22,13 @@ Benchmark.bmbm do |bench|
 
     bench.report("FFT #{size}") do
       100.times do
-        MB::M.convolve(a1, a2, use_fft: true)
+        MB::M.fftconvolve(a1, a2)
       end
     end
 
     bench.report("Direct #{size}") do
       100.times do
-        MB::M.convolve(a1, a2, use_fft: false)
+        MB::M.convolve(a1, a2)
       end
     end
   end

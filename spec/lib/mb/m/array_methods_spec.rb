@@ -788,8 +788,6 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     let(:scomplex) { Numo::SComplex[-0.1 - 0.25i, 0.25 - 0.75i, 0.3] }
     let(:dcomplex) { Numo::DComplex[5, -3i, 1i, -1] }
 
-    pending 'fft-specific tests'
-
     it "can produce Pascal's triangle" do
       result = Array.new(5) do |i|
         ([[1, 1]] * (i + 1)).reduce(&MB::M.method(:convolve))
@@ -913,6 +911,8 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       end
     end
   end
+
+  pending '#fftconvolve'
 
   describe '#find_first' do
     it 'can operate on a Ruby Array' do
