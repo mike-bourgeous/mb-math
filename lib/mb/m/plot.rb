@@ -418,8 +418,9 @@ module MB
 
       def print_terminal_plot(print)
         lines = nil
+        buf = []
         3.times do
-          buf = read.drop_while { |l|
+          buf += read.drop_while { |l|
             l.include?('plot>') ||
               (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) ||
               l =~ /^\s*unset multiplot\s*$/

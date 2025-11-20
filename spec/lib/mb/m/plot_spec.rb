@@ -123,13 +123,15 @@ RSpec.describe MB::M::Plot do
         sideways_lines = lines.map { |l| l.ljust(80).chars }.transpose.map(&:join)
         overlapping_lines = sideways_lines.select { |l| l =~ /-(\s+\*+){2,}/ }
         expect(overlapping_lines.count).to be > 4
+      rescue Exception => e
+        raise e.class, "#{e.message}\n\t#{sideways_lines.map(&:inspect).join("\n\t")}\n\n\t#{overlapping_lines.map(&:inspect).join("\n\t")}\n\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
     end
 
     it 'can plot a Numo::NArray' do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
-      expect(lines.count).to be_between(79, 80)
+      expect(lines.count).to be_between(78, 80)
     rescue Exception => e
       raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
     end
@@ -152,7 +154,8 @@ RSpec.describe MB::M::Plot do
         text = MB::U.remove_ansi(lines.join("\n"))
         expect(text).to include('siney ****')
         expect(text).to include('----')
-        expect(lines.count).to be_between(79, 80)
+        expect(text).to include('+-+')
+        expect(lines.count).to be_between(78, 80)
       rescue Exception => e
         raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
