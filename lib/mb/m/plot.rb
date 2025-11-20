@@ -15,7 +15,7 @@ module MB
     #
     #     p = MB::M::Plot.terminal
     #
-    #     # Debug plotting issues
+    #     # Debug plotting issues; can also set env PLOT_DEBUG=1
     #     p.debug = true
     #
     #     # Data arrays directly
@@ -91,7 +91,7 @@ module MB
         @stdout, @stdin, @pid = PTY.spawn('gnuplot')
 
         @run = true
-        @debug = false
+        @debug = ENV['PLOT_DEBUG'] == '1'
         @print = true
         @t = Thread.new do read_loop end
 
@@ -130,6 +130,8 @@ module MB
 
         @stdin.puts # 'gnuplot>' isn't printed with a new line, so make a new line
         wait_prompt
+
+        # FIXME: sometimes the command text leaks out from here into the plot output
       end
 
       # Change the terminal type to +terminal+ (defaults to 'qt') with window title
@@ -415,11 +417,22 @@ module MB
       end
 
       def print_terminal_plot(print)
-        buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
-        start_index = buf.rindex { |l| l.include?('plot>') }
-        raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
-        start_index ||= 0
-        lines = buf[(start_index + 2)..-1]
+        lines = nil
+        3.times do
+          buf = read.drop_while { |l|
+            l.include?('plot>') ||
+              (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) ||
+              l =~ /^\s*unset multiplot\s*$/
+          }[0..-2]
+          start_index = buf.rindex { |l| l.include?('plot>') }
+          raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
+          start_index ||= 0
+          lines = buf[(start_index + 2)..-1]
+
+          # TODO: use wait_for to make sure we have a full plot
+          break if lines
+          sleep 0.1
+        end
 
         row = 0
         in_graph = false
@@ -501,7 +514,7 @@ module MB
             @buf << line
           }
 
-          puts "\e[33mGNUPLOT: \e[1m#{line}\e[0m" if @debug
+          STDERR.puts "\e[33mGNUPLOT: \e[1m#{line}\e[0m" if @debug
         end
 
       rescue StopReadLoop, Errno::EIO

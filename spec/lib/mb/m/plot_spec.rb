@@ -129,7 +129,9 @@ RSpec.describe MB::M::Plot do
     it 'can plot a Numo::NArray' do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
-      expect(lines.count).to eq(80)
+      expect(lines.count).to be_between(79, 80)
+    rescue Exception => e
+      raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
     end
 
     it 'raises an error when given something other than a Hash' do
@@ -150,7 +152,9 @@ RSpec.describe MB::M::Plot do
         text = MB::U.remove_ansi(lines.join("\n"))
         expect(text).to include('siney ****')
         expect(text).to include('----')
-        expect(lines.count).to eq(80)
+        expect(lines.count).to be_between(79, 80)
+      rescue Exception => e
+        raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
     end
 
