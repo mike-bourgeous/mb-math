@@ -423,9 +423,10 @@ module MB
         3.times do
           buf += read
 
-          while buf.length > 2 && buf.last.include?('plot>')
+          while buf.last.include?('plot>') || buf.last.empty?
             removed = buf.pop
             STDERR.puts("\e[1;38;5;184m[Plot removing #{removed.inspect} from end]\e[0m") if @debug
+            break if removed.include?('plot>')
           end
 
           start_index = buf.rindex { |l| l.include?('plot>') || l.include?('unset multiplot') }&.+(1)
