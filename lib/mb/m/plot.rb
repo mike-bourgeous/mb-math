@@ -480,9 +480,9 @@ module MB
         end
 
         if @print && print
-          puts lines
+          puts colored_lines
         else
-          lines
+          colored_lines
         end
       end
 
