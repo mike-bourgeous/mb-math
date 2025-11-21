@@ -115,7 +115,7 @@ module MB
       # clears the buffer.
       def read
         @read_mutex.synchronize {
-          STDERR.puts "\e[1;38;5;191m[GNUPLOT READING #{@buf.count} ending at #{@line_index}]\e[0m" if @debug
+          STDERR.puts "\e[1;38;5;191m[Plot reading #{@buf.count} with search at #{@buf_idx}, ending at #{@line_index - 1}]\e[0m" if @debug
           @buf_idx = 0
           @buf.dup.tap { @buf.clear }
         }
@@ -421,45 +421,60 @@ module MB
         lines = nil
         buf = []
         3.times do
-          buf += read.drop_while { |l|
-            l.include?('plot>') ||
-              (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) ||
-              l =~ /^\s*unset multiplot\s*$/
-          }[0..-2]
-          start_index = buf.rindex { |l| l.include?('plot>') }
-          raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
-          start_index ||= 0
-          lines = buf[(start_index + 2)..-1]
+          buf += read
 
-          # TODO: use wait_for to make sure we have a full plot
+          while buf.length > 2 && buf.last.include?('plot>')
+            removed = buf.pop
+            STDERR.puts("\e[1;38;5;184m[Plot removing #{removed.inspect} from end]\e[0m") if @debug
+          end
+
+          start_index = buf.rindex { |l| l.include?('plot>') || l.include?('unset multiplot') }&.+(1)
+          raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
+
+          if @debug && start_index
+            buf[0...start_index].each do |l|
+              STDERR.puts("\e[1;38;5;184m[Plot skipped #{l.inspect} from start]\e[0m")
+            end
+          end
+
+          start_index ||= 0
+          lines = buf[start_index..]
+
+          # TODO: use wait_for or something to make sure we have a full plot
           break if lines
-          STDERR.puts("\e[1;38;5;203m[GNUPLOT looping to find terminal plot; #{buf&.count.inspect} lines so far]\n\t#{buf.map(&:inspect).join("\n\t")}\e[0m")
+          STDERR.puts("\e[1;38;5;203m[Plot looping to find terminal plot; #{buf&.count.inspect} lines so far]\n\t#{buf.map(&:inspect).join("\n\t")}\e[0m") if @debug
           sleep 0.1
         end
 
         row = 0
         in_graph = false
-        lines.map!.with_index { |l, idx|
+        colored_lines = []
+        lines.flat_map.with_index { |l, idx|
+          # Sometimes blank lines show up in the middle of a graph, so skip them
+          # I suspect the blank lines are from the extra line sent by #command
+          next if in_graph && l.empty?
+
           if l.match?(/\+-{10,}\+/)
             if in_graph
               in_graph = false
               row += 1
             else
               in_graph = true
-              l = "\n#{l}"
+              colored_lines << ""
             end
           end
 
           clr = (row + 1) % 6 + 31
-          l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
+          colored_lines << l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
             .gsub(/([[:alnum:]_-]+ ){0,}[*]+/, "\e[1;#{clr}m\\&\e[0m")
             .gsub(/(?<=[|])-[+]| [+] |[+]-(?=[|])/, "\e[1;35m\\&\e[0m")
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
         }
 
-        if lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
+        if colored_lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
           puts "\e[1;31mBUG: prompt lines present in graph??\e[0m"
           puts MB::U.highlight(lines)
+          puts MB::U.highlight(colored_lines)
           binding.pry
         end
 

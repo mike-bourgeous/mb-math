@@ -17,6 +17,7 @@ RSpec.describe MB::M::Plot do
   describe '#plot' do
     let(:plot) { MB::M::Plot.terminal(width: 80, height: 50) }
     let(:data) { {test123: [1, 0, 0, 0, 0], data321: [1, 0, 1, 0, 0, 0]} }
+    let(:data2) { {d1: [0, 0, 1, 0, 0], d2: [0, 1, 1, 0, 0, 0]} }
     let(:scatter) {
       {
         scatter123: [
@@ -99,7 +100,7 @@ RSpec.describe MB::M::Plot do
         lines = plot.plot(data, columns: 1, rows: 2, print: false)
         border_line = lines.detect { |l| l.include?('----') }
 
-        # Expect the border to be half the screen width
+        # Expect the border to be the full screen width
         expect(border_line.match(/---+/).to_s.length).to be_between(plot.width * 0.7, plot.width)
 
         # Expect the legend of both plots not to be on the same line
@@ -108,6 +109,22 @@ RSpec.describe MB::M::Plot do
 
         second_legend = lines.select { |l| l.include?('test123') }.first
         expect(second_legend).not_to include('data321')
+      end
+
+      it 'can plot using rows and columns' do
+        lines = plot.plot(data.merge(data2), columns: 2, rows: 2, print: false)
+        border_line = lines.detect { |l| l.include?('----') }
+
+        # Expect the border to be half the screen width
+        expect(border_line.match(/\+---+\+/).to_s.length).to be_between(plot.width / 3, plot.width / 2)
+
+        # Expect the legend of first row of plots to be on the same line
+        legend_line = lines.select { |l| l.include?('data321') }.first
+        expect(legend_line).to include('test123')
+
+        # Expect the legend of second row of plots to be on the same line
+        legend_line = lines.select { |l| l.include?('d1') }.first
+        expect(legend_line).to include('d2')
       end
 
       it 'can draw a scatter plot' do
@@ -131,7 +148,7 @@ RSpec.describe MB::M::Plot do
     it 'can plot a Numo::NArray' do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
-      expect(lines.count).to be_between(78, 81)
+      expect(lines.count).to be_between(79, 81)
     rescue Exception => e
       raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
     end
@@ -155,7 +172,7 @@ RSpec.describe MB::M::Plot do
         expect(text).to include('siney ****')
         expect(text).to include('----')
         expect(text).to include('+-+')
-        expect(lines.count).to be_between(78, 81)
+        expect(lines.count).to be_between(79, 81)
       rescue Exception => e
         raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
