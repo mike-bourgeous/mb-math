@@ -430,6 +430,7 @@ module MB
           end
 
           start_index = buf.rindex { |l| l.include?('plot>') || l.include?('unset multiplot') }&.+(1)
+          start_index += 1 if start_index < buf.length && buf[start_index].empty?
           raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
 
           if @debug && start_index
