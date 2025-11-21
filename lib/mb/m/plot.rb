@@ -115,6 +115,7 @@ module MB
       # clears the buffer.
       def read
         @read_mutex.synchronize {
+          STDERR.puts "\e[1;38;5;191m[GNUPLOT READING #{@buf.count} ending at #{@line_index}]\e[0m" if @debug
           @buf_idx = 0
           @buf.dup.tap { @buf.clear }
         }
@@ -509,13 +510,16 @@ module MB
 
       # Background thread runs this to read GNUplot's output.
       def read_loop
+        @line_index ||= 0
+
         while @run
           line = @stdout.readline.rstrip
           @read_mutex.synchronize {
             @buf << line
           }
 
-          STDERR.puts "\e[33mGNUPLOT: \e[1m#{line}\e[0m" if @debug
+          STDERR.puts "\e[33mGNUPLOT #{@line_index}: \e[1m#{line}\e[0m" if @debug
+          @line_index += 1
         end
 
       rescue StopReadLoop, Errno::EIO
