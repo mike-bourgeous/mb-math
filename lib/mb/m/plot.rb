@@ -433,7 +433,7 @@ module MB
 
           # TODO: use wait_for to make sure we have a full plot
           break if lines
-          STDERR.puts("\e[1;38;5;203m[GNUPLOT looping to find terminal plot; #{buf&.count.inspect} lines so far]\e[0m")
+          STDERR.puts("\e[1;38;5;203m[GNUPLOT looping to find terminal plot; #{buf&.count.inspect} lines so far]\n\t#{buf.map(&:inspect).join("\n\t")}\e[0m")
           sleep 0.1
         end
 
