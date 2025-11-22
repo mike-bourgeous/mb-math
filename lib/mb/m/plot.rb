@@ -121,7 +121,7 @@ module MB
       # clears the buffer.
       def read
         @read_mutex.synchronize {
-          STDERR.puts "\e[1;38;5;191m[Plot reading #{@buf.count} with search at #{@buf_idx}, ending at #{@line_index - 1}]\e[0m" if @debug
+          STDERR.puts "\e[1;38;5;191m[Plot reading #{@buf.count} with search at #{@buf_idx}, ending at #{@line_index}]\e[0m" if @debug
           @buf_idx = 0
           @buf.dup.tap { @buf.clear }
         }
@@ -443,7 +443,6 @@ module MB
               row += 1
             else
               in_graph = true
-              colored_lines << ""
             end
           end
 
@@ -453,13 +452,6 @@ module MB
             .gsub(/(?<=[|])-[+]| [+] |[+]-(?=[|])/, "\e[1;35m\\&\e[0m")
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
         }
-
-        if colored_lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
-          puts "\e[1;31mBUG: prompt lines present in graph??\e[0m"
-          puts MB::U.highlight(lines)
-          puts MB::U.highlight(colored_lines)
-          binding.pry
-        end
 
         if @print && print
           puts colored_lines

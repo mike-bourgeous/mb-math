@@ -152,7 +152,7 @@ RSpec.describe(MB::M::Plot) do
     it 'can plot a Numo::NArray' do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
-      expect(lines.count).to eq(81) # FIXME: why 81?
+      expect(lines.count).to eq(80)
       plot.close
     end
 
