@@ -38,6 +38,10 @@ RSpec.describe(MB::M::Plot) do
       }
     }
 
+    after do
+      plot.close
+    end
+
     context 'with the dumb terminal type' do
       it 'can plot to an array of lines' do
         begin
@@ -149,8 +153,7 @@ RSpec.describe(MB::M::Plot) do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
       expect(lines.count).to eq(81) # FIXME: why 81?
-    rescue Exception => e
-      raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
+      plot.close
     end
 
     it 'raises an error when given something other than a Hash' do
@@ -173,6 +176,7 @@ RSpec.describe(MB::M::Plot) do
         expect(text).to include('----')
         expect(text).to include('+-+')
         expect(lines.count).to eq(80)
+        plot.close
       rescue Exception => e
         raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
