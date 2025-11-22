@@ -1,6 +1,7 @@
 require 'pty'
 require 'tempfile'
 require 'timeout'
+require 'securerandom'
 
 module MB
   module M
@@ -44,6 +45,8 @@ module MB
       # Creates an ASCII-art plotter sized to the terminal.
       # The :width_fraction and :height_fraction parameters compensate for
       # character aspect ratio so an "80x80" plot will look square.
+      #
+      # TODO: it looks like GNUplot might have its own aspect ratio compensation
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
         cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
         rows = ENV['PLOT_HEIGHT']&.to_i || ((height || (MB::U.height - 1)) * height_fraction).round
@@ -88,7 +91,10 @@ module MB
 
         @buf = []
         @buf_idx = 0 # offset in the buf where we left off looking for something
-        @stdout, @stdin, @pid = PTY.spawn('gnuplot')
+        @stdout, @stdin, @pid = PTY.spawn('stty -echo ; gnuplot')
+
+        # Disable echo-back on the PTY
+        @stdin.raw!
 
         @run = true
         @debug = ENV['PLOT_DEBUG'] == '1'
@@ -126,13 +132,22 @@ module MB
       def command(cmd)
         raise PlotError, 'Plot is closed' unless @stdin
 
-        @stdin.puts cmd
-        wait_prompt # wait for the 'gnuplot>' that came before the current line
+        cmd_id = SecureRandom.uuid
+        marker = "done #{cmd_id}"
+        cmdline = "#{cmd} ; print \"\\n\\144\\157\\156\\145 #{cmd_id}\""
 
-        @stdin.puts # 'gnuplot>' isn't printed with a new line, so make a new line
-        wait_prompt
+        STDERR.puts "\e[32m[Plot sending \e[1m#{cmdline.inspect}\e[22m]\e[0m" if @debug
 
-        # FIXME: sometimes the command text leaks out from here into the plot output
+        @stdin.puts cmdline
+        wait_for(marker)
+
+        read.tap { |lines|
+          d = ''
+          d = lines.pop until d.include?(marker)
+          d = lines.shift while lines.first&.strip&.end_with?('plot>')
+
+          STDERR.puts "\e[35m[Plot command response received: #{lines.length} lines]\n\e[1m>#{lines.join("\n>")}\e[0m" if @debug
+        }
       end
 
       # Change the terminal type to +terminal+ (defaults to 'qt') with window title
@@ -142,7 +157,8 @@ module MB
         @title = title || @title || ''
         @width = width || @width || 800
         @height = height || @height || 800
-        command "set terminal #{terminal} #{title ? "title #{@title.inspect}" : ""} size #{@width},#{@height} enhanced font 'Helvetica,10'"
+        font = terminal == 'dumb' ? '' :"font 'Helvetica,10'"
+        command "set terminal #{terminal} #{title ? "title #{@title.inspect}" : ""} size #{@width},#{@height} enhanced #{font}"
       end
 
       # Switches the GNUplot terminal to write to a PNG file on the next plot.
@@ -171,11 +187,11 @@ module MB
         err = nil
 
         if @stdin
-          @stdin.puts 'exit'
+          @stdin.puts 'print "\ngoodbye" ; exit'
           @stdin.puts ''
           @stdin.puts ''
           @stdin.flush
-          wait_for(/plot>[[:space:]]*exit/, join: true) rescue err ||= $!
+          wait_for('goodbye', join: true) rescue err ||= $!
 
           @stdin.close
           @stdin = nil
@@ -396,12 +412,11 @@ module MB
           command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]} fillcolor white"}
         end
 
-        command 'unset multiplot'
+        output = command('unset multiplot')
 
         if @terminal == 'dumb'
-          print_terminal_plot(print)
+          print_terminal_plot(print, output)
         else
-          read
           nil
         end
       end
@@ -417,58 +432,11 @@ module MB
         @tempfiles.clear
       end
 
-      def print_terminal_plot(print)
-        lines = nil
-        buf = []
-        3.times do
-          buf += read
-
-          while buf.last.include?('plot>') || buf.last.empty?
-            removed = buf.pop
-            STDERR.puts("\e[1;38;5;184m[Plot removing #{removed.inspect} from end]\e[0m") if @debug
-            break if removed.include?('plot>')
-          end
-
-          start_index = buf.rindex { |l| l.include?('plot>') || l.include?('unset multiplot') }&.+(1)
-          start_index += 1 if start_index < buf.length && buf[start_index].empty?
-          raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
-
-          if @debug && start_index
-            buf[0...start_index].each do |l|
-              STDERR.puts("\e[1;38;5;184m[Plot skipped #{l.inspect} from start]\e[0m")
-            end
-          end
-
-          # This is a hack doubling down on a poor design.  In the end I might
-          # have to design this in a way that concretely grabs exactly what I
-          # want rather than kind of fuzzing around the prompts and blank lines
-          # and whatnot.  But so be it.
-          #
-          # Limit sequential blank lines to one.
-          prior = nil
-          buf = buf.map { |line, prior|
-            result = line == "" && prior == "" ? nil : line
-            prior = line
-            result
-          }
-
-          start_index ||= 0
-          lines = buf[start_index..]
-
-          # TODO: use wait_for or something to make sure we have a full plot
-          break if lines
-          STDERR.puts("\e[1;38;5;203m[Plot looping to find terminal plot; #{buf&.count.inspect} lines so far]\n\t#{buf.map(&:inspect).join("\n\t")}\e[0m") if @debug
-          sleep 0.1
-        end
-
+      def print_terminal_plot(print, lines)
         row = 0
         in_graph = false
         colored_lines = []
         lines.flat_map.with_index { |l, idx|
-          # Sometimes blank lines show up in the middle of a graph, so skip them
-          # I suspect the blank lines are from the extra line sent by #command
-          next if in_graph && l.empty?
-
           if l.match?(/\+-{10,}\+/)
             if in_graph
               in_graph = false
@@ -510,6 +478,8 @@ module MB
       # +text+ is an Array, with a default +timeout+ of 5s (or whatever was
       # passed to the constructor).
       def wait_for(text, join: false, timeout: nil)
+        STDERR.puts "\e[34m[Plot waiting for \e[1m#{text.inspect}\e[22m]\e[0m" if @debug
+
         timeout ||= @timeout
 
         start = ::MB::U.clock_now

@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'shellwords'
 
-RSpec.describe MB::M::Plot do
+RSpec.describe(MB::M::Plot) do
   describe '#close' do
     it 'closes the plotter' do
       p = MB::M::Plot.terminal(width: 40, height: 20)
@@ -148,7 +148,7 @@ RSpec.describe MB::M::Plot do
     it 'can plot a Numo::NArray' do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
-      expect(lines.count).to be_between(79, 81)
+      expect(lines.count).to eq(81) # FIXME: why 81?
     rescue Exception => e
       raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
     end
@@ -172,7 +172,7 @@ RSpec.describe MB::M::Plot do
         expect(text).to include('siney ****')
         expect(text).to include('----')
         expect(text).to include('+-+')
-        expect(lines.count).to be_between(79, 81)
+        expect(lines.count).to eq(80)
       rescue Exception => e
         raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end

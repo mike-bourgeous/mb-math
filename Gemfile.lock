@@ -7,7 +7,7 @@ GIT
 PATH
   remote: .
   specs:
-    mb-math (0.3.1.usegit)
+    mb-math (0.4.0.usegit)
       bigdecimal (~> 3.1.8)
       cmath (~> 1.0.0)
       matrix (~> 0.4.2)
