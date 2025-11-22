@@ -439,6 +439,19 @@ module MB
             end
           end
 
+          # This is a hack doubling down on a poor design.  In the end I might
+          # have to design this in a way that concretely grabs exactly what I
+          # want rather than kind of fuzzing around the prompts and blank lines
+          # and whatnot.  But so be it.
+          #
+          # Limit sequential blank lines to one.
+          prior = nil
+          buf = buf.map { |line, prior|
+            result = line == "" && prior == "" ? nil : line
+            prior = line
+            result
+          }
+
           start_index ||= 0
           lines = buf[start_index..]
 
