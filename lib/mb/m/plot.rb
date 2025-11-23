@@ -1,6 +1,7 @@
 require 'pty'
 require 'tempfile'
 require 'timeout'
+require 'securerandom'
 
 module MB
   module M
@@ -15,7 +16,7 @@ module MB
     #
     #     p = MB::M::Plot.terminal
     #
-    #     # Debug plotting issues
+    #     # Debug plotting issues; can also set env PLOT_DEBUG=1
     #     p.debug = true
     #
     #     # Data arrays directly
@@ -44,6 +45,8 @@ module MB
       # Creates an ASCII-art plotter sized to the terminal.
       # The :width_fraction and :height_fraction parameters compensate for
       # character aspect ratio so an "80x80" plot will look square.
+      #
+      # TODO: it looks like GNUplot might have its own aspect ratio compensation
       def self.terminal(width_fraction: 1.0, height_fraction: 0.5, width: nil, height: nil)
         cols = ENV['PLOT_WIDTH']&.to_i || (((width || MB::U.width) - 1) * width_fraction).round
         rows = ENV['PLOT_HEIGHT']&.to_i || ((height || (MB::U.height - 1)) * height_fraction).round
@@ -88,10 +91,13 @@ module MB
 
         @buf = []
         @buf_idx = 0 # offset in the buf where we left off looking for something
-        @stdout, @stdin, @pid = PTY.spawn('gnuplot')
+        @stdout, @stdin, @pid = PTY.spawn('stty -echo ; gnuplot')
+
+        # Disable echo-back on the PTY
+        @stdin.raw!
 
         @run = true
-        @debug = false
+        @debug = ENV['PLOT_DEBUG'] == '1'
         @print = true
         @t = Thread.new do read_loop end
 
@@ -103,8 +109,10 @@ module MB
           close rescue nil
         end
 
-        # Wait for any output
-        wait_for('')
+        # Wait for GNUplot to be ready (\150 is octal h, so that we only match
+        # on successfully printed output)
+        @stdin.puts "print \"\\n\\n\150ello ruby\""
+        wait_for('hello ruby')
 
         terminal(terminal: terminal, title: title)
       rescue Errno::ENOENT => e
@@ -115,6 +123,7 @@ module MB
       # clears the buffer.
       def read
         @read_mutex.synchronize {
+          STDERR.puts "\e[1;38;5;191m[Plot reading #{@buf.count} with search at #{@buf_idx}, ending at #{@line_index}]\e[0m" if @debug
           @buf_idx = 0
           @buf.dup.tap { @buf.clear }
         }
@@ -125,11 +134,27 @@ module MB
       def command(cmd)
         raise PlotError, 'Plot is closed' unless @stdin
 
-        @stdin.puts cmd
-        wait_prompt # wait for the 'gnuplot>' that came before the current line
+        cmd_id = SecureRandom.uuid
+        marker = "done #{cmd_id}"
+        cmdline = "#{cmd} ; print \"\\n\\144\\157\\156\\145 #{cmd_id}\""
 
-        @stdin.puts # 'gnuplot>' isn't printed with a new line, so make a new line
-        wait_prompt
+        STDERR.puts "\e[32m[Plot sending \e[1m#{cmdline.inspect}\e[22m]\e[0m" if @debug
+
+        @stdin.puts cmdline
+        wait_for(marker)
+
+        read.tap { |lines|
+          prior_count = lines.length
+
+          d = ''
+          d = lines.pop until d.include?(marker)
+          d = lines.shift while lines.first&.strip&.end_with?('plot>')
+
+          STDERR.puts "\e[35m[Plot command response received: #{lines.length} lines out of #{prior_count}]\n\e[1m>#{lines.join("\n>")}\e[0m" if @debug
+        }
+
+      rescue => e
+        raise PlotError, "Error running command #{cmd.inspect}: #{e}"
       end
 
       # Change the terminal type to +terminal+ (defaults to 'qt') with window title
@@ -139,7 +164,8 @@ module MB
         @title = title || @title || ''
         @width = width || @width || 800
         @height = height || @height || 800
-        command "set terminal #{terminal} #{title ? "title #{@title.inspect}" : ""} size #{@width},#{@height} enhanced font 'Helvetica,10'"
+        font = terminal == 'dumb' ? '' :"font 'Helvetica,10'"
+        command "set terminal #{terminal} #{title ? "title #{@title.inspect}" : ""} size #{@width},#{@height} enhanced #{font}"
       end
 
       # Switches the GNUplot terminal to write to a PNG file on the next plot.
@@ -168,11 +194,11 @@ module MB
         err = nil
 
         if @stdin
-          @stdin.puts 'exit'
+          @stdin.puts 'print "\ngoodbye" ; exit'
           @stdin.puts ''
           @stdin.puts ''
           @stdin.flush
-          wait_for(/plot>[[:space:]]*exit/, join: true) rescue err ||= $!
+          wait_for('goodbye', join: true) rescue err ||= $!
 
           @stdin.close
           @stdin = nil
@@ -393,12 +419,11 @@ module MB
           command %Q{#{cmd} '#{file.path}' using #{range} with #{plotinfo[:type] || @type} title '#{name}' lt rgb "##{'%02x%02x%02x' % [r,g,b]} fillcolor white"}
         end
 
-        command 'unset multiplot'
+        output = command('unset multiplot')
 
         if @terminal == 'dumb'
-          print_terminal_plot(print)
+          print_terminal_plot(print, output)
         else
-          read
           nil
         end
       end
@@ -414,43 +439,31 @@ module MB
         @tempfiles.clear
       end
 
-      def print_terminal_plot(print)
-        buf = read.drop_while { |l| l.include?('plot>') || (l.strip.start_with?(/[[:alpha:]]/) && !l.match?(/[-+*]{3,}/)) }[0..-2]
-        start_index = buf.rindex { |l| l.include?('plot>') }
-        raise "Error: no plot was found within #{buf}" unless buf.count > 3 || start_index
-        start_index ||= 0
-        lines = buf[(start_index + 2)..-1]
-
+      def print_terminal_plot(print, lines)
         row = 0
         in_graph = false
-        lines.map!.with_index { |l, idx|
+        colored_lines = []
+        lines.flat_map.with_index { |l, idx|
           if l.match?(/\+-{10,}\+/)
             if in_graph
               in_graph = false
               row += 1
             else
               in_graph = true
-              l = "\n#{l}"
             end
           end
 
           clr = (row + 1) % 6 + 31
-          l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
+          colored_lines << l.gsub(/\s+([+-]?\d+(\.\d+)?\s*){1,}/, "\e[1;35m\\&\e[0m")
             .gsub(/([[:alnum:]_-]+ ){0,}[*]+/, "\e[1;#{clr}m\\&\e[0m")
             .gsub(/(?<=[|])-[+]| [+] |[+]-(?=[|])/, "\e[1;35m\\&\e[0m")
             .gsub(/[+]-+[+]|[|]/, "\e[1;30m\\&\e[0m")
         }
 
-        if lines.any? { |l| l.include?('plot>') } # XXX seeing some spurious lines above graphs
-          puts "\e[1;31mBUG: prompt lines present in graph??\e[0m"
-          puts MB::U.highlight(lines)
-          binding.pry
-        end
-
         if @print && print
-          puts lines
+          puts colored_lines
         else
-          lines
+          colored_lines
         end
       end
 
@@ -464,6 +477,8 @@ module MB
       # +text+ is an Array, with a default +timeout+ of 5s (or whatever was
       # passed to the constructor).
       def wait_for(text, join: false, timeout: nil)
+        STDERR.puts "\e[34m[Plot waiting for \e[1m#{text.inspect}\e[22m]\e[0m" if @debug
+
         timeout ||= @timeout
 
         start = ::MB::U.clock_now
@@ -495,13 +510,16 @@ module MB
 
       # Background thread runs this to read GNUplot's output.
       def read_loop
+        @line_index ||= 0
+
         while @run
           line = @stdout.readline.rstrip
           @read_mutex.synchronize {
             @buf << line
           }
 
-          puts "\e[33mGNUPLOT: \e[1m#{line}\e[0m" if @debug
+          STDERR.puts "\e[33mGNUPLOT #{@line_index}: \e[1m#{line}\e[0m" if @debug
+          @line_index += 1
         end
 
       rescue StopReadLoop, Errno::EIO

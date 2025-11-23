@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'shellwords'
 
-RSpec.describe MB::M::Plot do
+RSpec.describe(MB::M::Plot) do
   describe '#close' do
     it 'closes the plotter' do
       p = MB::M::Plot.terminal(width: 40, height: 20)
@@ -17,6 +17,7 @@ RSpec.describe MB::M::Plot do
   describe '#plot' do
     let(:plot) { MB::M::Plot.terminal(width: 80, height: 50) }
     let(:data) { {test123: [1, 0, 0, 0, 0], data321: [1, 0, 1, 0, 0, 0]} }
+    let(:data2) { {d1: [0, 0, 1, 0, 0], d2: [0, 1, 1, 0, 0, 0]} }
     let(:scatter) {
       {
         scatter123: [
@@ -36,6 +37,10 @@ RSpec.describe MB::M::Plot do
         ],
       }
     }
+
+    after do
+      plot.close
+    end
 
     context 'with the dumb terminal type' do
       it 'can plot to an array of lines' do
@@ -99,7 +104,7 @@ RSpec.describe MB::M::Plot do
         lines = plot.plot(data, columns: 1, rows: 2, print: false)
         border_line = lines.detect { |l| l.include?('----') }
 
-        # Expect the border to be half the screen width
+        # Expect the border to be the full screen width
         expect(border_line.match(/---+/).to_s.length).to be_between(plot.width * 0.7, plot.width)
 
         # Expect the legend of both plots not to be on the same line
@@ -108,6 +113,22 @@ RSpec.describe MB::M::Plot do
 
         second_legend = lines.select { |l| l.include?('test123') }.first
         expect(second_legend).not_to include('data321')
+      end
+
+      it 'can plot using rows and columns' do
+        lines = plot.plot(data.merge(data2), columns: 2, rows: 2, print: false)
+        border_line = lines.detect { |l| l.include?('----') }
+
+        # Expect the border to be half the screen width
+        expect(border_line.match(/\+---+\+/).to_s.length).to be_between(plot.width / 3, plot.width / 2)
+
+        # Expect the legend of first row of plots to be on the same line
+        legend_line = lines.select { |l| l.include?('data321') }.first
+        expect(legend_line).to include('test123')
+
+        # Expect the legend of second row of plots to be on the same line
+        legend_line = lines.select { |l| l.include?('d1') }.first
+        expect(legend_line).to include('d2')
       end
 
       it 'can draw a scatter plot' do
@@ -123,6 +144,8 @@ RSpec.describe MB::M::Plot do
         sideways_lines = lines.map { |l| l.ljust(80).chars }.transpose.map(&:join)
         overlapping_lines = sideways_lines.select { |l| l =~ /-(\s+\*+){2,}/ }
         expect(overlapping_lines.count).to be > 4
+      rescue Exception => e
+        raise e.class, "#{e.message}\n\t#{sideways_lines.map(&:inspect).join("\n\t")}\n\n\t#{overlapping_lines.map(&:inspect).join("\n\t")}\n\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
     end
 
@@ -130,6 +153,7 @@ RSpec.describe MB::M::Plot do
       plot = MB::M::Plot.terminal(width: 80, height: 80, height_fraction: 1)
       lines = plot.plot({data: Numo::SFloat[10, -10, 10, -10, 10]}, print: false)
       expect(lines.count).to eq(80)
+      plot.close
     end
 
     it 'raises an error when given something other than a Hash' do
@@ -150,7 +174,11 @@ RSpec.describe MB::M::Plot do
         text = MB::U.remove_ansi(lines.join("\n"))
         expect(text).to include('siney ****')
         expect(text).to include('----')
+        expect(text).to include('+-+')
         expect(lines.count).to eq(80)
+        plot.close
+      rescue Exception => e
+        raise e.class, "#{e.message}\n\t#{lines.map(&:inspect).join("\n\t")}"
       end
     end
 
