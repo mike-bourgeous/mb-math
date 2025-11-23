@@ -109,8 +109,10 @@ module MB
           close rescue nil
         end
 
-        # Wait for any output
-        wait_for('')
+        # Wait for GNUplot to be ready (\150 is octal h, so that we only match
+        # on successfully printed output)
+        @stdin.puts "print \"\\n\\n\150ello ruby\""
+        wait_for('hello ruby')
 
         terminal(terminal: terminal, title: title)
       rescue Errno::ENOENT => e
@@ -142,12 +144,17 @@ module MB
         wait_for(marker)
 
         read.tap { |lines|
+          prior_count = lines.length
+
           d = ''
           d = lines.pop until d.include?(marker)
           d = lines.shift while lines.first&.strip&.end_with?('plot>')
 
-          STDERR.puts "\e[35m[Plot command response received: #{lines.length} lines]\n\e[1m>#{lines.join("\n>")}\e[0m" if @debug
+          STDERR.puts "\e[35m[Plot command response received: #{lines.length} lines out of #{prior_count}]\n\e[1m>#{lines.join("\n>")}\e[0m" if @debug
         }
+
+      rescue => e
+        raise PlotError, "Error running command #{cmd.inspect}: #{e}"
       end
 
       # Change the terminal type to +terminal+ (defaults to 'qt') with window title
