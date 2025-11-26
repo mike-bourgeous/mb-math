@@ -107,7 +107,9 @@ module MB
       #
       # If +:force_decimal+ is true, then integer values will still print a
       # decimal point.  This is useful for keeping the width of a displayed
-      # value nearly constant.
+      # value nearly constant.  If +:force_decimal+ is false, then no decimal
+      # point will be displayed and effectively 3 figures of precision will be
+      # used.  If +:force_decimal+ is an IntegerThe default is nil.
       #
       # If +:force_sign+ is true, then a plus sign will be placed in front of
       # non-negative values.
@@ -122,7 +124,7 @@ module MB
       #     sigformat(0.12345) # => '123m'
       #     sgiformat(123, 1) # => '100'
       #     sigformat(0.0001234) # => "123\u00b5"
-      def sigformat(value, figs = 3, force_decimal: false, force_sign: false)
+      def sigformat(value, figs = 3, force_decimal: nil, force_sign: false)
         if value != 0
           log = Math.log10(value.abs)
           order = log.floor
@@ -140,9 +142,12 @@ module MB
         sign_prefix = force_sign ? '+' : ''
 
         extra = 1 if extra < 1 && force_decimal
+        extra = force_decimal if force_decimal.is_a?(Integer)
 
-        if !force_decimal && (extra <= 0 || sig == sig.round)
+        if force_decimal == nil && (extra <= 0 || sig == sig.round)
           "%#{sign_prefix}.0f#{prefix}" % sig
+        elsif force_decimal == false
+          "%#{sign_prefix}d#{prefix}" % sig.round
         else
           "%#{sign_prefix}.#{extra}f#{prefix}" % sig
         end
