@@ -418,11 +418,24 @@ module MB
       end
 
       # Performs direct convolution of +array1+ with +array2+, returning a new
-      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm.
+      # Array or Numo::NArray with the result.  Uses a naive O(n*m) algorithm
+      # which is faster than FFT-based convolution when array sizes are around
+      # 5-10 elements, but otherwise much slower.
+      #
+      # You should use #fftconvolve in most cases, unless exact results are
+      # needed.
       def convolve(array1, array2)
         array1, array2 = array2, array1 if array2.length > array1.length
 
         length = array1.length + array2.length - 1
+
+        if length > 100
+          @@warned_about_convolution ||= false
+          unless @@warned_about_convolution
+            warn 'SPEED WARNING: Use fftconvolve for faster convolution'
+            @@warned_about_convolution = true
+          end
+        end
 
         if array1.is_a?(Array) && array2.is_a?(Array)
           result = Array.new(length, 0)
@@ -437,6 +450,19 @@ module MB
         end
 
         result
+      end
+
+      # Uses FFT multiplication to perform fast convolution of +array1+ with
+      # +array2+, which may be 1D Ruby Arrays or Numo::NArrays.  Returns a
+      # Numo::NArray with the result.
+      #
+      # If both +array1+ and +array2+ are already Numo::NArrays, you should
+      # consider calling Numo::Pocketfft.fftconvolve directly instead.
+      def fftconvolve(array1, array2)
+        type = promoted_array_type(array1, array2)
+        array1 = type.cast(array1) if array1.is_a?(Array)
+        array2 = type.cast(array2) if array2.is_a?(Array)
+        Numo::Pocketfft.fftconvolve(array1, array2)
       end
 
       # Returns the index of the first element equal to +value+ in the given

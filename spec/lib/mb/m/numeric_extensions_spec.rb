@@ -32,6 +32,24 @@ RSpec.describe(MB::M::NumericExtensions) do
       end
     end
 
+    describe '#to_nice_s' do
+      it 'can format a Complex' do
+        expect((1.2345678-5ri/3).to_nice_s).to eq("1.2346-(5/3)i")
+      end
+
+      it 'can format an integral Float' do
+        expect(1.0.to_nice_s).to eq('1')
+      end
+
+      it 'removes trailing zeros' do
+        expect(-1.5.to_nice_s).to eq('-1.5')
+      end
+
+      it 'can use different precision' do
+        expect(1.2345678.to_nice_s(1)).to eq('1.2')
+      end
+    end
+
     describe '#rotation' do
       it 'can return a 90 degree rotation matrix' do
         expect(90.degree.rotation.round(8)).to eq(Matrix[[0, -1], [1, 0]])

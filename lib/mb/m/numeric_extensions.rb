@@ -31,6 +31,29 @@ module MB
           "#{MB::M.sigfigs(self.abs.to_f, digits).to_f}\u2220#{MB::M.sigfigs(self.arg.to_f.to_degrees, digits).to_f}\u00b0"
         end
 
+        # Formats a number using up to +decimals+ digits after the decimal point.
+        def to_nice_s(decimals = 4)
+          case self
+          when Complex
+            imgs = self.imag.abs.to_nice_s(decimals)
+            imgs = "(#{imgs})" if self.imag.is_a?(Rational)
+            [self.real.to_nice_s(decimals), "#{imgs}i"].join(self.imag > 0 ? '+' : '-')
+
+          when Rational
+            to_s
+
+          when Integer
+            to_s
+
+          else
+            if self.respond_to?(:round) && self.round == self
+              self.round.to_s
+            else
+              ("%.#{decimals.to_i}f" % self).gsub(/\.?0+$/, '')
+            end
+          end
+        end
+
         # Returns a non-augmented rotation matrix of the current numeric in radians.
         #
         # Example:

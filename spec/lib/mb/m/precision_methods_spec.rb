@@ -265,6 +265,23 @@ RSpec.describe(MB::M::PrecisionMethods) do
       expect(MB::M.sigformat(40000, 4, force_decimal: true)).to eq('40.00k')
     end
 
+    it 'never includes decimals if force_decimal is false' do
+      expect(MB::M.sigformat(1.0, 4, force_decimal: false)).to eq('1')
+      expect(MB::M.sigformat(1000.0, 4, force_decimal: false)).to eq('1k')
+      expect(MB::M.sigformat(0.1001, 4, force_decimal: false)).to eq('100m')
+      expect(MB::M.sigformat(123987654, 4, force_decimal: false)).to eq('124M')
+    end
+
+    it 'accepts a number of decimals for force_decimal' do
+      expect(MB::M.sigformat(1.0, 4, force_decimal: 1)).to eq('1.0')
+      expect(MB::M.sigformat(1000, 4, force_decimal: 1)).to eq('1.0k')
+      expect(MB::M.sigformat(1000, 1, force_decimal: 3)).to eq('1.000k')
+      expect(MB::M.sigformat(0.01234, 2, force_decimal: 3)).to eq('12.000m')
+      expect(MB::M.sigformat(0.0123456, 4, force_decimal: 3)).to eq('12.350m')
+      expect(MB::M.sigformat(0.0123456, 7, force_decimal: 3)).to eq('12.346m')
+      expect(MB::M.sigformat(0.0123456, 7, force_decimal: 4)).to eq('12.3456m')
+    end
+
     it 'honors force_sign for displayed integers' do
       expect(MB::M.sigformat(0, force_sign: true)).to eq('+0')
       expect(MB::M.sigformat(0.0 * -1.0, force_sign: true)).to eq('-0')
