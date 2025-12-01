@@ -102,6 +102,8 @@ module MB
         end
       end
 
+      # TODO: floor_to for truncating an array to a multiple of a given size
+
       # Formats +value+ in with +figs+ significant figures, using SI magnitude
       # prefixes.
       #

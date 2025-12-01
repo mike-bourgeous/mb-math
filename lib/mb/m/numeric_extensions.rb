@@ -37,6 +37,7 @@ module MB
           when Complex
             imgs = self.imag.abs.to_nice_s(decimals)
             imgs = "(#{imgs})" if self.imag.is_a?(Rational)
+            imgs += '*' if imgs.match?(/[^0-9)]$/)
             [self.real.to_nice_s(decimals), "#{imgs}i"].join(self.imag > 0 ? '+' : '-')
 
           when Rational
@@ -46,7 +47,9 @@ module MB
             to_s
 
           else
-            if self.respond_to?(:round) && self.round == self
+            if self.respond_to?(:finite?) && !self.finite?
+              self.to_s
+            elsif self.respond_to?(:round) && self.round == self
               self.round.to_s
             else
               ("%.#{decimals.to_i}f" % self).gsub(/\.?0+$/, '')

@@ -48,6 +48,18 @@ RSpec.describe(MB::M::NumericExtensions) do
       it 'can use different precision' do
         expect(1.2345678.to_nice_s(1)).to eq('1.2')
       end
+
+      it 'can format an infinite Float' do
+        expect((-Float::INFINITY).to_nice_s).to eq('-Infinity')
+      end
+
+      it 'can format an infinite Complex' do
+        expect((Float::INFINITY * 1i - 3).to_nice_s).to eq('-3+Infinity*i')
+      end
+
+      it 'can format NaN' do
+        expect(Float::NAN.to_nice_s).to eq('NaN')
+      end
     end
 
     describe '#rotation' do
