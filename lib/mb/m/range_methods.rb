@@ -21,7 +21,15 @@ module MB
         out_min, out_max = to_range.begin, to_range.end
 
         # Degenerate ranges should always return the output beginning
-        return out_min if in_min == in_max || out_min == out_max
+        if in_min == in_max || out_min == out_max
+          case value
+          when Numo::NArray
+            return value.inplace? ? value.fill(out_min) : Numo::SFloat.ones(value.length).fill(out_min)
+
+          else
+            return out_min.to_f
+          end
+        end
 
         ratio = (out_max.to_f - out_min.to_f) / (in_max.to_f - in_min.to_f)
 

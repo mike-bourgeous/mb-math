@@ -18,21 +18,21 @@ RSpec.describe(MB::M::RangeMethods) do
       expect(MB::M.scale(Numo::DComplex[1+1i], 0.0..1.0, 0.0..-2.0)).to eq(Numo::DComplex[-2-2i])
     end
 
-    it 'can scale from a non-degenerate range to a degenerate range (always returning min)' do
+    it 'can scale from a non-degenerate range to a degenerate range (always returning begin)' do
       expect(MB::M.scale(5, 1..6, -1..-1)).to eq(-1)
       expect(MB::M.scale(-3, 1..6, -1..-1)).to eq(-1)
       expect(MB::M.scale(-7.2, 1..6, -1..-1)).to eq(-1)
       expect(MB::M.scale(-7.2, 6..1, -1..-1)).to eq(-1)
     end
 
-    it 'can scale from a degenerate range to a non-degenerate range (always returning min)' do
+    it 'can scale from a degenerate range to a non-degenerate range (always returning begin)' do
       expect(MB::M.scale(-1, -1..-1, 1..6)).to eq(1)
       expect(MB::M.scale(-2, -1..-1, 1..6)).to eq(1)
       expect(MB::M.scale(-0.5, -1..-1, 1..6)).to eq(1)
       expect(MB::M.scale(-0.5, -1..-1, 6..1)).to eq(6)
     end
 
-    it 'can scale from a degenerate range to a degenerate range (always returning min)' do
+    it 'can scale from a degenerate range to a degenerate range (always returning begin)' do
       expect(MB::M.scale(1, 1..1, 2..2)).to eq(2)
       expect(MB::M.scale(0, 1..1, 2..2)).to eq(2)
       expect(MB::M.scale(2, 1..1, 2..2)).to eq(2)
@@ -40,6 +40,20 @@ RSpec.describe(MB::M::RangeMethods) do
 
     it 'converts integer ranges to float' do
       expect(MB::M.scale(1, 0..2, 0..1)).to eq(0.5)
+    end
+
+    it 'can scale an NArray from a non-degenerate range to a degenerate range (always returning begin)' do
+      expect(MB::M.scale(Numo::SFloat[-3, 3, 6, 7], 1..6, -1..-1)).to eq(Numo::SFloat[-1, -1, -1, -1])
+      expect(MB::M.scale(Numo::SFloat[3, -3, 7, 4], 6..1, -1..-1)).to eq(Numo::SFloat[-1, -1, -1, -1])
+    end
+
+    it 'can scale an NArray from a degenerate range to a non-degenerate range (always returning begin)' do
+      expect(MB::M.scale(Numo::SFloat[-2, -1, 0, 1], -1..-1, 1..6)).to eq(Numo::SFloat[1, 1, 1, 1])
+      expect(MB::M.scale(Numo::SFloat[-2, -1, 0, 1], -1..-1, 6..1)).to eq(Numo::SFloat[6, 6, 6, 6])
+    end
+
+    it 'can scale from a degenerate range to a degenerate range (always returning begin)' do
+      expect(MB::M.scale(Numo::SFloat[0, 1, 2, 3], 1..1, 2..2)).to eq(Numo::SFloat[2, 2, 2, 2])
     end
   end
 
