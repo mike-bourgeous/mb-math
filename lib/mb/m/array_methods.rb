@@ -33,8 +33,22 @@ module MB
           ensure
             was_inplace ? narray.inplace! : narray.not_inplace!
           end
+
+        elsif narray.is_a?(Array) && narray.all?(Numo::NArray)
+          begin
+            was_inplace = narray.map(&:inplace?)
+            inplace ? narray.each(&:inplace!) : narray.each(&:not_inplace!)
+            yield narray
+
+          ensure
+            was_inplace.each_with_index do |inplace, idx|
+              inplace ? narray[idx].inplace! : narray[idx].not_inplace!
+            end
+          end
+
         elsif inplace
           raise ArgumentError, 'Inplace must be false if a non-Numo::NArray is given to #with_inplace'
+
         else
           yield narray
         end

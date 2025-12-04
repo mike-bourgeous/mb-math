@@ -26,10 +26,67 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect { MB::M.with_inplace(4.0, true) }.to raise_error(ArgumentError, /inplace.*false/i)
     end
 
-    pending 'non-inplace narray with inplace false'
-    pending 'non-inplace narray with inplace true'
-    pending 'inplace narray with inplace false'
-    pending 'inplace narray with inplace true'
+    it 'can leave a non-inplace narray alone' do
+      arr = Numo::SFloat[1].not_inplace!
+      MB::M.with_inplace(arr, false) do |arr2|
+        expect(arr2).not_to be_inplace
+        expect(arr).not_to be_inplace
+      end
+      expect(arr).not_to be_inplace
+    end
+
+    it 'can set inplace on a non-inplace narray' do
+      arr = Numo::SFloat[1].not_inplace!
+      MB::M.with_inplace(arr, true) do |_a|
+        expect(arr).to be_inplace
+      end
+      expect(arr).not_to be_inplace
+    end
+
+    it 'can clear inplace on an inplace narray' do
+      arr = Numo::SFloat[1].inplace!
+      MB::M.with_inplace(arr, false) do |_a|
+        expect(arr).not_to be_inplace
+      end
+      expect(arr).to be_inplace
+    end
+
+    it 'can leave an inplace narray alone' do
+      arr = Numo::SFloat[1].inplace!
+      MB::M.with_inplace(arr, true) do |_a|
+        expect(arr).to be_inplace
+      end
+      expect(arr).to be_inplace
+    end
+
+    context 'with an array of narrays' do
+      let(:arrays) {
+        [
+          Numo::SFloat[1].inplace!,
+          Numo::SFloat[2].not_inplace!,
+          Numo::SFloat[3].inplace!,
+          Numo::SFloat[4].not_inplace!
+        ]
+      }
+
+      it 'can set in-place on all given narrays' do
+        MB::M.with_inplace(arrays, true) do |blockarg|
+          expect(blockarg).to eq(arrays)
+          expect(arrays).to all(be_inplace)
+        end
+
+        expect(arrays.map(&:inplace?)).to eq([true, false, true, false])
+      end
+
+      it 'can clear in-place on all given narrays' do
+        MB::M.with_inplace(arrays, false) do |blockarg|
+          expect(blockarg).to eq(arrays)
+          expect(arrays).to all(not_be_inplace)
+        end
+
+        expect(arrays.map(&:inplace?)).to eq([true, false, true, false])
+      end
+    end
   end
 
   describe '.append_shift' do
