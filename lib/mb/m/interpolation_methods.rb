@@ -54,22 +54,25 @@ module MB
         end
       end
 
-      # Uses +a+ and +d+ as context to blend between +b+ and +c+ with a
-      # piecewise cubic function fit to (-1, a), (0, b), (1, c), (2, d).
-      def cubic_maybe(a, b, c, d, blend)
-        puts "#{a}, #{b}, #{c}, #{d}, #{blend}"
+      # Fits a cubic polynomial to (0, +y1+), (1, +y2+) with slopes (0, +d1+)
+      # and (1, +d2+), then returns the value at x = +blend+.
+      #
+      # See #cubic_lookup.
+      # TODO: support other data types like #interp does?
+      def cubic_interp(y1, d1, y2, d2, blend)
+        # https://math.stackexchange.com/a/1522453/730912
 
         xmat = Matrix[
-          [-1, 1, -1, 1],
           [0, 0, 0, 1],
           [1, 1, 1, 1],
-          [8, 4, 2, 1]
+          [0, 0, 1, 0],
+          [3, 2, 1, 0]
         ]
         ymat = Matrix[
-          [a],
-          [b],
-          [c],
-          [d]
+          [y1],
+          [y2],
+          [d1],
+          [d2]
         ]
 
         coeff = xmat.inv * ymat
@@ -79,16 +82,57 @@ module MB
         ret
       end
 
-      def cubic_lookup(array, idx)
-        # TODO option for end behavior (zero, wrap, bounce)
-        idx %= array.length
+      # Returns an interploated value from the +array+ at fractional index
+      # +idx+ using #cubic_interp.
+      #
+      # +:mode+ - Behavior for out-of-bound indices: :wrap, :bounce, :zero,
+      #           any Numeric, :clamp.
+      #
+      # TODO: Some kind of unifying design with this, #catmull_rom,
+      # #fractional_index, etc.
+      def cubic_lookup(array, idx, mode: :wrap)
         ifloor = idx.floor
         ifrac = idx - ifloor
-        cubic_maybe(
-          array[ifloor - 1],
-          array[ifloor],
-          array[(ifloor + 1) % array.length],
-          array[(ifloor + 2) % array.length],
+
+        i1 = ifloor - 1
+
+        case mode
+        when :wrap
+          v1 = array[(ifloor - 1) % array.length]
+          v2 = array[ifloor % array.length]
+          v3 = array[(ifloor + 1) % array.length]
+          v4 = array[(ifloor + 2) % array.length]
+
+        when :bounce
+          v1 = fetch_bounce(array, ifloor - 1)
+          v2 = fetch_bounce(array, ifloor)
+          v3 = fetch_bounce(array, ifloor + 1)
+          v4 = fetch_bounce(array, ifloor + 2)
+
+        when :zero, Numeric
+          mode = 0 if mode == :zero
+          v1 = fetch_constant(array, ifloor - 1, mode)
+          v2 = fetch_constant(array, ifloor, mode)
+          v3 = fetch_constant(array, ifloor + 1, mode)
+          v4 = fetch_constant(array, ifloor + 2, mode)
+
+        when :clamp
+          v1 = fetch_clamp(array, ifloor - 1)
+          v2 = fetch_clamp(array, ifloor)
+          v3 = fetch_clamp(array, ifloor + 1)
+          v4 = fetch_clamp(array, ifloor + 2)
+
+        else
+          raise "Invalid array fetch mode: #{mode.inspect}"
+        end
+
+
+        d2 = (v3 - v1) / 2
+        d3 = (v4 - v2) / 2
+
+        cubic_interp(
+          v2, d2,
+          v3, d3,
           ifrac
         )
       end

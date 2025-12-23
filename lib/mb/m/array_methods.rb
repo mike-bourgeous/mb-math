@@ -399,6 +399,49 @@ module MB
         array[idx]
       end
 
+      # Retrieves the value at index +idx+ from the +array+, wrapping around at
+      # either end.
+      #
+      # Example:
+      #     MB::M.fetch_wrap(Numo::SFloat[1, 2], 2)
+      #     # => 1
+      def fetch_wrap(array, idx)
+        array[idx % array.length]
+      end
+
+      # Retrieves the value at index +idx+ from the +array+, replacing
+      # out-of-bounds values with the given +before+ and +after+ values
+      # (+after+ defaults to +before+).
+      #
+      # Example:
+      #     MB::M.fetch_constant(Numo::SFloat[1, 2], 2)
+      #     # => 2
+      def fetch_constant(array, idx, before = 0, after = before)
+        if idx < 0
+          before
+        elsif idx > array.length - 1
+          after
+        else
+          array[idx]
+        end
+      end
+
+      # Retrieves the value at index +idx+ from the +array+, clamping indices
+      # to the start and end of the array.
+      #
+      # Example:
+      #     MB::M.fetch_clamp(Numo::SFloat[1, 2], 2)
+      #     # => 2
+      def fetch_clamp(array, idx)
+        if idx < 0
+          array[0]
+        elsif idx > array.length - 1
+          array[-1]
+        else
+          array[idx]
+        end
+      end
+
       # Repeatedly copies +:source+ into +:destination+, starting at the given
       # +:source_offset+.  Wraps around +:source+ at the end, but does not wrap
       # around +:destination+.  Both +:source+ and +:destination+ should be
@@ -424,6 +467,9 @@ module MB
       # Interpolates between values neighboring +index+ in the given +array+,
       # optionally using a given interpolation function.  See
       # InterpolationMethods#interp.
+      #
+      # TODO: consider some unifying design between this method,
+      # InterpolationMethods#cubic_lookup, etc.
       def fractional_index(array, index, func: nil)
         i1 = index.floor
         i2 = index.ceil
