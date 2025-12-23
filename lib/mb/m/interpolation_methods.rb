@@ -54,12 +54,7 @@ module MB
         end
       end
 
-      # Fits a cubic polynomial to (0, +y1+), (1, +y2+) with slopes (0, +d1+)
-      # and (1, +d2+), then returns the value at x = +blend+.
-      #
-      # See #cubic_lookup.
-      # TODO: support other data types like #interp does?
-      def cubic_interp(y1, d1, y2, d2, blend)
+      def cubic_coeffs_matrix(y1, d1, y2, d2)
         # https://math.stackexchange.com/a/1522453/730912
         xmat = Matrix[
           [0, 0, 0, 1],
@@ -73,14 +68,33 @@ module MB
           [d1],
           [d2]
         ]
+        (xmat.inv * ymat).to_a.flatten
+      end
 
-        coeff = xmat.inv * ymat
+      # Directly computes coefficients for a cubic with the given value and
+      # derivative at x=0 (y0 and d0) and x=1 (y1 and d1).
+      def cubic_coeffs_direct(y0, d0, y1, d1)
+        [
+          2 * (y0 - y1) + d0 + d1,
+          3 * (y1 - y0) - 2 * d0 - d1,
+          d0,
+          y0
+        ]
+      end
 
-        ret = coeff[0,0] * blend ** 3 + coeff[1,0] * blend ** 2 + coeff[2,0] * blend + coeff[3,0]
+      # Fits a cubic polynomial to (0, +y0+), (1, +y1+) with slopes (0, +d0+)
+      # and (1, +d1+), then returns the value at x = +blend+.
+      #
+      # See #cubic_lookup.
+      # TODO: support other data types like #interp does?
+      def cubic_interp(y0, d0, y1, d1, blend)
+        coeff = cubic_coeffs_direct(y0, d0, y1, d1)
+
+        ret = coeff[0] * blend ** 3 + coeff[1] * blend ** 2 + coeff[2] * blend + coeff[3]
         ret
       end
 
-      # Returns an interploated value from the +array+ at fractional index
+      # Returns an interpolated value from the +array+ at fractional index
       # +idx+ using #cubic_interp.
       #
       # +:mode+ - Behavior for out-of-bound indices: :wrap, :bounce, :zero,
