@@ -54,6 +54,45 @@ module MB
         end
       end
 
+      # Uses +a+ and +d+ as context to blend between +b+ and +c+ with a
+      # piecewise cubic function fit to (-1, a), (0, b), (1, c), (2, d).
+      def cubic_maybe(a, b, c, d, blend)
+        puts "#{a}, #{b}, #{c}, #{d}, #{blend}"
+
+        xmat = Matrix[
+          [-1, 1, -1, 1],
+          [0, 0, 0, 1],
+          [1, 1, 1, 1],
+          [8, 4, 2, 1]
+        ]
+        ymat = Matrix[
+          [a],
+          [b],
+          [c],
+          [d]
+        ]
+
+        coeff = xmat.inv * ymat
+
+        ret = coeff[0,0] * blend ** 3 + coeff[1,0] * blend ** 2 + coeff[2,0] * blend + coeff[3,0]
+        puts "  #{ret}\n\n"
+        ret
+      end
+
+      def cubic_lookup(array, idx)
+        # TODO option for end behavior (zero, wrap, bounce)
+        idx %= array.length
+        ifloor = idx.floor
+        ifrac = idx - ifloor
+        cubic_maybe(
+          array[ifloor - 1],
+          array[ifloor],
+          array[(ifloor + 1) % array.length],
+          array[(ifloor + 2) % array.length],
+          ifrac
+        )
+      end
+
       # Turns +path+, an Array of keys and indexes from navigating nested
       # Arrays and Hashes, into a String representing the path.
       def path_string(path, prefix: '')
