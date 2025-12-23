@@ -61,7 +61,6 @@ module MB
       # TODO: support other data types like #interp does?
       def cubic_interp(y1, d1, y2, d2, blend)
         # https://math.stackexchange.com/a/1522453/730912
-
         xmat = Matrix[
           [0, 0, 0, 1],
           [1, 1, 1, 1],
@@ -78,7 +77,6 @@ module MB
         coeff = xmat.inv * ymat
 
         ret = coeff[0,0] * blend ** 3 + coeff[1,0] * blend ** 2 + coeff[2,0] * blend + coeff[3,0]
-        puts "  #{ret}\n\n"
         ret
       end
 
