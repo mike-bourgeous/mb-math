@@ -9,7 +9,16 @@ module MB
         when Vector
           vdot = vector.dot(normal)
           vdot = vdot.to_r if vdot.is_a?(Integer)
-          vector - 2 * vdot / normal.dot(normal) * normal
+          nmag = normal.dot(normal)
+
+          if vdot.is_a?(Numo::NArray)
+            # Treat Vector of NArrays as time series of vectors
+            vector.map.with_index { |c, idx|
+              c - vdot * (2.0 * nmag / normal[idx])
+            }
+          else
+            vector - 2 * vdot / nmag * normal
+          end
 
         when Numo::NArray
           dot = (vector * normal).sum

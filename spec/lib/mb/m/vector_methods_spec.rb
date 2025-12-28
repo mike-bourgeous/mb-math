@@ -43,6 +43,8 @@ RSpec.describe(MB::M::VectorMethods, aggregate_failures: true) do
           normal: [1, 1, 1, 1, 1],
           result: [-1r/5, -16r/5, 9r/5, -26r/5, 19r/5],
         },
+
+        # TODO: Vector of NArrays for array of vector processing
       ]
     }
 
