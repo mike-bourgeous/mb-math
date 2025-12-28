@@ -14,7 +14,7 @@ module MB
           if vdot.is_a?(Numo::NArray)
             # Treat Vector of NArrays as time series of vectors
             vector.map.with_index { |c, idx|
-              c - vdot * (2.0 * nmag / normal[idx])
+              c - vdot * (2.0 / (nmag * normal[idx]))
             }
           else
             vector - 2 * vdot / nmag * normal
