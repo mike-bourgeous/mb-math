@@ -162,6 +162,9 @@ RSpec.describe(MB::M::InterpolationMethods) do
     end
   end
 
+  pending '#cubic_interp'
+  pending '#cubic_lookup'
+
   describe '#deep_math' do
     it 'can multiply Strings just because it was more work to avoid it' do
       expect(MB::M.deep_math(['a', {b: 'c'}], :*, 3)).to eq(['aaa', {b: 'ccc'}])

@@ -54,6 +54,101 @@ module MB
         end
       end
 
+      def cubic_coeffs_matrix(y1, d1, y2, d2)
+        # https://math.stackexchange.com/a/1522453/730912
+        xmat = Matrix[
+          [0, 0, 0, 1],
+          [1, 1, 1, 1],
+          [0, 0, 1, 0],
+          [3, 2, 1, 0]
+        ]
+        ymat = Matrix[
+          [y1],
+          [y2],
+          [d1],
+          [d2]
+        ]
+        (xmat.inv * ymat).to_a.flatten
+      end
+
+      # Directly computes coefficients for a cubic with the given value and
+      # derivative at x=0 (y0 and d0) and x=1 (y1 and d1).
+      def cubic_coeffs_direct(y0, d0, y1, d1)
+        [
+          2 * (y0 - y1) + d0 + d1,
+          3 * (y1 - y0) - 2 * d0 - d1,
+          d0,
+          y0
+        ]
+      end
+
+      # Fits a cubic polynomial to (0, +y0+), (1, +y1+) with slopes (0, +d0+)
+      # and (1, +d1+), then returns the value at x = +blend+.
+      #
+      # See #cubic_lookup.
+      # TODO: support other data types like #interp does?
+      def cubic_interp(y0, d0, y1, d1, blend)
+        coeff = cubic_coeffs_direct(y0, d0, y1, d1)
+
+        ret = coeff[0] * blend ** 3 + coeff[1] * blend ** 2 + coeff[2] * blend + coeff[3]
+        ret
+      end
+
+      # Returns an interpolated value from the +array+ at fractional index
+      # +idx+ using #cubic_interp.
+      #
+      # +:mode+ - Behavior for out-of-bound indices: :wrap, :bounce, :zero,
+      #           any Numeric, :clamp.
+      #
+      # TODO: Some kind of unifying design with this, #catmull_rom,
+      # #fractional_index, etc.
+      def cubic_lookup(array, idx, mode: :wrap)
+        ifloor = idx.floor
+        ifrac = idx - ifloor
+
+        i1 = ifloor - 1
+
+        case mode
+        when :wrap
+          v1 = array[(ifloor - 1) % array.length]
+          v2 = array[ifloor % array.length]
+          v3 = array[(ifloor + 1) % array.length]
+          v4 = array[(ifloor + 2) % array.length]
+
+        when :bounce
+          v1 = fetch_bounce(array, ifloor - 1)
+          v2 = fetch_bounce(array, ifloor)
+          v3 = fetch_bounce(array, ifloor + 1)
+          v4 = fetch_bounce(array, ifloor + 2)
+
+        when :zero, Numeric
+          mode = 0 if mode == :zero
+          v1 = fetch_constant(array, ifloor - 1, mode)
+          v2 = fetch_constant(array, ifloor, mode)
+          v3 = fetch_constant(array, ifloor + 1, mode)
+          v4 = fetch_constant(array, ifloor + 2, mode)
+
+        when :clamp
+          v1 = fetch_clamp(array, ifloor - 1)
+          v2 = fetch_clamp(array, ifloor)
+          v3 = fetch_clamp(array, ifloor + 1)
+          v4 = fetch_clamp(array, ifloor + 2)
+
+        else
+          raise "Invalid array fetch mode: #{mode.inspect}"
+        end
+
+
+        d2 = (v3 - v1) / 2
+        d3 = (v4 - v2) / 2
+
+        cubic_interp(
+          v2, d2,
+          v3, d3,
+          ifrac
+        )
+      end
+
       # Turns +path+, an Array of keys and indexes from navigating nested
       # Arrays and Hashes, into a String representing the path.
       def path_string(path, prefix: '')

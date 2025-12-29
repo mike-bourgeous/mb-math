@@ -777,6 +777,78 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
+  describe '#fetch_wrap' do
+    it 'can retrieve in-bounds indices' do
+      expect(MB::M.fetch_wrap([1, 2], 0)).to eq(1)
+      expect(MB::M.fetch_wrap(Numo::Int64[1, 2], 0)).to eq(1)
+    end
+
+    it 'works with the documentation example' do
+      expect(MB::M.fetch_wrap(Numo::SFloat[1, 2], 2)).to eq(1)
+    end
+
+    it 'wraps negative indices' do
+      expect(MB::M.fetch_wrap([1, 2], -2)).to eq(1)
+      expect(MB::M.fetch_wrap([1, 2], -3)).to eq(2)
+    end
+
+    it 'wraps indices past the end' do
+      expect(MB::M.fetch_wrap([1, 2, 3], 3)).to eq(1)
+      expect(MB::M.fetch_wrap([1, 2, 3], 4)).to eq(2)
+      expect(MB::M.fetch_wrap([1, 2, 3], 5)).to eq(3)
+      expect(MB::M.fetch_wrap([1, 2, 3], 6)).to eq(1)
+      expect(MB::M.fetch_wrap([1, 2, 3], 37)).to eq(2)
+      expect(MB::M.fetch_wrap(Numo::Int32[1, 2, 3], 37)).to eq(2)
+    end
+  end
+
+  describe '#fetch_constant' do
+    it 'can retrieve in-bounds indices' do
+      expect(MB::M.fetch_constant([1, 2], 0)).to eq(1)
+      expect(MB::M.fetch_constant(Numo::Int64[1, 2], 0)).to eq(1)
+    end
+
+    it 'defaults to extending with zeros' do
+      expect(MB::M.fetch_constant([1, 2], 2)).to eq(0)
+      expect(MB::M.fetch_constant([1, 2], 42)).to eq(0)
+      expect(MB::M.fetch_constant([1, 2], -1)).to eq(0)
+      expect(MB::M.fetch_constant(Numo::DFloat[1, 2], -100)).to eq(0)
+    end
+
+    it 'can extend with a given constant' do
+      expect(MB::M.fetch_constant([1, 2], 2, 1i)).to eq(1i)
+      expect(MB::M.fetch_constant([1, 2], 42, 1i)).to eq(1i)
+      expect(MB::M.fetch_constant(Numo::SComplex[1, 2], -1, 1i)).to eq(1i)
+      expect(MB::M.fetch_constant([1, 2], -100, 1i)).to eq(1i)
+    end
+
+    it 'can use different constants before and after' do
+      expect(MB::M.fetch_constant([1, 2], 2, -2i, 1i)).to eq(1i)
+      expect(MB::M.fetch_constant(Numo::DComplex[1, 2], 42, -2i, 1i)).to eq(1i)
+      expect(MB::M.fetch_constant([1, 2], -1, -2i, 1i)).to eq(-2i)
+      expect(MB::M.fetch_constant([1, 2], -100, -2i, 1i)).to eq(-2i)
+    end
+  end
+
+  describe '#fetch_clamp' do
+    it 'can retrieve in-bounds indices' do
+      expect(MB::M.fetch_clamp([1, 2], 0)).to eq(1)
+      expect(MB::M.fetch_clamp(Numo::DFloat[1, 2], 0)).to eq(1)
+    end
+
+    it 'clamps negative indices to the start of the array' do
+      expect(MB::M.fetch_clamp([1, 2], -1)).to eq(1)
+      expect(MB::M.fetch_clamp([1, 2], -13)).to eq(1)
+      expect(MB::M.fetch_clamp(Numo::SFloat[1, 2], -13)).to eq(1)
+    end
+
+    it 'clamps large indices to the end of the array' do
+      expect(MB::M.fetch_clamp([1, 2], 2)).to eq(2)
+      expect(MB::M.fetch_clamp([1, 2], 24)).to eq(2)
+      expect(MB::M.fetch_clamp(Numo::SFloat[1, 2], 24)).to eq(2)
+    end
+  end
+
   describe '.fractional_index' do
     let(:array) { [ 1, 3, 5, -5, 1.5, 2.5 + 1.0i, 1.0 - 1.0i ] }
     let(:narray) { Numo::SComplex[1, 3, 5i] }

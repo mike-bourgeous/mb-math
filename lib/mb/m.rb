@@ -18,6 +18,8 @@ require_relative 'm/trig_methods'
 require_relative 'm/regression_methods'
 require_relative 'm/root_methods'
 require_relative 'm/random_methods'
+require_relative 'm/matrix_methods'
+require_relative 'm/vector_methods'
 
 module MB
   # Functions for clamping, scaling, interpolating, etc.  Extracted from
@@ -40,6 +42,9 @@ module MB
     extend RegressionMethods
     extend RootMethods
     extend RandomMethods
+
+    extend MatrixMethods
+    extend VectorMethods
 
     # Parses +v+ as a Float or Complex.  Supports polar notation using degrees
     # separated by a less-than sign, with or without spaces.
