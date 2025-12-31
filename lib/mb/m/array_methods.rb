@@ -433,10 +433,11 @@ module MB
           return idx.map { |v| fetch_bounce(array, v) }
         end
 
+        return array[0] if array.length <= 1
         return array[idx] if idx >= 0 && idx < array.length
 
         idx %= array.length * 2 - 2
-        idx = ((array.length - 2) - idx) if idx >= (array.length - 1)
+        idx = array.length - (2 + idx) if idx >= (array.length - 1)
         array[idx]
       end
 

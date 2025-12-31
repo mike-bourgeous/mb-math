@@ -833,6 +833,13 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.fetch_bounce([1, 2, 3], -2..4)).to eq([3, 2, 1, 2, 3, 2, 1])
     end
 
+    it 'can return data from a single-element array' do
+      expect(MB::M.fetch_bounce([1], -1)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 0)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 1)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 2)).to eq(1)
+    end
+
     it 'returns elements for valid indicies normally' do
       expect(MB::M.fetch_bounce(a, 0)).to eq(1)
       expect(MB::M.fetch_bounce(a, 1)).to eq(2)
@@ -855,6 +862,7 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.fetch_bounce(a, 7)).to eq(2)
       expect(MB::M.fetch_bounce(a, 8)).to eq(1)
       expect(MB::M.fetch_bounce(a, 9)).to eq(2)
+      expect(MB::M.fetch_bounce(a, 14)).to eq(3)
     end
 
     it 'can retrieve elements from a Numo::NArray' do
