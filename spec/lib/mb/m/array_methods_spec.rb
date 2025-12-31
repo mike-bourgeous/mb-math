@@ -742,6 +742,77 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
+  describe '.fetch_oob' do
+    context 'when mode is :raise' do
+      it 'raises an error for oob' do
+        expect {MB::M.fetch_oob([1, 2], -1, mode: :raise) }.to raise_error(RangeError, /bounds/)
+        expect {MB::M.fetch_oob([1, 2], 2, mode: :raise) }.to raise_error(RangeError, /bounds/)
+      end
+    end
+
+    context 'when mode is :clamp' do
+      it 'clamps to the edges for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: :clamp)).to eq(1)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: :clamp)).to eq(3)
+      end
+    end
+
+    context 'when mode is :wrap' do
+      it 'wraps around for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: :wrap)).to eq(3)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: :wrap)).to eq(1)
+      end
+    end
+
+    context 'when mode is :bounce' do
+      it 'reflects off the ends for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -2, mode: :bounce)).to eq(3)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: :bounce)).to eq(2)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: :bounce)).to eq(2)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 4, mode: :bounce)).to eq(1)
+      end
+    end
+
+    context 'when mode is :zero' do
+      it 'returns zero for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -2, mode: :zero)).to eq(0)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: :zero)).to eq(0)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: :zero)).to eq(0)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 4, mode: :zero)).to eq(0)
+      end
+    end
+
+    context 'when mode is a Numeric' do
+      it 'returns the value for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -2, mode: -3+5i)).to eq(-3+5i)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: -3+5i)).to eq(-3+5i)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: -3+5i)).to eq(-3+5i)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 4, mode: -3+5i)).to eq(-3+5i)
+      end
+    end
+
+    context 'when mode is nil' do
+      it 'returns nil for oob' do
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -2, mode: nil)).to eq(nil)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: nil)).to eq(nil)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: nil)).to eq(nil)
+        expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 4, mode: nil)).to eq(nil)
+      end
+    end
+
+    [Array, Numo::SFloat, Numo::DComplex].each do |ctx|
+      context "with #{ctx} and mode=:clamp (tests from mb-sound)" do
+        it 'returns first and last value for oob' do
+          val = ctx[1,2,3]
+          expect(MB::M.fetch_oob(val, -2, mode: :clamp)).to eq(1)
+          expect(MB::M.fetch_oob(val, -1, mode: :clamp)).to eq(1)
+          expect(MB::M.fetch_oob(val, 3, mode: :clamp)).to eq(3)
+          expect(MB::M.fetch_oob(val, 4, mode: :clamp)).to eq(3)
+        end
+      end
+    end
+  end
+
   describe '.fetch_bounce' do
     let(:a) { [1, 2, 3, 4, 5] }
     let(:na) { Numo::SFloat.cast(a) }
@@ -828,6 +899,23 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.fetch_constant([1, 2], -1, -2i, 1i)).to eq(-2i)
       expect(MB::M.fetch_constant([1, 2], -100, -2i, 1i)).to eq(-2i)
     end
+
+    [Array, Numo::SFloat, Numo::DComplex].each do |ctx|
+      context "with #{ctx} (tests from mb-sound)" do
+        it 'returns values within bounds' do
+          val = ctx[1,2,3]
+          expect(MB::M.fetch_constant(val, 0, -1, -2)).to eq(1)
+          expect(MB::M.fetch_constant(val, 1, -1, -2)).to eq(2)
+          expect(MB::M.fetch_constant(val, 2, -1, -2)).to eq(3)
+        end
+
+        it 'returns before and after for out of bounds values' do
+          val = ctx[1,2,3]
+          expect(MB::M.fetch_constant(val, -1, -1, -2)).to eq(-1)
+          expect(MB::M.fetch_constant(val, 3, -1, -2)).to eq(-2)
+        end
+      end
+    end
   end
 
   describe '#fetch_clamp' do
@@ -902,6 +990,15 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
 
     pending 'can accept an interpolator function like smoothstep'
+
+    context 'when mode is :bounce' do
+      it 'reflects for oob' do
+        expect(MB::M.fractional_index([1, 2, 3], 2.5, mode: :bounce)).to eq(2.5)
+        expect(MB::M.fractional_index([1, 2, 3], 4.5, mode: :bounce)).to eq(1.5)
+        expect(MB::M.fractional_index([1, 2, 3], -0.5, mode: :bounce)).to eq(1.5)
+        expect(MB::M.fractional_index([1, 2, 3], -2.5, mode: :bounce)).to eq(2.5)
+      end
+    end
   end
 
   describe '#convolve' do

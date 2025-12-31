@@ -1,4 +1,4 @@
-RSpec.describe(MB::M::InterpolationMethods) do
+RSpec.describe(MB::M::InterpolationMethods, aggregate_failures: true) do
   describe '.smoothstep' do
     it 'returns reasonable values' do
       expect(MB::M.smoothstep(0)).to eq(0)
@@ -163,7 +163,34 @@ RSpec.describe(MB::M::InterpolationMethods) do
   end
 
   pending '#cubic_interp'
-  pending '#cubic_lookup'
+
+  describe '#cubic_lookup' do
+    let(:array) { Numo::SFloat[1, 2, 3, 4, -3, 4, -5] }
+
+    it 'returns on-index values exactly' do
+      expect(MB::M.cubic_lookup(array, 1)).to eq(2)
+    end
+
+    it 'blends between values' do
+      expect(MB::M.cubic_lookup(array, 1.5)).to be_within(1e-6).of(2.5)
+    end
+
+    context 'when mode is :wrap' do
+      it 'wraps around for oob' do
+        expect(MB::M.cubic_lookup(array, 6.575)).to be_within(0.1).of(-2)
+        expect(MB::M.cubic_lookup(array, 13.575)).to be_within(0.1).of(-2)
+        expect(MB::M.cubic_lookup(array, -0.425)).to be_within(0.1).of(-2)
+      end
+    end
+
+    context 'when mode is :bounce' do
+      it 'reflects for oob' do
+        expect(MB::M.cubic_lookup(array, 6.51, mode: :bounce)).to be_within(0.1).of(-0.5)
+        expect(MB::M.cubic_lookup(array, 13.5, mode: :bounce)).to be_within(1e-6).of(2.5)
+        expect(MB::M.cubic_lookup(array, -0.575, mode: :bounce)).to be_within(0.1).of(1.5)
+      end
+    end
+  end
 
   describe '#deep_math' do
     it 'can multiply Strings just because it was more work to avoid it' do

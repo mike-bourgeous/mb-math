@@ -382,6 +382,42 @@ module MB
         array.class.zeros(n).concatenate(array[0..-(n + 1)])
       end
 
+      # Retrieves the value at +idx+ from the +array+, with out-of-bounds
+      # access behavior controlled by the +:mode+ parameter.
+      #
+      # +array+ - The array or Numo::NArray to retrieve from.
+      # +idx+ - The index to retrieve, which may be negative or past the end.
+      # +:mode+ - One of :wrap, :bounce, :raise, :clamp, :zero, nil, or Numeric
+      #
+      # See #fetch_wrap, #fetch_bounce, #fetch_constant, and #fetch_clamp.
+      def fetch_oob(array, idx, mode: :wrap)
+        case mode
+        when :wrap
+          fetch_wrap(array, idx)
+
+        when :bounce
+          fetch_bounce(array, idx)
+
+        when :zero, Numeric, NilClass
+          fetch_constant(array, idx, mode == :zero ? 0 : mode)
+
+        when :clamp
+          fetch_clamp(array, idx)
+
+        when :raise
+          raise RangeError, "Index #{idx} is out of bounds for length #{array.length}"
+
+        else
+          raise ArgumentError, "Invalid array fetch mode: #{mode.inspect}"
+        end
+      end
+
+      # Retrieves values from the given +array+, wrapping around indefinitely
+      # if the index is before the beginning or after the end of the array.
+      def fetch_wrap(array, idx)
+        array[idx % array.length]
+      end
+
       # Retrieves values from the given +array+ in a zigzag, reflecting off the
       # ends of the array.  The endpoints are returned only once when passing
       # the edge of the array.
@@ -470,11 +506,11 @@ module MB
       #
       # TODO: consider some unifying design between this method,
       # InterpolationMethods#cubic_lookup, etc.
-      def fractional_index(array, index, func: nil)
+      def fractional_index(array, index, func: nil, mode: :wrap)
         i1 = index.floor
         i2 = index.ceil
         blend = index - i1
-        MB::M.interp(array[i1], array[i2], blend, func: func)
+        MB::M.interp(fetch_oob(array, i1, mode: mode), fetch_oob(array, i2, mode: mode), blend, func: func)
       end
 
       # Performs direct convolution of +array1+ with +array2+, returning a new
