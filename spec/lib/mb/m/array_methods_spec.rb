@@ -827,10 +827,52 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
 
   describe '#fetch_bounce' do
     let(:a) { [1, 2, 3, 4, 5] }
+    let(:a4) { [1, 2, 3, 4] }
+    let(:a6) { [1, 2, 3, 4, 5, -6] }
     let(:na) { Numo::SFloat.cast(a) }
 
     it 'can use a Range to retrieve multiple indices' do
       expect(MB::M.fetch_bounce([1, 2, 3], -2..4)).to eq([3, 2, 1, 2, 3, 2, 1])
+    end
+
+    it 'can return data from a single-element array' do
+      expect(MB::M.fetch_bounce([1], -1)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 0)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 1)).to eq(1)
+      expect(MB::M.fetch_bounce([1], 2)).to eq(1)
+    end
+
+    it 'can return data from a 4-element array' do
+      expect(MB::M.fetch_bounce(a4, -7)).to eq(2)
+      expect(MB::M.fetch_bounce(a4, -4)).to eq(3)
+      expect(MB::M.fetch_bounce(a4, -3)).to eq(4)
+      expect(MB::M.fetch_bounce(a4, -1)).to eq(2)
+      expect(MB::M.fetch_bounce(a4, 0)).to eq(1)
+      expect(MB::M.fetch_bounce(a4, 1)).to eq(2)
+      expect(MB::M.fetch_bounce(a4, 2)).to eq(3)
+      expect(MB::M.fetch_bounce(a4, 3)).to eq(4)
+      expect(MB::M.fetch_bounce(a4, 4)).to eq(3)
+      expect(MB::M.fetch_bounce(a4, 5)).to eq(2)
+      expect(MB::M.fetch_bounce(a4, 6)).to eq(1)
+      expect(MB::M.fetch_bounce(a4, 7)).to eq(2)
+    end
+
+    it 'can return data from a 6-element array' do
+      expect(MB::M.fetch_bounce(a6, -11)).to eq(2)
+      expect(MB::M.fetch_bounce(a6, -6)).to eq(5)
+      expect(MB::M.fetch_bounce(a6, -5)).to eq(-6)
+      expect(MB::M.fetch_bounce(a6, -1)).to eq(2)
+      expect(MB::M.fetch_bounce(a6, 0)).to eq(1)
+      expect(MB::M.fetch_bounce(a6, 1)).to eq(2)
+      expect(MB::M.fetch_bounce(a6, 2)).to eq(3)
+      expect(MB::M.fetch_bounce(a6, 3)).to eq(4)
+      expect(MB::M.fetch_bounce(a6, 4)).to eq(5)
+      expect(MB::M.fetch_bounce(a6, 5)).to eq(-6)
+      expect(MB::M.fetch_bounce(a6, 6)).to eq(5)
+      expect(MB::M.fetch_bounce(a6, 7)).to eq(4)
+      expect(MB::M.fetch_bounce(a6, 11)).to eq(2)
+      expect(MB::M.fetch_bounce(a6, 15)).to eq(-6)
+      expect(MB::M.fetch_bounce(a6, 16)).to eq(5)
     end
 
     it 'returns elements for valid indicies normally' do
@@ -855,6 +897,7 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
       expect(MB::M.fetch_bounce(a, 7)).to eq(2)
       expect(MB::M.fetch_bounce(a, 8)).to eq(1)
       expect(MB::M.fetch_bounce(a, 9)).to eq(2)
+      expect(MB::M.fetch_bounce(a, 14)).to eq(3)
     end
 
     it 'can retrieve elements from a Numo::NArray' do
