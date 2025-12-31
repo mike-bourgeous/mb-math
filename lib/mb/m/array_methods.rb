@@ -391,6 +391,10 @@ module MB
       #
       # See #fetch_wrap, #fetch_bounce, #fetch_constant, and #fetch_clamp.
       def fetch_oob(array, idx, mode: :wrap)
+        if idx.is_a?(Range)
+          return idx.map { |v| fetch_oob(array, v, mode: mode) }
+        end
+
         case mode
         when :wrap
           fetch_wrap(array, idx)
@@ -405,17 +409,14 @@ module MB
           fetch_clamp(array, idx)
 
         when :raise
-          raise RangeError, "Index #{idx} is out of bounds for length #{array.length}"
+          if idx < 0 || idx >= array.length
+            raise RangeError, "Index #{idx} is out of bounds for length #{array.length}"
+          end
+          array[idx]
 
         else
           raise ArgumentError, "Invalid array fetch mode: #{mode.inspect}"
         end
-      end
-
-      # Retrieves values from the given +array+, wrapping around indefinitely
-      # if the index is before the beginning or after the end of the array.
-      def fetch_wrap(array, idx)
-        array[idx % array.length]
       end
 
       # Retrieves values from the given +array+ in a zigzag, reflecting off the
@@ -428,6 +429,10 @@ module MB
       #     MB::M.fetch_bounce([1, 2, 3], 4) # => 1
       #     MB::M.fetch_bounce([1, 2, 3], 5) # => 2
       def fetch_bounce(array, idx)
+        if idx.is_a?(Range)
+          return idx.map { |v| fetch_bounce(array, v) }
+        end
+
         return array[idx] if idx >= 0 && idx < array.length
 
         idx %= array.length * 2 - 2
@@ -442,6 +447,10 @@ module MB
       #     MB::M.fetch_wrap(Numo::SFloat[1, 2], 2)
       #     # => 1
       def fetch_wrap(array, idx)
+        if idx.is_a?(Range)
+          return idx.map { |v| fetch_wrap(array, v) }
+        end
+
         array[idx % array.length]
       end
 
@@ -453,6 +462,10 @@ module MB
       #     MB::M.fetch_constant(Numo::SFloat[1, 2], 2)
       #     # => 2
       def fetch_constant(array, idx, before = 0, after = before)
+        if idx.is_a?(Range)
+          return idx.map { |v| fetch_constant(array, v, before, after) }
+        end
+
         if idx < 0
           before
         elsif idx > array.length - 1
@@ -469,6 +482,10 @@ module MB
       #     MB::M.fetch_clamp(Numo::SFloat[1, 2], 2)
       #     # => 2
       def fetch_clamp(array, idx)
+        if idx.is_a?(Range)
+          return idx.map { |v| fetch_clamp(array, v) }
+        end
+
         if idx < 0
           array[0]
         elsif idx > array.length - 1

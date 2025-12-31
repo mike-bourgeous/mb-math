@@ -742,15 +742,27 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
-  describe '.fetch_oob' do
+  describe '#fetch_oob' do
+    it 'can use a range to fetch multiple values' do
+      expect(MB::M.fetch_oob([1, 2, 3], 2..6)).to eq([3, 1, 2, 3, 1])
+    end
+
     context 'when mode is :raise' do
+      it 'can retrieve an in-bounds value' do
+        expect(MB::M.fetch_oob([1, 2], 0, mode: :raise)).to eq(1)
+      end
+
       it 'raises an error for oob' do
-        expect {MB::M.fetch_oob([1, 2], -1, mode: :raise) }.to raise_error(RangeError, /bounds/)
-        expect {MB::M.fetch_oob([1, 2], 2, mode: :raise) }.to raise_error(RangeError, /bounds/)
+        expect { MB::M.fetch_oob([1, 2], -1, mode: :raise) }.to raise_error(RangeError, /bounds/)
+        expect { MB::M.fetch_oob([1, 2], 2, mode: :raise) }.to raise_error(RangeError, /bounds/)
       end
     end
 
     context 'when mode is :clamp' do
+      it 'can use a range to fetch multiple values' do
+        expect(MB::M.fetch_oob([1, 2, 3], 2..6, mode: :clamp)).to eq([3, 3, 3, 3, 3])
+      end
+
       it 'clamps to the edges for oob' do
         expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], -1, mode: :clamp)).to eq(1)
         expect(MB::M.fetch_oob(Numo::SFloat[1, 2, 3], 3, mode: :clamp)).to eq(3)
@@ -813,9 +825,13 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
     end
   end
 
-  describe '.fetch_bounce' do
+  describe '#fetch_bounce' do
     let(:a) { [1, 2, 3, 4, 5] }
     let(:na) { Numo::SFloat.cast(a) }
+
+    it 'can use a Range to retrieve multiple indices' do
+      expect(MB::M.fetch_bounce([1, 2, 3], -2..4)).to eq([3, 2, 1, 2, 3, 2, 1])
+    end
 
     it 'returns elements for valid indicies normally' do
       expect(MB::M.fetch_bounce(a, 0)).to eq(1)
@@ -849,6 +865,10 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
   end
 
   describe '#fetch_wrap' do
+    it 'can use a Range to retrieve multiple indices' do
+      expect(MB::M.fetch_wrap([1, 2], -2..4)).to eq([1, 2, 1, 2, 1, 2, 1])
+    end
+
     it 'can retrieve in-bounds indices' do
       expect(MB::M.fetch_wrap([1, 2], 0)).to eq(1)
       expect(MB::M.fetch_wrap(Numo::Int64[1, 2], 0)).to eq(1)
@@ -874,6 +894,10 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
   end
 
   describe '#fetch_constant' do
+    it 'can use a Range to retrieve multiple indices' do
+      expect(MB::M.fetch_constant([1, 2], -2..4, 5, -5)).to eq([5, 5, 1, 2, -5, -5, -5])
+    end
+
     it 'can retrieve in-bounds indices' do
       expect(MB::M.fetch_constant([1, 2], 0)).to eq(1)
       expect(MB::M.fetch_constant(Numo::Int64[1, 2], 0)).to eq(1)
@@ -919,6 +943,10 @@ RSpec.describe(MB::M::ArrayMethods, :aggregate_failures) do
   end
 
   describe '#fetch_clamp' do
+    it 'can use a Range to retrieve multiple indices' do
+      expect(MB::M.fetch_clamp([1, 2, 3], -2..4)).to eq([1, 1, 1, 2, 3, 3, 3])
+    end
+
     it 'can retrieve in-bounds indices' do
       expect(MB::M.fetch_clamp([1, 2], 0)).to eq(1)
       expect(MB::M.fetch_clamp(Numo::DFloat[1, 2], 0)).to eq(1)
