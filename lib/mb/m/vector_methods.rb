@@ -7,17 +7,17 @@ module MB
       def reflect(vector, normal)
         case vector
         when Vector
-          vdot = vector.dot(normal)
-          vdot = vdot.to_r if vdot.is_a?(Integer)
-          nmag = normal.dot(normal)
+          dot = vector.dot(normal)
+          dot = dot.to_r if dot.is_a?(Integer)
+          normdot = normal.dot(normal)
 
-          if vdot.is_a?(Numo::NArray)
+          if dot.is_a?(Numo::NArray)
             # Treat Vector of NArrays as time series of vectors
             vector.map.with_index { |c, idx|
-              c - vdot * (2.0 / (nmag * normal[idx]))
+              c - 2 * dot / normdot * normal[idx]
             }
           else
-            vector - 2 * vdot / nmag * normal
+            vector - 2 * dot / normdot * normal
           end
 
         when Numo::NArray
