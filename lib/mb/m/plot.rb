@@ -134,7 +134,7 @@ module MB
       def command(cmd)
         raise PlotError, 'Plot is closed' unless @stdin
 
-        cmd_id = SecureRandom.uuid
+        cmd_id = SecureRandom.base64(9)
         marker = "done #{cmd_id}"
         cmdline = "#{cmd} ; print \"\\n\\144\\157\\156\\145 #{cmd_id}\""
 
