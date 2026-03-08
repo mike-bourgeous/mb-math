@@ -91,7 +91,7 @@ module MB
 
         @buf = []
         @buf_idx = 0 # offset in the buf where we left off looking for something
-        @stdout, @stdin, @pid = PTY.spawn('stty -echo ; gnuplot')
+        @stdout, @stdin, @pid = PTY.spawn('stty -echo ; gnuplot') # FIXME: echo stays on inside Docker container
 
         # Disable echo-back on the PTY
         @stdin.raw!
@@ -134,7 +134,7 @@ module MB
       def command(cmd)
         raise PlotError, 'Plot is closed' unless @stdin
 
-        cmd_id = SecureRandom.uuid
+        cmd_id = SecureRandom.base64(9)
         marker = "done #{cmd_id}"
         cmdline = "#{cmd} ; print \"\\n\\144\\157\\156\\145 #{cmd_id}\""
 
@@ -146,9 +146,22 @@ module MB
         read.tap { |lines|
           prior_count = lines.length
 
+          # Remove all lines after and including the marker line
           d = ''
           d = lines.pop until d.include?(marker)
-          d = lines.shift while lines.first&.strip&.end_with?('plot>')
+
+          # Remove the leading prompt line(s)
+          lines.shift while lines.first&.strip&.end_with?('plot>')
+
+          # CONTAINER HACK
+          # Remove lines with the prompt included, and remove the blank line
+          # afterward if present.  Some Docker containers or other environments
+          # return the command on the same line as the prompt, while others
+          # (GitHub CI and my own desktop) have it on a separate line.
+          if lines.first&.include?('plot>')
+            lines.shift
+            lines.shift if lines.first&.strip&.empty?
+          end
 
           STDERR.puts "\e[35m[Plot command response received: #{lines.length} lines out of #{prior_count}]\n\e[1m>#{lines.join("\n>")}\e[0m" if @debug
         }
