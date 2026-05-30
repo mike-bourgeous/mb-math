@@ -245,6 +245,11 @@ RSpec.describe(MB::M::PrecisionMethods) do
       [-0.012345, 2] => '-12m',
       [-0.012345, 4] => '-12.35m',
       [-0.012345, 6] => '-12.3450m',
+      (1 + 1i) => '(1 + 1*i)',
+      (1-1i) => '(1 - 1*i)',
+      (-1+1i) => '(-1 + 1*i)',
+      -(1+1i) => '(-1 - 1*i)',
+      [(-0.012345+12345i), 6] => '(-12.3450m + 12.3450k*i)',
     }
 
     tests.each do |input, output|
@@ -304,6 +309,14 @@ RSpec.describe(MB::M::PrecisionMethods) do
       expect(MB::M.sigformat(-0.125, force_decimal: true, force_sign: true)).to eq('-125.0m')
       expect(MB::M.sigformat(0.0125, force_decimal: true, force_sign: true)).to eq('+12.5m')
       expect(MB::M.sigformat(0.125, force_decimal: true, force_sign: true)).to eq('+125.0m')
+    end
+
+    it 'formats complex numbers' do
+      expect(MB::M.sigformat(123456-0.000125i)).to eq("(123k - 125\u00b5*i)")
+      expect(MB::M.sigformat(123456-0.000125i, force_sign: true)).to eq("(+123k - 125\u00b5*i)")
+      expect(MB::M.sigformat(-123456+0.000125i)).to eq("(-123k + 125\u00b5*i)")
+      expect(MB::M.sigformat(-123456+0.000125i, force_sign: true)).to eq("(-123k + 125\u00b5*i)")
+      expect(MB::M.sigformat(-123456+0.000125i, force_decimal: true)).to eq("(-123.0k + 125.0\u00b5*i)")
     end
   end
 end

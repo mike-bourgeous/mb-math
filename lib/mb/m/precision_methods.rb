@@ -127,6 +127,13 @@ module MB
       #     sgiformat(123, 1) # => '100'
       #     sigformat(0.0001234) # => "123\u00b5"
       def sigformat(value, figs = 3, force_decimal: nil, force_sign: false)
+        if value.is_a?(Complex)
+          real = sigformat(value.real, figs, force_decimal: force_decimal, force_sign: force_sign)
+          imag = sigformat(value.imag.abs, figs, force_decimal: force_decimal, force_sign: false)
+          op = value.imag < 0 ? '-' : '+'
+          return "(#{real} #{op} #{imag}*i)"
+        end
+
         if value != 0
           log = Math.log10(value.abs)
           order = log.floor
