@@ -18,6 +18,7 @@ require 'rspec/expectations'
 #     expect([12357]).to all_be_within(4).sigfigs.of_array([12345])
 RSpec::Matchers.define :all_be_within do |max_delta|
   match do |actual|
+    @sigfigs ||= nil
     @max_delta = max_delta
 
     begin
